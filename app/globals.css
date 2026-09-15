@@ -1,26 +1,426 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* ============================================================================
+   SGP — Système de design
+   Parti pris : un registre d'État imprimé. La hiérarchie vient de la
+   typographie et des filets, jamais des ombres ni de la couleur décorative.
+   ========================================================================= */
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+:root {
+  color-scheme: light;
+
+  /* Surfaces — neutres légèrement chauds, jamais de gris pur */
+  --sgp-canvas: #f6f6f4;
+  --sgp-surface: #ffffff;
+  --sgp-raised: #fbfbfa;
+  --sgp-sunken: #efefec;
+  --sgp-inverse: #14201f;
+
+  /* Filets — le langage d'élévation de cette application */
+  --sgp-hairline: #e4e4df;
+  --sgp-rule: #d2d2cb;
+  --sgp-rule-strong: #b4b4ab;
+
+  /* Texte */
+  --sgp-ink: #191a18;
+  --sgp-ink-muted: #63655f;
+  --sgp-ink-faint: #8d8f88;
+  --sgp-ink-inverse: #f4f4f1;
+
+  /* Accent institutionnel unique */
+  --sgp-accent: #14505f;
+  --sgp-accent-hover: #0e3f4c;
+  --sgp-accent-soft: #e3eef0;
+  --sgp-accent-ink: #0d3b47;
+
+  /* Signaux — utilisés seulement quand ils signifient quelque chose */
+  --sgp-success: #2b6b45;
+  --sgp-success-soft: #e4efe7;
+  --sgp-warning: #8a5715;
+  --sgp-warning-soft: #f6eddd;
+  --sgp-danger: #9a2b2b;
+  --sgp-danger-soft: #f4e4e4;
+  --sgp-info: #2a4f73;
+  --sgp-info-soft: #e5ebf2;
+
+  --sgp-focus: #14505f;
+
+  /* Mouvement */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-soft: cubic-bezier(0.32, 0.72, 0, 1);
+  --dur-fast: 140ms;
+  --dur-base: 220ms;
+  --dur-slow: 340ms;
+  --dur-exit: 150ms;
+  --dur-enter: 210ms;
+  --dur-move: 400ms;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+
+    --sgp-canvas: #0d100f;
+    --sgp-surface: #141817;
+    --sgp-raised: #1a1f1e;
+    --sgp-sunken: #0a0d0c;
+    --sgp-inverse: #e8e8e4;
+
+    --sgp-hairline: #242a29;
+    --sgp-rule: #2f3634;
+    --sgp-rule-strong: #454d4b;
+
+    --sgp-ink: #e7e7e3;
+    --sgp-ink-muted: #9ba09d;
+    --sgp-ink-faint: #71766f;
+    --sgp-ink-inverse: #14201f;
+
+    --sgp-accent: #5fa7ba;
+    --sgp-accent-hover: #7cbccd;
+    --sgp-accent-soft: #14282d;
+    --sgp-accent-ink: #9ccfdd;
+
+    --sgp-success: #6bb083;
+    --sgp-success-soft: #16261c;
+    --sgp-warning: #cb9a4a;
+    --sgp-warning-soft: #2a2115;
+    --sgp-danger: #d8827f;
+    --sgp-danger-soft: #2c1a1a;
+    --sgp-info: #7fa3c9;
+    --sgp-info-soft: #171f28;
+
+    --sgp-focus: #5fa7ba;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --sgp-canvas: #0d100f;
+  --sgp-surface: #141817;
+  --sgp-raised: #1a1f1e;
+  --sgp-sunken: #0a0d0c;
+  --sgp-inverse: #e8e8e4;
+
+  --sgp-hairline: #242a29;
+  --sgp-rule: #2f3634;
+  --sgp-rule-strong: #454d4b;
+
+  --sgp-ink: #e7e7e3;
+  --sgp-ink-muted: #9ba09d;
+  --sgp-ink-faint: #71766f;
+  --sgp-ink-inverse: #14201f;
+
+  --sgp-accent: #5fa7ba;
+  --sgp-accent-hover: #7cbccd;
+  --sgp-accent-soft: #14282d;
+  --sgp-accent-ink: #9ccfdd;
+
+  --sgp-success: #6bb083;
+  --sgp-success-soft: #16261c;
+  --sgp-warning: #cb9a4a;
+  --sgp-warning-soft: #2a2115;
+  --sgp-danger: #d8827f;
+  --sgp-danger-soft: #2c1a1a;
+  --sgp-info: #7fa3c9;
+  --sgp-info-soft: #171f28;
+
+  --sgp-focus: #5fa7ba;
+}
+
+@theme inline {
+  --color-canvas: var(--sgp-canvas);
+  --color-surface: var(--sgp-surface);
+  --color-raised: var(--sgp-raised);
+  --color-sunken: var(--sgp-sunken);
+  --color-inverse: var(--sgp-inverse);
+
+  --color-hairline: var(--sgp-hairline);
+  --color-rule: var(--sgp-rule);
+  --color-rule-strong: var(--sgp-rule-strong);
+
+  --color-ink: var(--sgp-ink);
+  --color-muted: var(--sgp-ink-muted);
+  --color-faint: var(--sgp-ink-faint);
+  --color-ink-inverse: var(--sgp-ink-inverse);
+
+  --color-accent: var(--sgp-accent);
+  --color-accent-hover: var(--sgp-accent-hover);
+  --color-accent-soft: var(--sgp-accent-soft);
+  --color-accent-ink: var(--sgp-accent-ink);
+
+  --color-success: var(--sgp-success);
+  --color-success-soft: var(--sgp-success-soft);
+  --color-warning: var(--sgp-warning);
+  --color-warning-soft: var(--sgp-warning-soft);
+  --color-danger: var(--sgp-danger);
+  --color-danger-soft: var(--sgp-danger-soft);
+  --color-info: var(--sgp-info);
+  --color-info-soft: var(--sgp-info-soft);
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
+
+  /* Échelle typographique — aucune taille hors de cette liste */
+  --text-2xs: 0.6875rem;
+  --text-2xs--line-height: 1rem;
+  --text-xs: 0.75rem;
+  --text-xs--line-height: 1.125rem;
+  --text-sm: 0.8125rem;
+  --text-sm--line-height: 1.25rem;
+  --text-base: 0.875rem;
+  --text-base--line-height: 1.375rem;
+  --text-md: 1rem;
+  --text-md--line-height: 1.5rem;
+  --text-lg: 1.25rem;
+  --text-lg--line-height: 1.5rem;
+  --text-xl: 1.625rem;
+  --text-xl--line-height: 1.875rem;
+  --text-2xl: 2.125rem;
+  --text-2xl--line-height: 2.25rem;
+  --text-3xl: 2.75rem;
+  --text-3xl--line-height: 2.875rem;
+
+  --radius-xs: 2px;
+  --radius-sm: 3px;
+  --radius-md: 5px;
+  --radius-lg: 7px;
+}
+
+@layer base {
+  * {
+    border-color: var(--sgp-hairline);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--sgp-canvas);
+    color: var(--sgp-ink);
+    font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+    font-size: 0.875rem;
+    line-height: 1.375rem;
+  }
+
+  /* Les chiffres s'alignent en colonne partout où ils comptent */
+  table,
+  .tnum {
+    font-variant-numeric: tabular-nums;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--sgp-focus);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  ::selection {
+    background-color: var(--sgp-accent);
+    color: var(--sgp-ink-inverse);
+  }
+
+  ::-webkit-scrollbar {
+    width: 11px;
+    height: 11px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--sgp-rule);
+    border: 3px solid var(--sgp-canvas);
+    border-radius: 99px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--sgp-rule-strong);
+  }
+}
+
+/* ============================================================================
+   Mouvement — au service de l'orientation, jamais de l'effet
+   ========================================================================= */
+
+@keyframes sgp-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes sgp-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes sgp-draw {
+  from {
+    stroke-dashoffset: var(--draw-length, 1200);
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes sgp-grow-y {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes sgp-grow-x {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes sgp-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes sgp-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@utility animate-rise {
+  animation: sgp-rise var(--dur-base) var(--ease-out) both;
+}
+
+@utility animate-fade {
+  animation: sgp-fade var(--dur-base) var(--ease-out) both;
+}
+
+@utility animate-spin-slow {
+  animation: sgp-spin 900ms linear infinite;
+}
+
+/* Révélation en cascade : chaque enfant porte son propre délai via --i */
+@utility stagger {
+  & > * {
+    animation: sgp-rise var(--dur-base) var(--ease-out) both;
+    animation-delay: calc(var(--stagger-step, 45ms) * var(--i, 0));
+  }
+}
+
+@utility skeleton {
+  background-image: linear-gradient(
+    90deg,
+    var(--sgp-sunken) 25%,
+    var(--sgp-hairline) 37%,
+    var(--sgp-sunken) 63%
+  );
+  background-size: 200% 100%;
+  animation: sgp-shimmer 1.4s ease-in-out infinite;
+}
+
+/* ============================================================================
+   Transitions de vue — la direction encode la profondeur de navigation
+   ========================================================================= */
+
+@keyframes sgp-vt-fade {
+  from {
+    opacity: 0;
+    filter: blur(2px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+
+@keyframes sgp-vt-slide {
+  from {
+    translate: var(--slide-offset, 0);
+  }
+  to {
+    translate: 0;
+  }
+}
+
+::view-transition-old(.nav-forward) {
+  --slide-offset: -40px;
+  animation:
+    var(--dur-exit) ease-in both sgp-vt-fade reverse,
+    var(--dur-move) var(--ease-soft) both sgp-vt-slide reverse;
+}
+::view-transition-new(.nav-forward) {
+  --slide-offset: 40px;
+  animation:
+    var(--dur-enter) ease-out var(--dur-exit) both sgp-vt-fade,
+    var(--dur-move) var(--ease-soft) both sgp-vt-slide;
+}
+
+::view-transition-old(.nav-back) {
+  --slide-offset: 40px;
+  animation:
+    var(--dur-exit) ease-in both sgp-vt-fade reverse,
+    var(--dur-move) var(--ease-soft) both sgp-vt-slide reverse;
+}
+::view-transition-new(.nav-back) {
+  --slide-offset: -40px;
+  animation:
+    var(--dur-enter) ease-out var(--dur-exit) both sgp-vt-fade,
+    var(--dur-move) var(--ease-soft) both sgp-vt-slide;
+}
+
+::view-transition-old(.reveal) {
+  animation: var(--dur-exit) ease-in both sgp-vt-fade reverse;
+}
+::view-transition-new(.reveal) {
+  animation: var(--dur-enter) ease-out var(--dur-exit) both sgp-vt-fade;
+}
+
+/* ============================================================================
+   Impression — ces écrans finissent souvent sur papier
+   ========================================================================= */
+
+@media print {
+  [data-print-hide] {
+    display: none !important;
+  }
+  body {
+    background: #fff;
+    color: #000;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
 }
