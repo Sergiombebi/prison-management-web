@@ -2,8 +2,9 @@
 
 /* ============================================================================
    SGP — Système de design
-   Parti pris : un registre d'État imprimé. La hiérarchie vient de la
-   typographie et des filets, jamais des ombres ni de la couleur décorative.
+   Parti pris : registre institutionnel, écriture contemporaine.
+   Violet franc sur surfaces très claires, pastels pour la donnée, formes
+   généreuses, et un mouvement qui descend l'écran de haut en bas.
    ========================================================================= */
 
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
@@ -11,46 +12,68 @@
 :root {
   color-scheme: light;
 
-  /* Surfaces — neutres légèrement chauds, jamais de gris pur */
-  --sgp-canvas: #f6f6f4;
+  /* Surfaces — blanc franc sur un fond très légèrement lavande */
+  --sgp-canvas: #f7f7fb;
   --sgp-surface: #ffffff;
-  --sgp-raised: #fbfbfa;
-  --sgp-sunken: #efefec;
-  --sgp-inverse: #14201f;
+  --sgp-raised: #fbfbfe;
+  --sgp-sunken: #f1f1f8;
+  --sgp-inverse: #2a0f66;
 
-  /* Filets — le langage d'élévation de cette application */
-  --sgp-hairline: #e4e4df;
-  --sgp-rule: #d2d2cb;
-  --sgp-rule-strong: #b4b4ab;
+  /* Filets — discrets, l'élévation vient des ombres */
+  --sgp-hairline: #e9e9f2;
+  --sgp-rule: #dcdcea;
+  --sgp-rule-strong: #b9b9cd;
 
   /* Texte */
-  --sgp-ink: #191a18;
-  --sgp-ink-muted: #63655f;
-  --sgp-ink-faint: #8d8f88;
-  --sgp-ink-inverse: #f4f4f1;
+  --sgp-ink: #17152b;
+  --sgp-ink-muted: #63617a;
+  --sgp-ink-faint: #918fa6;
+  --sgp-ink-inverse: #ffffff;
 
-  /* Accent institutionnel unique */
-  --sgp-accent: #14505f;
-  --sgp-accent-hover: #0e3f4c;
-  --sgp-accent-soft: #e3eef0;
-  --sgp-accent-ink: #0d3b47;
+  /* Accent — violet franc */
+  --sgp-accent: #6c3fed;
+  --sgp-accent-hover: #5a2ed8;
+  --sgp-accent-soft: #efebfe;
+  --sgp-accent-ink: #421faf;
 
-  /* Signaux — utilisés seulement quand ils signifient quelque chose */
-  --sgp-success: #2b6b45;
-  --sgp-success-soft: #e4efe7;
-  --sgp-warning: #8a5715;
-  --sgp-warning-soft: #f6eddd;
-  --sgp-danger: #9a2b2b;
-  --sgp-danger-soft: #f4e4e4;
-  --sgp-info: #2a4f73;
-  --sgp-info-soft: #e5ebf2;
+  /* Signaux — vifs, jamais décoratifs */
+  --sgp-success: #0f9d63;
+  --sgp-success-soft: #e2f7ee;
+  --sgp-warning: #c2740a;
+  --sgp-warning-soft: #fef4e0;
+  --sgp-danger: #dc2a4d;
+  --sgp-danger-soft: #fdeaee;
+  --sgp-info: #2b7fd4;
+  --sgp-info-soft: #dbf4ff;
 
-  --sgp-focus: #14505f;
+  --sgp-focus: #6c3fed;
+
+  /* Palette de visualisation — ordre stable pour tous les graphiques */
+  --sgp-viz-1: #6c3fed;
+  --sgp-viz-2: #38a8e8;
+  --sgp-viz-3: #f0a132;
+  --sgp-viz-4: #17b083;
+  --sgp-viz-5: #e0577f;
+
+  /* Fonds pastel correspondants (bulles, puces) */
+  --sgp-viz-1-soft: #efebfe;
+  --sgp-viz-2-soft: #dbf4ff;
+  --sgp-viz-3-soft: #fef4e0;
+  --sgp-viz-4-soft: #ddf7ef;
+  --sgp-viz-5-soft: #fdeaf1;
+
+  /* Élévation — une seule famille d'ombres, teintée du violet ambiant */
+  --shadow-1: 0 1px 2px -1px rgb(35 25 80 / 0.1), 0 1px 1px rgb(35 25 80 / 0.04);
+  --shadow-2: 0 2px 4px -2px rgb(35 25 80 / 0.08), 0 6px 16px -6px rgb(35 25 80 / 0.12);
+  --shadow-3: 0 4px 8px -4px rgb(35 25 80 / 0.08), 0 16px 32px -12px rgb(35 25 80 / 0.16);
+  --shadow-4: 0 8px 16px -8px rgb(35 25 80 / 0.1), 0 36px 64px -24px rgb(35 25 80 / 0.24);
+  --shadow-accent: 0 6px 20px -8px rgb(108 63 237 / 0.5);
 
   /* Mouvement */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
   --ease-soft: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-spring: cubic-bezier(0.34, 1.45, 0.64, 1);
   --dur-fast: 140ms;
   --dur-base: 220ms;
   --dur-slow: 340ms;
@@ -63,72 +86,108 @@
   :root:not([data-theme="light"]) {
     color-scheme: dark;
 
-    --sgp-canvas: #0d100f;
-    --sgp-surface: #141817;
-    --sgp-raised: #1a1f1e;
-    --sgp-sunken: #0a0d0c;
-    --sgp-inverse: #e8e8e4;
+    --sgp-canvas: #0c0a18;
+    --sgp-surface: #16142a;
+    --sgp-raised: #1e1b36;
+    --sgp-sunken: #110f21;
+    --sgp-inverse: #ece9ff;
 
-    --sgp-hairline: #242a29;
-    --sgp-rule: #2f3634;
-    --sgp-rule-strong: #454d4b;
+    --sgp-hairline: #272444;
+    --sgp-rule: #332f57;
+    --sgp-rule-strong: #4b4675;
 
-    --sgp-ink: #e7e7e3;
-    --sgp-ink-muted: #9ba09d;
-    --sgp-ink-faint: #71766f;
-    --sgp-ink-inverse: #14201f;
+    --sgp-ink: #eceaf7;
+    --sgp-ink-muted: #a6a2c2;
+    --sgp-ink-faint: #7b7699;
+    --sgp-ink-inverse: #17152b;
 
-    --sgp-accent: #5fa7ba;
-    --sgp-accent-hover: #7cbccd;
-    --sgp-accent-soft: #14282d;
-    --sgp-accent-ink: #9ccfdd;
+    --sgp-accent: #a68bff;
+    --sgp-accent-hover: #bda6ff;
+    --sgp-accent-soft: #241c4d;
+    --sgp-accent-ink: #c9b8ff;
 
-    --sgp-success: #6bb083;
-    --sgp-success-soft: #16261c;
-    --sgp-warning: #cb9a4a;
-    --sgp-warning-soft: #2a2115;
-    --sgp-danger: #d8827f;
-    --sgp-danger-soft: #2c1a1a;
-    --sgp-info: #7fa3c9;
-    --sgp-info-soft: #171f28;
+    --sgp-success: #34d399;
+    --sgp-success-soft: #10291f;
+    --sgp-warning: #f0b45c;
+    --sgp-warning-soft: #2b2113;
+    --sgp-danger: #fb7185;
+    --sgp-danger-soft: #2f1620;
+    --sgp-info: #60b8f0;
+    --sgp-info-soft: #10222f;
 
-    --sgp-focus: #5fa7ba;
+    --sgp-focus: #a68bff;
+
+    --sgp-viz-1: #a68bff;
+    --sgp-viz-2: #60b8f0;
+    --sgp-viz-3: #f0b45c;
+    --sgp-viz-4: #45cfa4;
+    --sgp-viz-5: #f087a8;
+
+    --sgp-viz-1-soft: #241c4d;
+    --sgp-viz-2-soft: #10222f;
+    --sgp-viz-3-soft: #2b2113;
+    --sgp-viz-4-soft: #10291f;
+    --sgp-viz-5-soft: #2f1620;
+
+    --shadow-1: 0 1px 2px rgb(0 0 0 / 0.5);
+    --shadow-2: 0 2px 6px rgb(0 0 0 / 0.5), 0 8px 20px -8px rgb(0 0 0 / 0.6);
+    --shadow-3: 0 6px 16px -6px rgb(0 0 0 / 0.55), 0 20px 40px -14px rgb(0 0 0 / 0.65);
+    --shadow-4: 0 12px 28px -10px rgb(0 0 0 / 0.6), 0 44px 76px -26px rgb(0 0 0 / 0.72);
+    --shadow-accent: 0 6px 22px -8px rgb(166 139 255 / 0.45);
   }
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
 
-  --sgp-canvas: #0d100f;
-  --sgp-surface: #141817;
-  --sgp-raised: #1a1f1e;
-  --sgp-sunken: #0a0d0c;
-  --sgp-inverse: #e8e8e4;
+  --sgp-canvas: #0c0a18;
+  --sgp-surface: #16142a;
+  --sgp-raised: #1e1b36;
+  --sgp-sunken: #110f21;
+  --sgp-inverse: #ece9ff;
 
-  --sgp-hairline: #242a29;
-  --sgp-rule: #2f3634;
-  --sgp-rule-strong: #454d4b;
+  --sgp-hairline: #272444;
+  --sgp-rule: #332f57;
+  --sgp-rule-strong: #4b4675;
 
-  --sgp-ink: #e7e7e3;
-  --sgp-ink-muted: #9ba09d;
-  --sgp-ink-faint: #71766f;
-  --sgp-ink-inverse: #14201f;
+  --sgp-ink: #eceaf7;
+  --sgp-ink-muted: #a6a2c2;
+  --sgp-ink-faint: #7b7699;
+  --sgp-ink-inverse: #17152b;
 
-  --sgp-accent: #5fa7ba;
-  --sgp-accent-hover: #7cbccd;
-  --sgp-accent-soft: #14282d;
-  --sgp-accent-ink: #9ccfdd;
+  --sgp-accent: #a68bff;
+  --sgp-accent-hover: #bda6ff;
+  --sgp-accent-soft: #241c4d;
+  --sgp-accent-ink: #c9b8ff;
 
-  --sgp-success: #6bb083;
-  --sgp-success-soft: #16261c;
-  --sgp-warning: #cb9a4a;
-  --sgp-warning-soft: #2a2115;
-  --sgp-danger: #d8827f;
-  --sgp-danger-soft: #2c1a1a;
-  --sgp-info: #7fa3c9;
-  --sgp-info-soft: #171f28;
+  --sgp-success: #34d399;
+  --sgp-success-soft: #10291f;
+  --sgp-warning: #f0b45c;
+  --sgp-warning-soft: #2b2113;
+  --sgp-danger: #fb7185;
+  --sgp-danger-soft: #2f1620;
+  --sgp-info: #60b8f0;
+  --sgp-info-soft: #10222f;
 
-  --sgp-focus: #5fa7ba;
+  --sgp-focus: #a68bff;
+
+  --sgp-viz-1: #a68bff;
+  --sgp-viz-2: #60b8f0;
+  --sgp-viz-3: #f0b45c;
+  --sgp-viz-4: #45cfa4;
+  --sgp-viz-5: #f087a8;
+
+  --sgp-viz-1-soft: #241c4d;
+  --sgp-viz-2-soft: #10222f;
+  --sgp-viz-3-soft: #2b2113;
+  --sgp-viz-4-soft: #10291f;
+  --sgp-viz-5-soft: #2f1620;
+
+  --shadow-1: 0 1px 2px rgb(0 0 0 / 0.5);
+  --shadow-2: 0 2px 6px rgb(0 0 0 / 0.5), 0 8px 20px -8px rgb(0 0 0 / 0.6);
+  --shadow-3: 0 6px 16px -6px rgb(0 0 0 / 0.55), 0 20px 40px -14px rgb(0 0 0 / 0.65);
+  --shadow-4: 0 12px 28px -10px rgb(0 0 0 / 0.6), 0 44px 76px -26px rgb(0 0 0 / 0.72);
+  --shadow-accent: 0 6px 22px -8px rgb(166 139 255 / 0.45);
 }
 
 @theme inline {
@@ -183,11 +242,21 @@
   --text-2xl--line-height: 2.25rem;
   --text-3xl: 2.75rem;
   --text-3xl--line-height: 2.875rem;
+  --text-4xl: 3.5rem;
+  --text-4xl--line-height: 3.5rem;
 
-  --radius-xs: 2px;
-  --radius-sm: 3px;
-  --radius-md: 5px;
-  --radius-lg: 7px;
+  /* Formes — généreuses, dans l'esprit du modèle */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+
+  --shadow-e1: var(--shadow-1);
+  --shadow-e2: var(--shadow-2);
+  --shadow-e3: var(--shadow-3);
+  --shadow-e4: var(--shadow-4);
+  --shadow-accent: var(--shadow-accent);
 }
 
 @layer base {
@@ -216,12 +285,12 @@
   :focus-visible {
     outline: 2px solid var(--sgp-focus);
     outline-offset: 2px;
-    border-radius: 2px;
+    border-radius: 4px;
   }
 
   ::selection {
     background-color: var(--sgp-accent);
-    color: var(--sgp-ink-inverse);
+    color: #fff;
   }
 
   ::-webkit-scrollbar {
@@ -233,11 +302,13 @@
   }
   ::-webkit-scrollbar-thumb {
     background: var(--sgp-rule);
-    border: 3px solid var(--sgp-canvas);
+    border: 3px solid transparent;
+    background-clip: content-box;
     border-radius: 99px;
   }
   ::-webkit-scrollbar-thumb:hover {
     background: var(--sgp-rule-strong);
+    background-clip: content-box;
   }
 }
 
@@ -248,7 +319,18 @@
 @keyframes sgp-rise {
   from {
     opacity: 0;
-    transform: translateY(6px);
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes sgp-pop {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
   }
   to {
     opacity: 1;
@@ -274,6 +356,7 @@
   }
 }
 
+/* Les barres poussent depuis leur base, comme dans le modèle */
 @keyframes sgp-grow-y {
   from {
     transform: scaleY(0);
@@ -292,6 +375,18 @@
   }
 }
 
+/* Les bulles arrivent en gonflant */
+@keyframes sgp-gonfle {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 @keyframes sgp-shimmer {
   from {
     background-position: 200% 0;
@@ -307,8 +402,45 @@
   }
 }
 
+@keyframes sgp-sweep {
+  from {
+    transform: translateX(-120%);
+  }
+  to {
+    transform: translateX(120%);
+  }
+}
+
+/* Pulsation d'un point SVG : on anime le rayon, pas l'opacité — sinon l'animation
+   écraserait l'attribut `opacity` de l'élément. */
+@keyframes sgp-pouls {
+  0%,
+  100% {
+    r: 7;
+  }
+  50% {
+    r: 9.5;
+  }
+}
+
+@keyframes sgp-halo {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.75;
+    transform: scale(1.12);
+  }
+}
+
 @utility animate-rise {
   animation: sgp-rise var(--dur-base) var(--ease-out) both;
+}
+
+@utility animate-pop {
+  animation: sgp-pop var(--dur-slow) var(--ease-spring) both;
 }
 
 @utility animate-fade {
@@ -322,8 +454,17 @@
 /* Révélation en cascade : chaque enfant porte son propre délai via --i */
 @utility stagger {
   & > * {
-    animation: sgp-rise var(--dur-base) var(--ease-out) both;
+    animation: sgp-pop var(--dur-slow) var(--ease-spring) both;
     animation-delay: calc(var(--stagger-step, 45ms) * var(--i, 0));
+  }
+}
+
+/* Révélation pilotée par le défilement, là où le navigateur la supporte */
+@utility reveal {
+  @supports (animation-timeline: view()) {
+    animation: sgp-rise linear both;
+    animation-timeline: view();
+    animation-range: entry 0% cover 18%;
   }
 }
 
@@ -338,6 +479,59 @@
   animation: sgp-shimmer 1.4s ease-in-out infinite;
 }
 
+/* Surface translucide — barres collantes, tiroirs, palette de commandes */
+@utility verre {
+  background-color: color-mix(in oklab, var(--sgp-surface) 78%, transparent);
+  backdrop-filter: blur(16px) saturate(1.6);
+  -webkit-backdrop-filter: blur(16px) saturate(1.6);
+}
+
+/* Carte qui se soulève au survol — réservée aux éléments cliquables */
+@utility lift {
+  transition:
+    transform var(--dur-base) var(--ease-out),
+    box-shadow var(--dur-base) var(--ease-out),
+    border-color var(--dur-base) var(--ease-out);
+
+  &:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-3);
+  }
+
+  &:active {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-1);
+  }
+}
+
+/* Hachures diagonales — marquent la catégorie mise en avant dans un graphique */
+@utility hachure {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    color-mix(in oklab, var(--sgp-accent) 82%, white) 0 4px,
+    color-mix(in oklab, var(--sgp-accent-ink) 92%, black) 4px 8px
+  );
+}
+
+/* Liseré dégradé sur le bord supérieur d'une carte mise en avant */
+@utility filet-accent {
+  &::before {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    top: 0;
+    height: 2px;
+    border-radius: 99px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      var(--sgp-viz-1),
+      var(--sgp-viz-2),
+      transparent
+    );
+  }
+}
+
 /* ============================================================================
    Transitions de vue — la direction encode la profondeur de navigation
    ========================================================================= */
@@ -345,7 +539,7 @@
 @keyframes sgp-vt-fade {
   from {
     opacity: 0;
-    filter: blur(2px);
+    filter: blur(3px);
   }
   to {
     opacity: 1;
@@ -356,33 +550,39 @@
 @keyframes sgp-vt-slide {
   from {
     translate: var(--slide-offset, 0);
+    scale: var(--slide-scale, 1);
   }
   to {
     translate: 0;
+    scale: 1;
   }
 }
 
 ::view-transition-old(.nav-forward) {
-  --slide-offset: -40px;
+  --slide-offset: -44px;
+  --slide-scale: 0.99;
   animation:
     var(--dur-exit) ease-in both sgp-vt-fade reverse,
     var(--dur-move) var(--ease-soft) both sgp-vt-slide reverse;
 }
 ::view-transition-new(.nav-forward) {
-  --slide-offset: 40px;
+  --slide-offset: 44px;
+  --slide-scale: 0.99;
   animation:
     var(--dur-enter) ease-out var(--dur-exit) both sgp-vt-fade,
     var(--dur-move) var(--ease-soft) both sgp-vt-slide;
 }
 
 ::view-transition-old(.nav-back) {
-  --slide-offset: 40px;
+  --slide-offset: 44px;
+  --slide-scale: 0.99;
   animation:
     var(--dur-exit) ease-in both sgp-vt-fade reverse,
     var(--dur-move) var(--ease-soft) both sgp-vt-slide reverse;
 }
 ::view-transition-new(.nav-back) {
-  --slide-offset: -40px;
+  --slide-offset: -44px;
+  --slide-scale: 0.99;
   animation:
     var(--dur-enter) ease-out var(--dur-exit) both sgp-vt-fade,
     var(--dur-move) var(--ease-soft) both sgp-vt-slide;
@@ -395,6 +595,12 @@
   animation: var(--dur-enter) ease-out var(--dur-exit) both sgp-vt-fade;
 }
 
+/* Le repère de navigation glisse d'un module à l'autre */
+::view-transition-group(.repere) {
+  animation-duration: var(--dur-slow);
+  animation-timing-function: var(--ease-spring);
+}
+
 /* ============================================================================
    Impression — ces écrans finissent souvent sur papier
    ========================================================================= */
@@ -405,6 +611,7 @@
   }
   body {
     background: #fff;
+    background-image: none;
     color: #000;
   }
 }

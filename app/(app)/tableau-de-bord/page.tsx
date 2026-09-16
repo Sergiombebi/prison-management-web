@@ -6,13 +6,13 @@ import type { CategoriePenale } from "@/lib/domain/types";
 import {
   CATEGORIE_SLUG,
   LIBELLE_CATEGORIE,
+  LIBELLE_TYPE_SORTIE,
   REGLE_CATEGORIE,
 } from "@/lib/domain/referentiels";
 import {
   formatDate,
   formatDateHeure,
   formatDateLongue,
-  formatEcart,
   formatNombre,
   formatPourcent,
   joursRestants,
@@ -20,7 +20,7 @@ import {
 } from "@/lib/format";
 import { Page, PageHeader } from "@/components/layout/page";
 import { Stat, StatGrid } from "@/components/data/stat";
-import { AreaChart, BarList } from "@/components/data/charts";
+import { AreaChart, BarChart, BubbleChart } from "@/components/data/charts";
 import { EmptyState, Ecrou, Panel } from "@/components/ui/surface";
 import { Icon } from "@/components/ui/icon";
 import { ButtonLink } from "@/components/ui/button";
@@ -40,11 +40,18 @@ export default async function TableauDeBordPage() {
   const [tb, profil] = await Promise.all([api.getTableauDeBord(), getProfil()]);
 
   const ecart = tb.effectif - tb.effectifMoisPrecedent;
+  const evolution = tb.effectifMoisPrecedent > 0 ? (ecart / tb.effectifMoisPrecedent) * 100 : 0;
   const placesLibres = tb.capaciteTotale - tb.effectif;
-  const totalCategories = ORDRE_CATEGORIES.reduce(
-    (s, c) => s + tb.effectifsParCategorie[c],
-    0,
-  );
+  const totalCategories = ORDRE_CATEGORIES.reduce((s, c) => s + tb.effectifsParCategorie[c], 0);
+  const courbe = tb.populationDerniersMois.map((p) => p.population);
+
+  const mouvements = [
+    { label: "Incarcérations", valeur: tb.mouvements.incarcerations, href: "/detenus/mandats" },
+    { label: LIBELLE_TYPE_SORTIE.LiberationNormale, valeur: tb.mouvements.liberations, href: "/detenus/liberation/normale" },
+    { label: LIBELLE_TYPE_SORTIE.Transfert, valeur: tb.mouvements.transferements, href: "/detenus/liberation/transfert" },
+    { label: LIBELLE_TYPE_SORTIE.Evasion, valeur: tb.mouvements.evasions, href: "/detenus/liberation/evasion", accent: tb.mouvements.evasions > 0 },
+    { label: LIBELLE_TYPE_SORTIE.Deces, valeur: tb.mouvements.deces, href: "/detenus/liberation/deces", accent: tb.mouvements.deces > 0 },
+  ];
 
   // « Y a-t-il quelque chose à traiter maintenant ? » — la question de cet écran.
   const pointsAttention = [
@@ -74,7 +81,7 @@ export default async function TableauDeBordPage() {
     <Page>
       <PageHeader
         surtitre={formatDateLongue(new Date())}
-        titre={`Bonjour${profil ? `, ${profil.prenom}` : ""}`}
+        titre={`Bonjour${profil ? `, ${profil.prenom}` : ""} 👋`}
         description="Situation de l’établissement et points qui demandent une action aujourd’hui."
         meta={
           <span className="inline-flex items-center gap-1.5">
@@ -83,7 +90,12 @@ export default async function TableauDeBordPage() {
           </span>
         }
         actions={
-          <ButtonLink href="/detenus/nouveau" variante="primaire" icone="plus" transitionTypes={["nav-forward"]}>
+          <ButtonLink
+            href="/detenus/nouveau"
+            variante="primaire"
+            icone="plus"
+            transitionTypes={["nav-forward"]}
+          >
             Nouvel enregistrement
           </ButtonLink>
         }
@@ -95,18 +107,18 @@ export default async function TableauDeBordPage() {
           Points d’attention
         </h2>
         {pointsAttention.length === 0 ? (
-          <div className="flex items-center gap-2.5 rounded-lg border border-hairline bg-surface px-4 py-3 text-sm text-muted animate-rise">
+          <div className="flex items-center gap-2.5 rounded-lg border border-hairline bg-surface px-4 py-3 text-sm text-muted shadow-e1 animate-rise">
             <Icon name="check" size={16} className="text-success" />
             Aucun point bloquant : pas de mandat expiré, pas de surpopulation, pas d’incident signalé.
           </div>
         ) : (
-          <ul className="stagger grid gap-2 md:grid-cols-2">
+          <ul className="stagger grid gap-3 md:grid-cols-2">
             {pointsAttention.map((p, i) => (
               <li key={p.texte} style={{ ["--i" as string]: i }}>
                 <Link
                   href={p.href}
                   className={cn(
-                    "group flex h-full items-center gap-3 rounded-lg border bg-surface px-4 py-3 transition-colors",
+                    "lift group flex h-full items-center gap-3 rounded-lg border bg-surface px-4 py-3.5 shadow-e1",
                     p.ton === "critique"
                       ? "border-danger/25 hover:border-danger/50"
                       : "border-warning/25 hover:border-warning/50",
@@ -114,17 +126,19 @@ export default async function TableauDeBordPage() {
                 >
                   <span
                     className={cn(
-                      "grid size-7 shrink-0 place-items-center rounded-full",
-                      p.ton === "critique" ? "bg-danger-soft text-danger" : "bg-warning-soft text-warning",
+                      "grid size-9 shrink-0 place-items-center rounded-lg",
+                      p.ton === "critique"
+                        ? "bg-danger-soft text-danger"
+                        : "bg-warning-soft text-warning",
                     )}
                   >
-                    <Icon name={p.ton === "critique" ? "alert" : "calendar"} size={14} />
+                    <Icon name={p.ton === "critique" ? "alert" : "calendar"} size={16} />
                   </span>
                   <span className="text-sm text-ink">{p.texte}</span>
                   <Icon
                     name="arrowRight"
                     size={14}
-                    className="ml-auto shrink-0 text-faint transition-transform duration-[var(--dur-base)] group-hover:translate-x-0.5 group-hover:text-ink"
+                    className="ml-auto shrink-0 text-faint transition-transform duration-[var(--dur-base)] group-hover:translate-x-0.5 group-hover:text-accent"
                   />
                 </Link>
               </li>
@@ -133,18 +147,24 @@ export default async function TableauDeBordPage() {
         )}
       </section>
 
-      <StatGrid>
+      {/* Indicateurs clés — quatre cartes, chacune avec sa tendance */}
+      <StatGrid colonnes={4}>
         <Stat
           style={{ ["--i" as string]: 0 }}
+          icone="detenus"
           label="Population détenue"
-          valeur={formatNombre(tb.effectif)}
-          contexte={`${formatEcart(ecart)} depuis le mois dernier`}
+          nombre={tb.effectif}
+          delta={evolution}
+          deltaLibelle="vs mois dernier"
+          sparkline={courbe}
           href="/detenus"
         />
         <Stat
           style={{ ["--i" as string]: 1 }}
+          icone="cell"
           label="Taux d’occupation"
-          valeur={formatNombre(tb.tauxOccupation)}
+          nombre={tb.tauxOccupation}
+          decimales={1}
           unite="%"
           signal={tb.tauxOccupation > 100 ? "critique" : tb.tauxOccupation >= 90 ? "attention" : "neutre"}
           contexte={
@@ -156,42 +176,30 @@ export default async function TableauDeBordPage() {
         />
         <Stat
           style={{ ["--i" as string]: 2 }}
+          icone="file"
           label="Mandats expirés"
-          valeur={formatNombre(tb.mandatsExpires)}
+          nombre={tb.mandatsExpires}
           signal={tb.mandatsExpires > 0 ? "critique" : "positif"}
           contexte={tb.mandatsExpires > 0 ? "À régulariser sans délai" : "Aucun titre échu"}
           href="/etats/mandats-expires"
         />
         <Stat
           style={{ ["--i" as string]: 3 }}
-          label="Sorties prévues"
-          valeur={formatNombre(tb.sortiesPrevuesMoisProchain)}
-          contexte="Mandats échus le mois prochain"
-          href="/detenus/liberation/normale"
-        />
-        <Stat
-          style={{ ["--i" as string]: 4 }}
+          icone="user"
           label="Visites du jour"
-          valeur={formatNombre(tb.visitesAujourdhui)}
+          nombre={tb.visitesAujourdhui}
           contexte="Parloirs enregistrés aujourd’hui"
           href="/sante/visites?periode=aujourdhui"
         />
-        <Stat
-          style={{ ["--i" as string]: 5 }}
-          label="Sanctions en cours"
-          valeur={formatNombre(tb.sanctionsEnCours)}
-          signal={tb.sanctionsEnCours > 5 ? "attention" : "neutre"}
-          contexte="Mesures disciplinaires actives"
-          href="/discipline/sanctions?statut=en-cours"
-        />
       </StatGrid>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)]">
+      <div className="grid gap-3 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
         <Panel
           titre="Évolution de la population"
           sousTitre="Effectif en fin de mois, six derniers mois"
-          className="animate-rise"
-          style={{ animationDelay: "120ms" }}
+          variante="eleve"
+          accent
+          className="reveal"
         >
           <AreaChart
             legende="Évolution de la population détenue sur six mois"
@@ -202,17 +210,16 @@ export default async function TableauDeBordPage() {
         <Panel
           titre="Répartition par catégorie pénale"
           sousTitre="Calculée sur les mandats actifs, par détenu"
-          className="animate-rise"
-          style={{ animationDelay: "180ms" }}
+          variante="eleve"
+          className="reveal"
         >
-          <BarList
-            total={totalCategories}
+          <BubbleChart
+            legende="Répartition des détenus par catégorie pénale"
             items={ORDRE_CATEGORIES.map((c) => ({
               label: LIBELLE_CATEGORIE[c],
               valeur: tb.effectifsParCategorie[c],
               aide: REGLE_CATEGORIE[c],
               href: `/detenus/mandats/${CATEGORIE_SLUG[c]}`,
-              accent: c === "Dpac",
             }))}
           />
           {tb.effectif - totalCategories > 0 && (
@@ -223,38 +230,14 @@ export default async function TableauDeBordPage() {
         </Panel>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.45fr)]">
+      <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)]">
         <Panel
           titre="Mouvements"
           sousTitre="30 derniers jours"
-          className="animate-rise"
-          style={{ animationDelay: "220ms" }}
+          variante="eleve"
+          className="reveal"
         >
-          <dl className="divide-y divide-hairline">
-            {[
-              { label: "Incarcérations", valeur: tb.mouvements.incarcerations, href: "/detenus/mandats", grave: false },
-              { label: "Libérations", valeur: tb.mouvements.liberations, href: "/detenus/liberation/normale", grave: false },
-              { label: "Transfèrements", valeur: tb.mouvements.transferements, href: "/detenus/liberation/transfert", grave: false },
-              { label: "Évasions", valeur: tb.mouvements.evasions, href: "/detenus/liberation/evasion", grave: true },
-              { label: "Décès", valeur: tb.mouvements.deces, href: "/detenus/liberation/deces", grave: true },
-            ].map((m) => (
-              <div key={m.label} className="flex items-center justify-between py-2.5 first:pt-0 last:pb-0">
-                <dt>
-                  <Link href={m.href} className="text-sm text-muted transition-colors hover:text-ink">
-                    {m.label}
-                  </Link>
-                </dt>
-                <dd
-                  className={cn(
-                    "tnum text-md font-semibold",
-                    m.grave && m.valeur > 0 ? "text-danger" : "text-ink",
-                  )}
-                >
-                  {formatNombre(m.valeur)}
-                </dd>
-              </div>
-            ))}
-          </dl>
+          <BarChart legende="Mouvements des 30 derniers jours" items={mouvements} />
         </Panel>
 
         <div id="liberables" className="scroll-mt-20">
@@ -262,8 +245,8 @@ export default async function TableauDeBordPage() {
             titre="Libérables ce mois"
             sousTitre="Mandats arrivant à échéance d’ici la fin du mois"
             flush
-            className="animate-rise"
-            style={{ animationDelay: "260ms" }}
+            variante="eleve"
+            className="reveal"
           >
             {tb.liberablesCeMois.length === 0 ? (
               <EmptyState
@@ -280,23 +263,41 @@ export default async function TableauDeBordPage() {
                     <li key={`${l.numeroEcrou}-${l.dateExpiration}`}>
                       <Link
                         href={`/detenus?recherche=${encodeURIComponent(l.numeroEcrou)}`}
-                        className="flex items-center gap-4 px-4 py-2.5 transition-colors hover:bg-raised"
+                        className="group flex items-center gap-4 px-4 py-2.5 transition-colors hover:bg-raised"
                       >
-                        <div className="w-14 shrink-0 text-center">
-                          <p className={cn("tnum text-lg font-semibold leading-none", jours <= 7 ? "text-warning" : "text-ink")}>
+                        <div
+                          className={cn(
+                            "grid w-14 shrink-0 place-items-center rounded-lg py-1.5",
+                            jours <= 7 ? "bg-warning-soft" : "bg-accent-soft",
+                          )}
+                        >
+                          <span
+                            className={cn(
+                              "tnum text-lg font-semibold leading-none",
+                              jours <= 7 ? "text-warning" : "text-accent-ink",
+                            )}
+                          >
                             {jours}
-                          </p>
-                          <p className="mt-0.5 text-2xs text-faint">{jours > 1 ? "jours" : "jour"}</p>
+                          </span>
+                          <span className="mt-0.5 text-2xs text-muted">
+                            {jours > 1 ? "jours" : "jour"}
+                          </span>
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-medium text-ink">{l.nom}</p>
                           <p className="text-xs text-muted">
-                            <Ecrou className="text-xs text-muted">{l.numeroEcrou}</Ecrou> · {l.statut || "Statut non renseigné"}
+                            <Ecrou className="text-xs text-muted">{l.numeroEcrou}</Ecrou> ·{" "}
+                            {l.statut || "Statut non renseigné"}
                           </p>
                         </div>
                         <p className="tnum hidden shrink-0 text-xs text-muted sm:block">
                           échéance {formatDate(l.dateExpiration)}
                         </p>
+                        <Icon
+                          name="arrowRight"
+                          size={14}
+                          className="shrink-0 text-faint opacity-0 transition-all group-hover:translate-x-0.5 group-hover:opacity-100"
+                        />
                       </Link>
                     </li>
                   );

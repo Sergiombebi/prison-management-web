@@ -18,7 +18,7 @@ export default function RemisesDePeinePage() {
 
       <ChantierNotice points={["GET /remises-de-peine", "POST /remises-de-peine", "GET /textes-de-grace"]} />
 
-      <Panel titre="Remises accordées" flush className="overflow-hidden">
+      <Panel variante="eleve" titre="Remises accordées" flush className="overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-raised">

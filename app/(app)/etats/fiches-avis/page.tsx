@@ -37,7 +37,7 @@ export default async function FichesAvisPage(props: PageProps<"/etats/fiches-avi
       />
 
       <div className="grid items-start gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
-        <Panel titre="Document à produire" className="xl:sticky xl:top-20" >
+        <Panel variante="eleve" titre="Document à produire" className="xl:sticky xl:top-20" >
           <div data-print-hide>
             <Form action="/etats/fiches-avis" className="flex flex-col gap-4">
               <Field label="État ou avis" requis>

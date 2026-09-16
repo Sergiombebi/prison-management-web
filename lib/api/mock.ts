@@ -18,6 +18,7 @@ import {
   type MandatDetaille,
 } from "./contract";
 import * as fx from "./fixtures";
+import { getProfil } from "@/lib/session";
 
 const LATENCE_MS = Number(process.env.SGP_MOCK_LATENCE_MS ?? 250);
 
@@ -83,6 +84,19 @@ export const mockApi: ApiClient = {
       throw new ApiErreur("Ce compte est désactivé.", 403, "COMPTE_INACTIF");
     }
     return { utilisateur: u, jeton: `mock.${u.id}.${Date.now()}` };
+  },
+
+  async deconnexion() {
+    // Rien à révoquer : le jeton de démonstration n'existe que dans le cookie
+  },
+
+  async getUtilisateurCourant() {
+    const profil = await getProfil();
+    const u = profil ? fx.utilisateurs.find((x) => x.id === profil.id) : undefined;
+    if (!u || !u.estActif) {
+      throw new ApiErreur("Session invalide.", 401, "NON_AUTHENTIFIE");
+    }
+    return u;
   },
 
   async getTableauDeBord(): Promise<TableauDeBord> {

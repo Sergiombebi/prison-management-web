@@ -29,12 +29,12 @@ export default async function MandatsExpiresPage() {
       />
 
       <StatGrid colonnes={3}>
-        <Stat style={{ ["--i" as string]: 0 }} label="Mandats expirés" valeur={formatNombre(mandats.length)} signal={mandats.length > 0 ? "critique" : "positif"} contexte="À régulariser" />
-        <Stat style={{ ["--i" as string]: 1 }} label="Détenus concernés" valeur={formatNombre(detenusConcernes)} contexte="Au moins un titre échu" />
-        <Stat style={{ ["--i" as string]: 2 }} label="Échus depuis plus de 30 jours" valeur={formatNombre(plus30)} signal={plus30 > 0 ? "critique" : "neutre"} contexte="Situation la plus urgente" />
+        <Stat icone="file" style={{ ["--i" as string]: 0 }} label="Mandats expirés" valeur={formatNombre(mandats.length)} signal={mandats.length > 0 ? "critique" : "positif"} contexte="À régulariser" />
+        <Stat icone="file" style={{ ["--i" as string]: 1 }} label="Détenus concernés" valeur={formatNombre(detenusConcernes)} contexte="Au moins un titre échu" />
+        <Stat icone="file" style={{ ["--i" as string]: 2 }} label="Échus depuis plus de 30 jours" valeur={formatNombre(plus30)} signal={plus30 > 0 ? "critique" : "neutre"} contexte="Situation la plus urgente" />
       </StatGrid>
 
-      <Panel titre="Mandats à régulariser" sousTitre={`Du plus ancien dépassement au plus récent — ${pluriel(mandats.length, "mandat")}`} flush className="overflow-hidden">
+      <Panel variante="eleve" titre="Mandats à régulariser" sousTitre={`Du plus ancien dépassement au plus récent — ${pluriel(mandats.length, "mandat")}`} flush className="overflow-hidden">
         <DataTable<MandatDetaille>
           legende="Mandats expirés"
           lignes={[...mandats].sort((a, b) => depassement(b) - depassement(a))}

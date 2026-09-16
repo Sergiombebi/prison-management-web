@@ -10,10 +10,11 @@ import { Icon } from "./icon";
  */
 
 const CONTROLE =
-  "w-full rounded-md border border-rule bg-surface text-ink placeholder:text-faint " +
-  "transition-[border-color,box-shadow] duration-[var(--dur-fast)] ease-out " +
-  "hover:border-rule-strong focus:border-accent focus:outline-none focus:ring-3 focus:ring-accent/15 " +
-  "disabled:bg-sunken disabled:text-faint aria-invalid:border-danger aria-invalid:focus:ring-danger/15";
+  "w-full rounded-md border border-hairline bg-surface text-ink placeholder:text-faint shadow-e1 " +
+  "transition-[border-color,box-shadow,background-color] duration-[var(--dur-fast)] ease-out " +
+  "hover:border-rule focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent/18 " +
+  "disabled:bg-sunken disabled:text-faint disabled:shadow-none " +
+  "aria-invalid:border-danger aria-invalid:focus:ring-danger/18";
 
 interface ChampProps {
   label: string;
@@ -52,7 +53,10 @@ export function Field({ label, requis, aide, erreur, className, children }: Cham
         required: requis,
       })}
       {erreur ? (
-        <p id={idErreur} className="flex items-center gap-1 text-xs text-danger">
+        <p
+          id={idErreur}
+          className="flex items-center gap-1 text-xs text-danger animate-rise"
+        >
           <Icon name="alert" size={12} />
           {erreur}
         </p>
@@ -87,7 +91,7 @@ export function Select({
   ...rest
 }: ComponentProps<"select"> & { placeholder?: string }) {
   return (
-    <div className="relative">
+    <div className="group/select relative">
       <select
         className={cn(CONTROLE, "h-9 appearance-none pl-3 pr-8 text-base", className)}
         {...rest}
@@ -102,7 +106,7 @@ export function Select({
       <Icon
         name="chevronDown"
         size={14}
-        className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-faint"
+        className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-faint transition-transform duration-[var(--dur-fast)] group-focus-within/select:translate-y-0 group-focus-within/select:rotate-180"
       />
     </div>
   );
@@ -111,11 +115,11 @@ export function Select({
 /** Champ de recherche avec icône, pour les barres de filtres. */
 export function SearchInput({ className, ...rest }: ComponentProps<"input">) {
   return (
-    <div className={cn("relative", className)}>
+    <div className={cn("group/recherche relative", className)}>
       <Icon
         name="search"
         size={15}
-        className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-faint"
+        className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-faint transition-colors group-focus-within/recherche:text-accent"
       />
       <input
         type="search"

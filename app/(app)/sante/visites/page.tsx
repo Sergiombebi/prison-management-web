@@ -55,13 +55,13 @@ export default async function VisitesPage(props: PageProps<"/sante/visites">) {
       />
 
       <StatGrid colonnes={3}>
-        <Stat style={{ ["--i" as string]: 0 }} label="Visites du jour" valeur={formatNombre(duJour)} contexte="Enregistrées aujourd’hui" href="/sante/visites?periode=aujourdhui" />
-        <Stat style={{ ["--i" as string]: 1 }} label="7 derniers jours" valeur={formatNombre(semaine)} contexte={`${formatNombre(visites.length)} au total`} href="/sante/visites?periode=semaine" />
-        <Stat style={{ ["--i" as string]: 2 }} label="Sans autorisation préalable" valeur={formatNombre(sansAutorisation)} signal={sansAutorisation > 0 ? "attention" : "positif"} contexte="Sur les 7 derniers jours" />
+        <Stat icone="user" style={{ ["--i" as string]: 0 }} label="Visites du jour" valeur={formatNombre(duJour)} contexte="Enregistrées aujourd’hui" href="/sante/visites?periode=aujourdhui" />
+        <Stat icone="user" style={{ ["--i" as string]: 1 }} label="7 derniers jours" valeur={formatNombre(semaine)} contexte={`${formatNombre(visites.length)} au total`} href="/sante/visites?periode=semaine" />
+        <Stat icone="user" style={{ ["--i" as string]: 2 }} label="Sans autorisation préalable" valeur={formatNombre(sansAutorisation)} signal={sansAutorisation > 0 ? "attention" : "positif"} contexte="Sur les 7 derniers jours" />
       </StatGrid>
 
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
-        <Panel flush className="overflow-hidden">
+        <Panel variante="eleve" flush className="overflow-hidden">
           <FilterBar action={CHEMIN} actif={filtresActifs(sp, ["recherche", "periode", "type"])} reinitialiserHref={CHEMIN} resultat={pluriel(filtrees.length, "visite")}>
             <SearchInput name="recherche" defaultValue={param(sp, "recherche")} placeholder="Détenu ou visiteur…" aria-label="Rechercher une visite" className="w-full sm:w-56" />
             <Select name="periode" defaultValue={periode} aria-label="Période" className="w-40">
@@ -127,7 +127,7 @@ export default async function VisitesPage(props: PageProps<"/sante/visites">) {
           />
         </Panel>
 
-        <Panel titre="Enregistrer une visite" className="xl:sticky xl:top-20">
+        <Panel variante="eleve" titre="Enregistrer une visite" className="xl:sticky xl:top-20">
           <form className="flex flex-col gap-5">
             <fieldset className="flex flex-col gap-3">
               <legend className="mb-1 text-2xs font-semibold uppercase tracking-[0.1em] text-faint">Visite</legend>

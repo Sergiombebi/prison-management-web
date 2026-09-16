@@ -1,10 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { api, type MandatDetaille } from "@/lib/api";
-import {
-  LIBELLE_TYPE_SORTIE,
-  REGLE_CATEGORIE,
-} from "@/lib/domain/referentiels";
+import { LIBELLE_TYPE_SORTIE, REGLE_CATEGORIE } from "@/lib/domain/referentiels";
 import {
   formatDate,
   formatDateLongue,
@@ -20,7 +17,7 @@ import { DataTable } from "@/components/data/data-table";
 import { Badge, BadgeCategorie, BadgeStatut } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
 import { PrintButton } from "@/components/ui/client-actions";
-import { Icon } from "@/components/ui/icon";
+import { Icon, type NomIcone } from "@/components/ui/icon";
 import { Avatar, DataPair, EmptyState, Ecrou, Panel } from "@/components/ui/surface";
 import { TabsNav } from "@/components/ui/tabs";
 
@@ -32,6 +29,38 @@ export async function generateMetadata(props: PageProps<"/detenus/[id]">): Promi
 
 const ONGLETS = ["identite", "mandats", "detention", "discipline", "sante", "visites"] as const;
 type OngletId = (typeof ONGLETS)[number];
+
+/** Repère chiffré de l'en-tête : une information clé, lisible sans cliquer. */
+function Repere({
+  icone,
+  label,
+  valeur,
+  alerte,
+}: {
+  icone: NomIcone;
+  label: string;
+  valeur: string;
+  alerte?: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-2.5 rounded-lg border border-hairline bg-surface px-3 py-2 shadow-e1">
+      <span
+        className={cn(
+          "grid size-7 shrink-0 place-items-center rounded-md",
+          alerte ? "bg-warning-soft text-warning" : "bg-accent-soft text-accent",
+        )}
+      >
+        <Icon name={icone} size={14} />
+      </span>
+      <div className="min-w-0">
+        <p className="text-2xs text-muted">{label}</p>
+        <p className={cn("truncate text-sm font-medium", alerte ? "text-warning" : "text-ink")}>
+          {valeur}
+        </p>
+      </div>
+    </div>
+  );
+}
 
 export default async function DossierDetenuPage(props: PageProps<"/detenus/[id]">) {
   const [{ id }, sp] = await Promise.all([props.params, props.searchParams]);
@@ -51,45 +80,52 @@ export default async function DossierDetenuPage(props: PageProps<"/detenus/[id]"
 
   return (
     <Page>
-      {/* En-tête du dossier */}
-      <header className="flex flex-col gap-5 border-b border-rule pb-0">
-        <ButtonLink
-          href="/detenus"
-          variante="discret"
-          taille="sm"
-          icone="arrowLeft"
-          transitionTypes={["nav-back"]}
-          className="-ml-3 self-start"
-        >
-          Registre d’écrou
-        </ButtonLink>
+      <ButtonLink
+        href="/detenus"
+        variante="discret"
+        taille="sm"
+        icone="arrowLeft"
+        transitionTypes={["nav-back"]}
+        className="-ml-3 self-start"
+      >
+        Registre d’écrou
+      </ButtonLink>
 
-        <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between animate-rise">
-          <div className="flex min-w-0 items-start gap-5">
-            <Avatar initiales={initiales(d.nom)} taille="xl" className="hidden sm:grid" />
-            <div className="min-w-0">
-              <p className="font-mono text-sm text-accent">Écrou n° {d.numeroEcrou}</p>
-              <h1 className="mt-1 text-xl font-semibold tracking-[-0.015em] text-ink text-balance">{d.nom}</h1>
-              <p className="mt-1 text-base text-muted">
-                {d.sexe} · {d.age ? `${d.age} ans` : "âge inconnu"} · né(e) à {d.lieuNaissance}
-              </p>
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                <BadgeStatut statut={d.statut} />
-                <BadgeCategorie categorie={d.categoriePenale} />
-                {d.cellule ? (
-                  <Badge ton="neutre" point={false}>
-                    <Icon name="cell" size={11} />
-                    {d.cellule.bloc} · {d.cellule.numero}
-                  </Badge>
-                ) : (
-                  <Badge ton="alerte">Non logé</Badge>
-                )}
+      {/* En-tête d'identité — la carte du dossier */}
+      <header className="relative overflow-hidden rounded-xl border border-hairline bg-surface shadow-e2 animate-pop">
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-accent-soft to-transparent"
+        />
+
+        <div className="relative flex flex-col gap-5 p-5 sm:p-6">
+          <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
+            <div className="flex min-w-0 items-start gap-4 sm:gap-5">
+              <Avatar initiales={initiales(d.nom)} taille="xl" className="hidden sm:grid" />
+              <div className="min-w-0">
+                <p className="font-mono text-sm font-medium text-accent">Écrou n° {d.numeroEcrou}</p>
+                <h1 className="mt-1 text-balance text-xl font-semibold tracking-[-0.03em] text-ink md:text-2xl">
+                  {d.nom}
+                </h1>
+                <p className="mt-1.5 text-base text-muted">
+                  {d.sexe} · {d.age ? `${d.age} ans` : "âge inconnu"} · né(e) à {d.lieuNaissance}
+                </p>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <BadgeStatut statut={d.statut} />
+                  <BadgeCategorie categorie={d.categoriePenale} />
+                  {d.cellule ? (
+                    <Badge ton="neutre" point={false}>
+                      <Icon name="cell" size={11} />
+                      {d.cellule.bloc} · {d.cellule.numero}
+                    </Badge>
+                  ) : (
+                    <Badge ton="alerte">Non logé</Badge>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="flex shrink-0 flex-col items-start gap-3 md:items-end" data-print-hide>
-            <div className="flex gap-2">
+            <div className="flex shrink-0 gap-2" data-print-hide>
               <PrintButton />
               <ButtonLink
                 href={`/etats/fiches-avis?etat=${encodeURIComponent("Fiche signalétique")}&detenu=${d.id}`}
@@ -100,32 +136,58 @@ export default async function DossierDetenuPage(props: PageProps<"/detenus/[id]"
                 Fiche signalétique
               </ButtonLink>
             </div>
-            {joursMandat !== null && (
-              <p className={cn("tnum text-xs", joursMandat <= 30 ? "text-warning" : "text-muted")}>
-                Mandat en cours jusqu’au {formatDate(d.mandatCourant?.dateSortieMandat)} ({pluriel(Math.max(joursMandat, 0), "jour")})
-              </p>
-            )}
+          </div>
+
+          {/* Repères : ce qu'un agent veut savoir avant d'ouvrir un onglet */}
+          <div className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-4">
+            <Repere
+              icone="scale"
+              label="Mandats actifs"
+              valeur={pluriel(d.nombreMandatsActifs, "mandat")}
+            />
+            <Repere
+              icone="calendar"
+              label="Incarcéré le"
+              valeur={formatDate(d.mandatCourant?.dateIncarceration)}
+            />
+            <Repere
+              icone="clock"
+              label="Échéance du mandat"
+              valeur={
+                joursMandat === null
+                  ? "—"
+                  : `${formatDate(d.mandatCourant?.dateSortieMandat)} (${pluriel(Math.max(joursMandat, 0), "jour")})`
+              }
+              alerte={joursMandat !== null && joursMandat <= 30}
+            />
+            <Repere
+              icone="door"
+              label="Motif de détention"
+              valeur={ouVide(d.mandatCourant?.motifDetention)}
+            />
           </div>
         </div>
 
-        <TabsNav
-          label="Rubriques du dossier"
-          items={[
-            { href: lien("identite"), label: "Identité", actif: onglet === "identite" },
-            { href: lien("mandats"), label: "Mandats", compte: dossier.mandats.length, actif: onglet === "mandats" },
-            { href: lien("detention"), label: "Détention", compte: dossier.affectations.length + dossier.sorties.length, actif: onglet === "detention" },
-            { href: lien("discipline"), label: "Discipline", compte: dossier.sanctions.length, actif: onglet === "discipline" },
-            { href: lien("sante"), label: "Santé", compte: dossier.suivisMedicaux.length, actif: onglet === "sante" },
-            { href: lien("visites"), label: "Visites", compte: dossier.visites.length, actif: onglet === "visites" },
-          ]}
-        />
+        <div className="border-t border-hairline px-4 sm:px-5">
+          <TabsNav
+            label="Rubriques du dossier"
+            items={[
+              { href: lien("identite"), label: "Identité", actif: onglet === "identite" },
+              { href: lien("mandats"), label: "Mandats", compte: dossier.mandats.length, actif: onglet === "mandats" },
+              { href: lien("detention"), label: "Détention", compte: dossier.affectations.length + dossier.sorties.length, actif: onglet === "detention" },
+              { href: lien("discipline"), label: "Discipline", compte: dossier.sanctions.length, actif: onglet === "discipline" },
+              { href: lien("sante"), label: "Santé", compte: dossier.suivisMedicaux.length, actif: onglet === "sante" },
+              { href: lien("visites"), label: "Visites", compte: dossier.visites.length, actif: onglet === "visites" },
+            ]}
+          />
+        </div>
       </header>
 
       <div key={onglet} className="animate-rise">
         {onglet === "identite" && (
-          <div className="grid gap-6 xl:grid-cols-2">
-            <Panel titre="État civil">
-              <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
+          <div className="grid gap-4 xl:grid-cols-3">
+            <Panel titre="État civil" variante="eleve" className="xl:col-span-2">
+              <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
                 <DataPair label="Nom complet">{d.nom}</DataPair>
                 <DataPair label="Sexe">{d.sexe}</DataPair>
                 <DataPair label="Date de naissance">{formatDateLongue(d.dateNaissance)}</DataPair>
@@ -136,26 +198,30 @@ export default async function DossierDetenuPage(props: PageProps<"/detenus/[id]"
                 <DataPair label="Nom de la mère">{d.nomMere}</DataPair>
                 <DataPair label="Situation matrimoniale">{ouVide(d.statutMatrimonial)}</DataPair>
                 <DataPair label="Nombre d’enfants">{ouVide(d.nombreEnfants)}</DataPair>
+                <DataPair label="Niveau d’études">{ouVide(d.niveauEtudes)}</DataPair>
+                <DataPair label="Religion">{ouVide(d.religion)}</DataPair>
               </dl>
             </Panel>
-            <div className="flex flex-col gap-6">
-              <Panel titre="Origine et documents">
-                <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
+
+            <div className="flex flex-col gap-4">
+              <Panel titre="Origine et documents" variante="eleve">
+                <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2 xl:grid-cols-1">
                   <DataPair label="Département">{ouVide(d.departement)}</DataPair>
                   <DataPair label="Arrondissement">{ouVide(d.arrondissement)}</DataPair>
                   <DataPair label="Résidence">{ouVide(d.residence)}</DataPair>
                   <DataPair label="Contact" mono>{ouVide(d.contact)}</DataPair>
-                  <DataPair label="Langue">{ouVide(d.langue)}</DataPair>
-                  <DataPair label="Ethnie / Religion">
-                    {ouVide(d.ethnie)} / {ouVide(d.religion)}
-                  </DataPair>
                   <DataPair label="N° CNI" mono>{ouVide(d.numeroCNI)}</DataPair>
                   <DataPair label="N° passeport" mono>{ouVide(d.numeroPasseport)}</DataPair>
                 </dl>
               </Panel>
-              <Panel titre="Signalement">
+              <Panel titre="Signalement" variante="eleve">
                 <dl className="grid gap-4">
-                  <DataPair label="Anthropométrie et signes particuliers">{ouVide(d.anthropometrie)}</DataPair>
+                  <DataPair label="Anthropométrie et signes particuliers">
+                    {ouVide(d.anthropometrie)}
+                  </DataPair>
+                  <DataPair label="Langue / Ethnie">
+                    {ouVide(d.langue)} / {ouVide(d.ethnie)}
+                  </DataPair>
                   <DataPair label="Enregistré le">{formatDate(d.dateCreation)}</DataPair>
                 </dl>
               </Panel>
@@ -165,15 +231,16 @@ export default async function DossierDetenuPage(props: PageProps<"/detenus/[id]"
 
         {onglet === "mandats" &&
           (dossier.mandats.length === 0 ? (
-            <Panel>
+            <Panel variante="eleve">
               <EmptyState icone="file" titre="Aucun mandat" texte="Ce détenu n’a aucun titre de détention enregistré." />
             </Panel>
           ) : (
             <div className="flex flex-col gap-4">
               {d.categoriePenale && (
-                <p className="flex items-start gap-2 text-sm text-muted">
-                  <Icon name="info" size={15} className="mt-0.5 shrink-0 text-accent" />
-                  Catégorie retenue : <BadgeCategorie categorie={d.categoriePenale} /> — {REGLE_CATEGORIE[d.categoriePenale]}
+                <p className="flex flex-wrap items-center gap-2 rounded-lg border border-hairline bg-surface px-4 py-3 text-sm text-muted shadow-e1">
+                  <Icon name="info" size={15} className="shrink-0 text-accent" />
+                  Catégorie retenue : <BadgeCategorie categorie={d.categoriePenale} />
+                  <span className="min-w-0">{REGLE_CATEGORIE[d.categoriePenale]}</span>
                 </p>
               )}
               <ol className="stagger flex flex-col gap-4">
@@ -187,8 +254,8 @@ export default async function DossierDetenuPage(props: PageProps<"/detenus/[id]"
           ))}
 
         {onglet === "detention" && (
-          <div className="grid gap-6 xl:grid-cols-2">
-            <Panel titre="Affectations en cellule" flush>
+          <div className="grid gap-4 xl:grid-cols-2">
+            <Panel titre="Affectations en cellule" variante="eleve" flush>
               <DataTable
                 dense
                 legende="Historique des affectations"
@@ -213,7 +280,7 @@ export default async function DossierDetenuPage(props: PageProps<"/detenus/[id]"
                 }
               />
             </Panel>
-            <Panel titre="Sorties enregistrées" flush>
+            <Panel titre="Sorties enregistrées" variante="eleve" flush>
               <DataTable
                 dense
                 legende="Sorties du détenu"
@@ -239,7 +306,7 @@ export default async function DossierDetenuPage(props: PageProps<"/detenus/[id]"
         )}
 
         {onglet === "discipline" && (
-          <Panel titre="Sanctions disciplinaires" flush>
+          <Panel titre="Sanctions disciplinaires" variante="eleve" flush>
             <DataTable
               legende="Sanctions du détenu"
               lignes={dossier.sanctions}
@@ -260,7 +327,7 @@ export default async function DossierDetenuPage(props: PageProps<"/detenus/[id]"
         )}
 
         {onglet === "sante" && (
-          <Panel titre="Consultations médicales" flush>
+          <Panel titre="Consultations médicales" variante="eleve" flush>
             <DataTable
               legende="Suivi médical du détenu"
               lignes={dossier.suivisMedicaux}
@@ -282,7 +349,7 @@ export default async function DossierDetenuPage(props: PageProps<"/detenus/[id]"
         )}
 
         {onglet === "visites" && (
-          <Panel titre="Visites reçues" flush>
+          <Panel titre="Visites reçues" variante="eleve" flush>
             <DataTable
               legende="Visites du détenu"
               lignes={dossier.visites}
@@ -314,6 +381,8 @@ function CarteMandat({ mandat: m }: { mandat: MandatDetaille }) {
 
   return (
     <Panel
+      variante="eleve"
+      accent={m.actif}
       titre={
         <span className="flex flex-wrap items-center gap-2">
           {m.typeMandat ?? "Mandat"}
@@ -323,7 +392,11 @@ function CarteMandat({ mandat: m }: { mandat: MandatDetaille }) {
       sousTitre={m.motifDetention}
       actions={
         <>
-          {m.typeStatutPenal && <Badge ton="neutre" point={false}>{m.typeStatutPenal}</Badge>}
+          {m.typeStatutPenal && (
+            <Badge ton="neutre" point={false}>
+              {m.typeStatutPenal}
+            </Badge>
+          )}
           <Badge ton={m.actif ? "succes" : "danger"}>{m.actif ? "Actif" : "Expiré"}</Badge>
         </>
       }
@@ -334,14 +407,20 @@ function CarteMandat({ mandat: m }: { mandat: MandatDetaille }) {
             <div className="flex items-center gap-2">
               <span
                 className={cn(
-                  "size-2.5 shrink-0 rounded-full border-2",
+                  "size-3 shrink-0 rounded-full border-2",
                   e.date ? "border-accent bg-accent" : "border-rule bg-surface",
                   i === derniere && e.date && "ring-4 ring-accent/15",
                 )}
               />
-              <span className={cn("h-px flex-1", i < 3 && etapes[i + 1].date ? "bg-accent" : "bg-hairline", i === 3 && "hidden")} />
+              <span
+                className={cn(
+                  "h-0.5 flex-1 rounded-full",
+                  i < 3 && etapes[i + 1].date ? "bg-accent/40" : "bg-hairline",
+                  i === 3 && "hidden",
+                )}
+              />
             </div>
-            <p className={cn("mt-2 text-2xs font-semibold uppercase tracking-[0.08em]", e.date ? "text-ink" : "text-faint")}>
+            <p className={cn("mt-2.5 text-2xs font-semibold uppercase tracking-[0.08em]", e.date ? "text-ink" : "text-faint")}>
               {e.label}
             </p>
             <p className="tnum text-sm text-ink">{e.date ? formatDate(e.date) : "—"}</p>
@@ -354,7 +433,9 @@ function CarteMandat({ mandat: m }: { mandat: MandatDetaille }) {
         <DataPair label="Expire le">{formatDate(m.dateSortieMandat)}</DataPair>
         <DataPair label="Autorité pénitentiaire">{ouVide(m.autoritePenitentiaire)}</DataPair>
         <DataPair label="État physique à l’arrivée">{ouVide(m.etatPhysiqueArrivee)}</DataPair>
-        <DataPair label="Objets personnels" className="sm:col-span-2">{ouVide(m.objetsPersonnels)}</DataPair>
+        <DataPair label="Objets personnels" className="sm:col-span-2">
+          {ouVide(m.objetsPersonnels)}
+        </DataPair>
       </dl>
     </Panel>
   );

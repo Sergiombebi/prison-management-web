@@ -30,7 +30,7 @@ export default async function AffectationsPage() {
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
         <div className="flex flex-col gap-6">
-          <Panel
+          <Panel variante="eleve"
             titre="Détenus non logés"
             sousTitre={nonLoges.length ? `${pluriel(nonLoges.length, "détenu")} en attente d’affectation` : undefined}
             actions={nonLoges.length > 0 && <Badge ton="alerte">À traiter</Badge>}
@@ -56,7 +56,7 @@ export default async function AffectationsPage() {
             )}
           </Panel>
 
-          <Panel titre="Affectations récentes" flush className="overflow-hidden">
+          <Panel variante="eleve" titre="Affectations récentes" flush className="overflow-hidden">
             <DataTable<Affectation>
               legende="Historique des affectations"
               lignes={affectations.slice(0, 25)}
@@ -82,7 +82,7 @@ export default async function AffectationsPage() {
           </Panel>
         </div>
 
-        <Panel titre="Affecter à une cellule" className="lg:sticky lg:top-20">
+        <Panel variante="eleve" titre="Affecter à une cellule" className="lg:sticky lg:top-20">
           <form className="flex flex-col gap-4">
             <Field label="Détenu" requis aide={nonLoges.length ? "Les détenus non logés apparaissent en premier." : undefined}>
               {(p) => (

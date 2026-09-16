@@ -165,16 +165,19 @@ export const LIBELLE_TYPE_SORTIE: Record<TypeSortie, string> = {
   Deces: "Décès",
 };
 
+export const ROLES_UTILISATEUR: readonly RoleUtilisateur[] = ["admin", "agent", "medecin"];
+
 export const LIBELLE_ROLE: Record<RoleUtilisateur, string> = {
-  Administrateur: "Administrateur",
-  Gestionnaire: "Gestionnaire",
-  Consultation: "Consultation",
+  admin: "Administrateur",
+  agent: "Agent",
+  medecin: "Médecin",
 };
 
+/** Descriptions provisoires : la matrice des droits doit être confirmée avec l'API. */
 export const DESCRIPTION_ROLE: Record<RoleUtilisateur, string> = {
-  Administrateur: "Accès total, y compris aux paramètres et au personnel.",
-  Gestionnaire: "Lecture et écriture sur son périmètre.",
-  Consultation: "Lecture seule.",
+  admin: "Accès total, y compris au personnel et aux paramètres.",
+  agent: "Gestion courante : écrou, mandats, discipline, visites.",
+  medecin: "Suivi médical des détenus.",
 };
 
 /** Correspondance segment d'URL ↔ catégorie pénale. */

@@ -7,7 +7,23 @@ import { Icon } from "@/components/ui/icon";
 import { t } from "@/lib/i18n/fr";
 import { connecter, type EtatConnexion } from "./actions";
 
-export function LoginForm({ suite, demo }: { suite?: string; demo: boolean }) {
+export interface AideConnexion {
+  source: string;
+  identifiant: string;
+  motDePasse: string;
+}
+
+export function LoginForm({
+  suite,
+  aide,
+  avis,
+}: {
+  suite?: string;
+  /** Identifiants de test, affichés hors production uniquement. */
+  aide?: AideConnexion;
+  /** Information non bloquante, ex. « votre session a expiré ». */
+  avis?: string;
+}) {
   const [etat, action, enCours] = useActionState<EtatConnexion, FormData>(connecter, {});
   const [visible, setVisible] = useState(false);
 
@@ -15,7 +31,7 @@ export function LoginForm({ suite, demo }: { suite?: string; demo: boolean }) {
     <form action={action} className="flex flex-col gap-5" noValidate>
       {suite && <input type="hidden" name="suite" value={suite} />}
 
-      {etat.erreur && (
+      {etat.erreur ? (
         <div
           role="alert"
           className="flex items-start gap-2.5 rounded-md border border-danger/30 bg-danger-soft px-3 py-2.5 text-sm text-danger animate-rise"
@@ -23,6 +39,16 @@ export function LoginForm({ suite, demo }: { suite?: string; demo: boolean }) {
           <Icon name="alert" size={15} className="mt-0.5 shrink-0" />
           {etat.erreur}
         </div>
+      ) : (
+        avis && (
+          <div
+            role="status"
+            className="flex items-start gap-2.5 rounded-md border border-hairline bg-info-soft px-3 py-2.5 text-sm text-info animate-rise"
+          >
+            <Icon name="clock" size={15} className="mt-0.5 shrink-0" />
+            {avis}
+          </div>
+        )
       )}
 
       <Field label={t.connexion.identifiant} requis>
@@ -70,11 +96,13 @@ export function LoginForm({ suite, demo }: { suite?: string; demo: boolean }) {
         {enCours ? t.connexion.enCours : t.actions.seConnecter}
       </Button>
 
-      {demo && (
-        <p className="flex items-center justify-center gap-2 text-xs text-muted">
+      {aide && (
+        <p className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs text-muted">
           <span aria-hidden className="size-1.5 rounded-full bg-warning" />
-          Démonstration — identifiant et mot de passe :{" "}
-          <code className="rounded-xs bg-sunken px-1.5 py-0.5 font-mono text-2xs text-ink">admin</code>
+          {aide.source} :
+          <code className="rounded-xs bg-sunken px-1.5 py-0.5 font-mono text-2xs text-ink">{aide.identifiant}</code>
+          /
+          <code className="rounded-xs bg-sunken px-1.5 py-0.5 font-mono text-2xs text-ink">{aide.motDePasse}</code>
         </p>
       )}
     </form>

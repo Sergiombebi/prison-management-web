@@ -32,8 +32,11 @@ Alternatives écartées :
 Toute donnée transite par `lib/api/`, qui expose des fonctions typées (`listDetenus`,
 `getDashboard`…). Deux implémentations derrière la même signature :
 
-- `SGP_API_MODE=mock` (défaut) → fixtures locales, latence simulée
-- `SGP_API_MODE=live`         → `fetch` vers `SGP_API_URL`
+- aucune variable (défaut)          → fixtures locales, latence simulée
+- `SGP_API_LIVE=auth,detenus`       → ces domaines sur l'API, le reste en fixtures (mode hybride)
+- `SGP_API_MODE=live`               → tout sur l'API (`SGP_API_URL`)
+
+Le mode hybride permet de brancher chaque domaine au rythme où le backend livre ses routes.
 
 Ces variables ne portent volontairement pas le préfixe `NEXT_PUBLIC_` : elles ne sont lues
 que côté serveur (composants serveur, Server Actions), donc l'adresse de l'API et le jeton

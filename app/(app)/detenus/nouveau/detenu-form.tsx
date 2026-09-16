@@ -97,7 +97,7 @@ export function DetenuForm() {
     <div className="grid gap-8 lg:grid-cols-[200px_minmax(0,1fr)]">
       {/* Sommaire */}
       <nav aria-label="Rubriques du formulaire" className="hidden lg:block" data-print-hide>
-        <ol className="sticky top-20 flex flex-col border-l border-hairline">
+        <ol className="sticky top-24 flex flex-col rounded-lg border border-hairline bg-surface p-2 shadow-e1">
           {SECTIONS.map((s, i) => {
             const courant = sectionVisible === s.id;
             return (
@@ -106,11 +106,20 @@ export function DetenuForm() {
                   href={`#${s.id}`}
                   aria-current={courant ? "location" : undefined}
                   className={cn(
-                    "relative -ml-px flex items-center gap-2.5 border-l py-1.5 pl-4 text-sm transition-colors duration-[var(--dur-base)]",
-                    courant ? "border-accent font-medium text-ink" : "border-transparent text-muted hover:text-ink",
+                    "relative flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors duration-[var(--dur-base)]",
+                    courant
+                      ? "bg-accent-soft font-medium text-accent-ink"
+                      : "text-muted hover:bg-sunken hover:text-ink",
                   )}
                 >
-                  <span className="font-mono text-2xs text-faint">{String(i + 1).padStart(2, "0")}</span>
+                  <span
+                    className={cn(
+                      "font-mono text-2xs",
+                      courant ? "text-accent" : "text-faint",
+                    )}
+                  >
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
                   {s.label}
                 </a>
               </li>
@@ -119,11 +128,7 @@ export function DetenuForm() {
         </ol>
       </nav>
 
-      <form
-        ref={formRef}
-        onChange={() => setModifie(true)}
-        className="rounded-lg border border-hairline bg-surface px-5 py-7 sm:px-8"
-      >
+      <form ref={formRef} onChange={() => setModifie(true)} className="flex flex-col gap-4">
         <FormSection id="identite" numero="01" titre="Identité" description="Telle qu’elle figure sur le titre de détention.">
           <Field label="Numéro d’écrou (matricule)" requis aide="Unique dans l’établissement.">
             {(p) => <Input {...p} name="numeroEcrou" autoComplete="off" spellCheck={false} className="font-mono uppercase" />}
@@ -412,7 +417,7 @@ export function DetenuForm() {
           </Pleine>
         </FormSection>
 
-        <div className="mt-2 flex flex-col-reverse items-stretch justify-between gap-4 border-t border-rule pt-6 sm:flex-row sm:items-start">
+        <div className="flex flex-col-reverse items-stretch justify-between gap-4 rounded-lg border border-hairline bg-surface p-5 shadow-e1 sm:flex-row sm:items-center sm:p-6">
           <p className="max-w-sm text-xs text-muted">
             <span className="text-danger">*</span> Champs obligatoires. Le numéro d’écrou est vérifié par le
             serveur au moment de l’enregistrement.

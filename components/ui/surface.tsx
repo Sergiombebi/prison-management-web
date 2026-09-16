@@ -3,11 +3,28 @@ import { cn } from "@/lib/cn";
 import { Icon, type NomIcone } from "./icon";
 import { t } from "@/lib/i18n/fr";
 
-/** Panneau délimité par un filet. Pas d'ombre : le filet suffit. */
+type VarianteSurface = "plat" | "eleve" | "verre";
+
+const SURFACES: Record<VarianteSurface, string> = {
+  plat: "bg-surface border border-hairline shadow-e1",
+  eleve: "bg-surface border border-hairline shadow-e2",
+  verre: "verre border border-hairline shadow-e2",
+};
+
+/**
+ * Panneau — la brique de mise en page.
+ *
+ * L'élévation se choisit avec `variante` : `plat` pour un contenu de fond,
+ * `eleve` pour ce qui doit se détacher, `verre` pour les surfaces collantes.
+ * `accent` ajoute un liseré dégradé sur le bord supérieur : à réserver au
+ * panneau le plus important de l'écran.
+ */
 export function Panel({
   titre,
   sousTitre,
   actions,
+  variante = "plat",
+  accent,
   className,
   corpsClassName,
   style,
@@ -17,6 +34,8 @@ export function Panel({
   titre?: ReactNode;
   sousTitre?: ReactNode;
   actions?: ReactNode;
+  variante?: VarianteSurface;
+  accent?: boolean;
   className?: string;
   corpsClassName?: string;
   style?: CSSProperties;
@@ -27,12 +46,17 @@ export function Panel({
   return (
     <section
       style={style}
-      className={cn("rounded-lg border border-hairline bg-surface", className)}
+      className={cn(
+        "relative overflow-hidden rounded-lg",
+        SURFACES[variante],
+        accent && "filet-accent",
+        className,
+      )}
     >
       {(titre || actions) && (
         <header className="flex min-h-12 flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-hairline px-4 py-2.5">
           <div className="min-w-0">
-            {titre && <h2 className="text-sm font-semibold text-ink">{titre}</h2>}
+            {titre && <h2 className="text-sm font-semibold tracking-[-0.01em] text-ink">{titre}</h2>}
             {sousTitre && <p className="text-xs text-muted">{sousTitre}</p>}
           </div>
           {actions && <div className="flex items-center gap-2">{actions}</div>}
@@ -81,16 +105,24 @@ export function EmptyState({
     <div
       className={cn(
         "flex flex-col items-center justify-center text-center animate-fade",
-        compact ? "gap-2 px-4 py-8" : "gap-3 px-6 py-14",
+        compact ? "gap-2 px-4 py-9" : "gap-3.5 px-6 py-16",
         className,
       )}
     >
-      <div className="grid size-10 place-items-center rounded-full border border-dashed border-rule text-faint">
-        <Icon name={icone} size={18} />
+      <div className="relative grid place-items-center">
+        {/* Halo : donne une profondeur à l'icône sans ajouter de couleur */}
+        <span
+          aria-hidden
+          className="absolute size-16 rounded-full bg-accent-soft blur-xl"
+          style={{ animation: "sgp-halo 4s ease-in-out infinite" }}
+        />
+        <div className="relative grid size-11 place-items-center rounded-full border border-hairline bg-surface text-faint shadow-e1">
+          <Icon name={icone} size={18} />
+        </div>
       </div>
       <div className="max-w-sm">
-        <p className="text-base font-medium text-ink">{titre}</p>
-        {texte && <p className="mt-1 text-sm text-muted">{texte}</p>}
+        <p className="text-md font-medium tracking-[-0.01em] text-ink">{titre}</p>
+        {texte && <p className="mt-1.5 text-sm leading-relaxed text-muted">{texte}</p>}
       </div>
       {action && <div className="mt-1">{action}</div>}
     </div>
@@ -100,19 +132,17 @@ export function EmptyState({
 /** Bandeau signalant un écran dont la structure existe mais pas encore les données. */
 export function ChantierNotice({ points }: { points: string[] }) {
   return (
-    <div className="rounded-lg border border-dashed border-rule bg-raised px-4 py-3">
+    <div className="relative overflow-hidden rounded-lg border border-dashed border-rule bg-raised px-4 py-3.5 shadow-e1">
       <div className="flex items-start gap-3">
         <Icon name="info" size={16} className="mt-0.5 shrink-0 text-accent" />
         <div className="min-w-0">
           <p className="text-sm font-medium text-ink">{t.etats.bientot}</p>
           <p className="mt-0.5 text-sm text-muted">{t.etats.bientotTexte}</p>
           {points.length > 0 && (
-            <ul className="mt-2 grid gap-1 text-xs text-muted sm:grid-cols-2">
+            <ul className="mt-2.5 grid gap-1.5 text-xs text-muted sm:grid-cols-2">
               {points.map((p) => (
-                <li key={p} className="flex gap-2">
-                  <span className="text-faint" aria-hidden>
-                    —
-                  </span>
+                <li key={p} className="flex items-center gap-2">
+                  <span aria-hidden className="size-1 shrink-0 rounded-full bg-rule-strong" />
                   <code className="font-mono text-2xs text-accent-ink">{p}</code>
                 </li>
               ))}
@@ -166,16 +196,18 @@ export function Avatar({
   className?: string;
 }) {
   const dims = {
-    sm: "size-7 text-2xs",
-    md: "size-9 text-xs",
-    lg: "size-14 text-base",
-    xl: "size-24 text-xl",
+    sm: "size-7 text-2xs rounded-md",
+    md: "size-9 text-xs rounded-md",
+    lg: "size-14 text-base rounded-lg",
+    xl: "size-24 text-xl rounded-xl",
   }[taille];
+
   return (
     <span
       aria-hidden
       className={cn(
-        "grid shrink-0 place-items-center rounded-md border border-hairline bg-sunken font-semibold tracking-wide text-muted",
+        "relative grid shrink-0 place-items-center overflow-hidden border border-hairline font-semibold tracking-wide text-muted shadow-e1",
+        "bg-gradient-to-br from-raised to-sunken",
         dims,
         className,
       )}

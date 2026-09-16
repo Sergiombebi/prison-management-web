@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { api } from "@/lib/api";
 import type { CategoriePenale, DetenuResume, Sexe } from "@/lib/domain/types";
 import { LIBELLE_CATEGORIE } from "@/lib/domain/referentiels";
@@ -101,7 +102,9 @@ export default async function DetenusPage(props: PageProps<"/detenus">) {
       masquerSous: "xl",
       rendu: (d) =>
         d.cellule ? (
-          <span className="text-muted">{d.cellule.numero}</span>
+          <span className="rounded-md bg-sunken px-2 py-1 font-mono text-xs text-muted">
+            {d.cellule.numero}
+          </span>
         ) : (
           <span className="text-xs text-warning">Non logé</span>
         ),
@@ -128,20 +131,62 @@ export default async function DetenusPage(props: PageProps<"/detenus">) {
     },
   ];
 
+  const categories: Array<{ cle: CategoriePenale | "toutes"; label: string }> = [
+    { cle: "toutes", label: "Toutes" },
+    ...(Object.keys(LIBELLE_CATEGORIE) as CategoriePenale[]).map((c) => ({
+      cle: c,
+      label: LIBELLE_CATEGORIE[c],
+    })),
+  ];
+
   return (
     <Page>
       <PageHeader
         surtitre={t.modules.detenus}
         titre="Registre d’écrou"
         description="Tous les détenus présents dans l’établissement, avec leur situation pénale calculée à partir des mandats actifs."
+        meta={
+          <span className="inline-flex items-center gap-1.5">
+            <span className="tnum font-medium text-ink">{formatNombre(resultat.total)}</span>
+            {resultat.total > 1 ? "détenus correspondent" : "détenu correspond"} aux filtres
+          </span>
+        }
         actions={
-          <ButtonLink href="/detenus/nouveau" variante="primaire" icone="plus" transitionTypes={["nav-forward"]}>
+          <ButtonLink
+            href="/detenus/nouveau"
+            variante="primaire"
+            icone="plus"
+            transitionTypes={["nav-forward"]}
+          >
             Nouvel enregistrement
           </ButtonLink>
         }
       />
 
-      <Panel flush className="overflow-hidden">
+      {/* Filtre par catégorie : des pastilles, plus rapides qu'une liste déroulante */}
+      <nav aria-label="Filtrer par catégorie pénale" className="-mt-1 flex flex-wrap gap-2">
+        {categories.map((c) => {
+          const courant = categorie === c.cle;
+          return (
+            <Link
+              key={c.cle}
+              href={hrefAvec(CHEMIN, sp, { categorie: c.cle === "toutes" ? null : c.cle, page: null })}
+              scroll={false}
+              aria-current={courant ? "true" : undefined}
+              className={cn(
+                "rounded-full border px-3.5 py-1.5 text-sm transition-all duration-[var(--dur-fast)]",
+                courant
+                  ? "border-accent bg-accent text-ink-inverse shadow-accent"
+                  : "border-hairline bg-surface text-muted shadow-e1 hover:-translate-y-px hover:border-accent/40 hover:text-ink",
+              )}
+            >
+              {c.label}
+            </Link>
+          );
+        })}
+      </nav>
+
+      <Panel flush variante="eleve" className="overflow-hidden">
         <FilterBar
           action={CHEMIN}
           actif={actif}
@@ -150,21 +195,14 @@ export default async function DetenusPage(props: PageProps<"/detenus">) {
         >
           {tri !== "numeroEcrou" && <input type="hidden" name="tri" value={tri} />}
           {sens !== "asc" && <input type="hidden" name="sens" value={sens} />}
+          {categorie !== "toutes" && <input type="hidden" name="categorie" value={categorie} />}
           <SearchInput
             name="recherche"
             defaultValue={recherche}
             placeholder="Nom, n° d’écrou ou motif…"
             aria-label="Rechercher un détenu"
-            className="w-full sm:w-72"
+            className="w-full sm:w-80"
           />
-          <Select name="categorie" defaultValue={categorie} aria-label="Filtrer par catégorie pénale" className="w-44">
-            <option value="toutes">Toutes catégories</option>
-            {Object.entries(LIBELLE_CATEGORIE).map(([valeur, label]) => (
-              <option key={valeur} value={valeur}>
-                {label}
-              </option>
-            ))}
-          </Select>
           <Select name="sexe" defaultValue={sexe} aria-label="Filtrer par sexe" className="w-36">
             <option value="tous">Tous sexes</option>
             <option value="Masculin">Hommes</option>

@@ -1,15 +1,16 @@
 /**
- * Session — version provisoire.
+ * Session — deux cookies httpOnly posés par la Server Action de connexion :
+ * - le jeton Sanctum renvoyé par l'API (jamais lisible par le JavaScript du navigateur) ;
+ * - un profil minimal pour afficher le shell sans rappeler l'API à chaque rendu.
  *
- * Tant que l'API d'authentification n'existe pas, la session tient dans deux cookies
- * httpOnly posés par la Server Action de connexion. Ce n'est PAS une sécurité : c'est
- * un échafaudage. Le jour où l'API émet un vrai jeton (JWT), seul ce fichier change.
+ * L'API reste seule juge des droits : le rôle ne sert ici qu'à adapter l'interface.
  */
 
 import "server-only";
 
 import { cookies } from "next/headers";
 import type { RoleUtilisateur } from "@/lib/domain/types";
+import { ROLES_UTILISATEUR } from "@/lib/domain/referentiels";
 
 export const COOKIE_JETON = "sgp_session";
 export const COOKIE_PROFIL = "sgp_profil";
@@ -21,13 +22,22 @@ export interface ProfilSession {
   role: RoleUtilisateur;
 }
 
+export async function getJeton(): Promise<string | undefined> {
+  return (await cookies()).get(COOKIE_JETON)?.value;
+}
+
 export async function getProfil(): Promise<ProfilSession | null> {
   const store = await cookies();
   if (!store.get(COOKIE_JETON)) return null;
   const brut = store.get(COOKIE_PROFIL)?.value;
   if (!brut) return null;
   try {
-    return JSON.parse(brut) as ProfilSession;
+    const profil = JSON.parse(brut) as Partial<ProfilSession>;
+    // Un cookie posé avant le passage aux rôles de l'API (« Administrateur »…) n'est plus valide
+    if (typeof profil.id !== "number" || !ROLES_UTILISATEUR.includes(profil.role as RoleUtilisateur)) {
+      return null;
+    }
+    return profil as ProfilSession;
   } catch {
     return null;
   }
@@ -52,11 +62,7 @@ export async function fermerSession() {
   store.delete(COOKIE_PROFIL);
 }
 
-/** Permissions dérivées du rôle — l'API reste seule garante, l'UI ne fait qu'expliquer. */
-export function peutEcrire(role: RoleUtilisateur) {
-  return role !== "Consultation";
-}
-
+/** Droits d'administration (personnel, paramètres) — matrice complète à confirmer avec l'API. */
 export function peutAdministrer(role: RoleUtilisateur) {
-  return role === "Administrateur";
+  return role === "admin";
 }

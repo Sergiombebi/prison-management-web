@@ -2,8 +2,10 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
 /**
- * Section numérotée d'un long formulaire, composée comme une rubrique de registre :
- * numéro et intitulé à gauche, champs à droite. Sous `lg`, tout passe en une colonne.
+ * Section numérotée d'un long formulaire, posée comme une carte autonome :
+ * numéro et intitulé à gauche, champs à droite. Sous `lg`, tout passe en une
+ * colonne. Découper un formulaire de quarante champs en cartes rend le
+ * défilement lisible et donne un repère de progression.
  */
 export function FormSection({
   id,
@@ -25,16 +27,22 @@ export function FormSection({
       id={id}
       aria-labelledby={id ? `${id}-titre` : undefined}
       className={cn(
-        "grid scroll-mt-20 gap-x-8 gap-y-4 border-b border-hairline py-7 first:pt-0 last:border-b-0 lg:grid-cols-[220px_minmax(0,1fr)]",
+        "grid scroll-mt-24 gap-x-8 gap-y-5 rounded-lg border border-hairline bg-surface p-5 shadow-e1 sm:p-6 lg:grid-cols-[210px_minmax(0,1fr)]",
         className,
       )}
     >
-      <div>
-        {numero && <p className="font-mono text-2xs text-faint">{numero}</p>}
-        <h2 id={id ? `${id}-titre` : undefined} className="text-base font-semibold text-ink">
-          {titre}
-        </h2>
-        {description && <p className="mt-1 text-sm text-muted">{description}</p>}
+      <div className="lg:sticky lg:top-24 lg:self-start">
+        <div className="flex items-center gap-2.5">
+          {numero && (
+            <span className="grid size-7 shrink-0 place-items-center rounded-md bg-accent-soft font-mono text-2xs font-bold text-accent-ink">
+              {numero}
+            </span>
+          )}
+          <h2 id={id ? `${id}-titre` : undefined} className="text-md font-semibold tracking-[-0.01em] text-ink">
+            {titre}
+          </h2>
+        </div>
+        {description && <p className="mt-2 text-sm leading-relaxed text-muted">{description}</p>}
       </div>
       <div className="grid gap-x-4 gap-y-4 sm:grid-cols-2">{children}</div>
     </section>

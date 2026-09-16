@@ -49,14 +49,14 @@ export default async function SuiviMedicalPage(props: PageProps<"/sante/suivi-me
       />
 
       <StatGrid colonnes={4}>
-        <Stat style={{ ["--i" as string]: 0 }} label="Consultations" valeur={formatNombre(suivis.length)} contexte="Au total" />
-        <Stat style={{ ["--i" as string]: 1 }} label="Ce mois-ci" valeur={formatNombre(ceMois)} contexte="Depuis le 1er du mois" />
-        <Stat style={{ ["--i" as string]: 2 }} label="Urgences (7 jours)" valeur={formatNombre(urgences)} signal={urgences > 0 ? "attention" : "neutre"} contexte={urgences > 0 ? "À surveiller" : "Aucune urgence récente"} />
-        <Stat style={{ ["--i" as string]: 3 }} label="Suivis programmés" valeur={formatNombre(suivisPrevus)} contexte="Rendez-vous à venir" />
+        <Stat icone="pulse" style={{ ["--i" as string]: 0 }} label="Consultations" valeur={formatNombre(suivis.length)} contexte="Au total" />
+        <Stat icone="pulse" style={{ ["--i" as string]: 1 }} label="Ce mois-ci" valeur={formatNombre(ceMois)} contexte="Depuis le 1er du mois" />
+        <Stat icone="pulse" style={{ ["--i" as string]: 2 }} label="Urgences (7 jours)" valeur={formatNombre(urgences)} signal={urgences > 0 ? "attention" : "neutre"} contexte={urgences > 0 ? "À surveiller" : "Aucune urgence récente"} />
+        <Stat icone="pulse" style={{ ["--i" as string]: 3 }} label="Suivis programmés" valeur={formatNombre(suivisPrevus)} contexte="Rendez-vous à venir" />
       </StatGrid>
 
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">
-        <Panel flush className="overflow-hidden">
+        <Panel variante="eleve" flush className="overflow-hidden">
           <FilterBar action={CHEMIN} actif={filtresActifs(sp, ["recherche", "type"])} reinitialiserHref={CHEMIN} resultat={pluriel(filtres.length, "consultation")}>
             <SearchInput name="recherche" defaultValue={param(sp, "recherche")} placeholder="Détenu, écrou ou diagnostic…" aria-label="Rechercher une consultation" className="w-full sm:w-64" />
             <Select name="type" defaultValue={type} aria-label="Filtrer par type" className="w-48">
@@ -93,7 +93,7 @@ export default async function SuiviMedicalPage(props: PageProps<"/sante/suivi-me
           />
         </Panel>
 
-        <Panel titre="Nouvelle consultation" className="xl:sticky xl:top-20">
+        <Panel variante="eleve" titre="Nouvelle consultation" className="xl:sticky xl:top-20">
           <form className="flex flex-col gap-4">
             <Field label="Détenu" requis>
               {(p) => (

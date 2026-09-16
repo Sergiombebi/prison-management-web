@@ -13,7 +13,9 @@ export interface EtatConnexion {
 /** N'accepte qu'un chemin interne, pour ne jamais rediriger vers un site tiers. */
 function suiteSure(valeur: FormDataEntryValue | null): string {
   const s = typeof valeur === "string" ? valeur : "";
-  return s.startsWith("/") && !s.startsWith("//") ? s : "/tableau-de-bord";
+  const interne = s.startsWith("/") && !s.startsWith("//");
+  // Revenir sur /deconnexion juste après la connexion effacerait aussitôt la session
+  return interne && !s.startsWith("/deconnexion") ? s : "/tableau-de-bord";
 }
 
 export async function connecter(

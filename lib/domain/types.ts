@@ -24,8 +24,11 @@ export type StatutDetenu =
 /** `SGPCore.Entities.TypeSortieDetenu` */
 export type TypeSortie = "LiberationNormale" | "Deces" | "Evasion" | "Transfert";
 
-/** `SGPCore.Entities.Role` */
-export type RoleUtilisateur = "Administrateur" | "Gestionnaire" | "Consultation";
+/**
+ * Rôles renvoyés par l'API (`user.role`). Ils remplacent ceux du desktop
+ * (Administrateur / Gestionnaire / Consultation) ; la matrice des droits reste à confirmer.
+ */
+export type RoleUtilisateur = "admin" | "agent" | "medecin";
 
 /**
  * Catégorie pénale. Ce n'est PAS une colonne en base : elle se déduit des mandats

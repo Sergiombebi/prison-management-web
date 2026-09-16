@@ -43,7 +43,7 @@ export function FilterBar({
         if ((e.target as HTMLElement).tagName === "SELECT") ref.current?.requestSubmit();
       }}
       className={cn(
-        "flex flex-wrap items-center gap-2 border-b border-hairline px-4 py-3",
+        "flex flex-wrap items-center gap-2 border-b border-hairline bg-raised/60 px-4 py-3",
         className,
       )}
     >
@@ -56,14 +56,18 @@ export function FilterBar({
           <Link
             href={reinitialiserHref}
             scroll={false}
-            className="inline-flex items-center gap-1 rounded-xs text-xs text-muted transition-colors hover:text-ink"
+            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted transition-colors hover:bg-sunken hover:text-ink"
           >
             <Icon name="close" size={12} />
             {t.actions.effacerFiltres}
           </Link>
         )}
         {resultat && (
-          <p role="status" aria-live="polite" className="tnum text-xs text-faint">
+          <p
+            role="status"
+            aria-live="polite"
+            className="tnum rounded-full bg-sunken px-2.5 py-1 text-xs text-muted"
+          >
             {resultat}
           </p>
         )}

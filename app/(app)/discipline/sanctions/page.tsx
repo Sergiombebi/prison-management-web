@@ -47,13 +47,13 @@ export default async function SanctionsPage(props: PageProps<"/discipline/sancti
       />
 
       <StatGrid colonnes={3}>
-        <Stat style={{ ["--i" as string]: 0 }} label="Sanctions en cours" valeur={formatNombre(enCours)} signal={enCours > 5 ? "attention" : "neutre"} contexte={`sur ${formatNombre(sanctions.length)} enregistrées`} />
-        <Stat style={{ ["--i" as string]: 1 }} label="Fautes ce mois-ci" valeur={formatNombre(ceMois)} contexte="Depuis le 1er du mois" />
-        <Stat style={{ ["--i" as string]: 2 }} label="En cellule disciplinaire" valeur={formatNombre(disciplinaires)} contexte="Détenus actuellement isolés" />
+        <Stat icone="scale" style={{ ["--i" as string]: 0 }} label="Sanctions en cours" valeur={formatNombre(enCours)} signal={enCours > 5 ? "attention" : "neutre"} contexte={`sur ${formatNombre(sanctions.length)} enregistrées`} />
+        <Stat icone="scale" style={{ ["--i" as string]: 1 }} label="Fautes ce mois-ci" valeur={formatNombre(ceMois)} contexte="Depuis le 1er du mois" />
+        <Stat icone="scale" style={{ ["--i" as string]: 2 }} label="En cellule disciplinaire" valeur={formatNombre(disciplinaires)} contexte="Détenus actuellement isolés" />
       </StatGrid>
 
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
-        <Panel flush className="overflow-hidden">
+        <Panel variante="eleve" flush className="overflow-hidden">
           <FilterBar action={CHEMIN} actif={filtresActifs(sp, ["recherche", "statut", "type"])} reinitialiserHref={CHEMIN} resultat={pluriel(filtrees.length, "sanction")}>
             <SearchInput name="recherche" defaultValue={param(sp, "recherche")} placeholder="Détenu ou n° d’écrou…" aria-label="Rechercher" className="w-full sm:w-60" />
             <Select name="statut" defaultValue={statut} aria-label="Filtrer par statut" className="w-36">
@@ -95,7 +95,7 @@ export default async function SanctionsPage(props: PageProps<"/discipline/sancti
           />
         </Panel>
 
-        <Panel titre="Nouvelle sanction" className="xl:sticky xl:top-20">
+        <Panel variante="eleve" titre="Nouvelle sanction" className="xl:sticky xl:top-20">
           <form className="flex flex-col gap-4">
             <Field label="Détenu" requis>
               {(p) => (

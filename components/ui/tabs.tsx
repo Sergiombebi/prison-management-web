@@ -12,6 +12,9 @@ export interface Onglet {
 /**
  * Onglets par liens : l'onglet ouvert vit dans l'URL, se partage et survit au
  * rafraîchissement. Pas de JavaScript nécessaire.
+ *
+ * Le repère actif porte un `view-transition-name` : d'un onglet à l'autre, il
+ * glisse au lieu de sauter.
  */
 export function TabsNav({
   items,
@@ -24,7 +27,7 @@ export function TabsNav({
 }) {
   return (
     <nav aria-label={label} className={cn("-mb-px overflow-x-auto", className)}>
-      <ul className="flex min-w-max gap-5 border-b border-hairline">
+      <ul className="flex min-w-max items-center gap-1 border-b border-hairline">
         {items.map((o) => (
           <li key={o.href}>
             <Link
@@ -32,16 +35,18 @@ export function TabsNav({
               scroll={false}
               aria-current={o.actif ? "page" : undefined}
               className={cn(
-                "relative flex h-10 items-center gap-2 text-sm transition-colors duration-[var(--dur-fast)]",
-                o.actif ? "font-medium text-ink" : "text-muted hover:text-ink",
+                "relative flex h-10 items-center gap-2 rounded-t-md px-3 text-sm transition-colors duration-[var(--dur-fast)]",
+                o.actif
+                  ? "font-medium text-ink"
+                  : "text-muted hover:bg-raised hover:text-ink",
               )}
             >
               {o.label}
               {o.compte !== undefined && (
                 <span
                   className={cn(
-                    "tnum rounded-xs px-1.5 text-2xs",
-                    o.actif ? "bg-accent-soft text-accent-ink" : "bg-sunken text-faint",
+                    "tnum rounded-full px-1.5 text-2xs transition-colors",
+                    o.actif ? "bg-accent text-ink-inverse" : "bg-sunken text-faint",
                   )}
                 >
                   {formatNombre(o.compte)}
@@ -50,8 +55,8 @@ export function TabsNav({
               {o.actif && (
                 <span
                   aria-hidden
-                  className="absolute inset-x-0 -bottom-px h-0.5 origin-left rounded-full bg-accent"
-                  style={{ animation: "sgp-grow-x var(--dur-slow) var(--ease-out) both" }}
+                  className="absolute inset-x-1 -bottom-px h-0.5 rounded-full bg-accent"
+                  style={{ viewTransitionName: "sgp-onglet" }}
                 />
               )}
             </Link>

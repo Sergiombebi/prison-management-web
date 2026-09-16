@@ -16,7 +16,7 @@ export default async function ParametresPage() {
     return (
       <Page>
         <PageHeader surtitre={t.modules.administration} titre="Paramètres" />
-        <Panel>
+        <Panel variante="eleve">
           <EmptyState
             icone="lock"
             titre={t.etats.horsPerimetre}

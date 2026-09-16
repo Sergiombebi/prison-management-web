@@ -62,7 +62,7 @@ export default async function MandatsPage(props: PageProps<"/detenus/mandats">) 
 
       <StatGrid colonnes={5}>
         {ORDRE.map((c, i) => (
-          <Stat
+          <Stat icone="scale"
             key={c}
             style={{ ["--i" as string]: i }}
             label={LIBELLE_CATEGORIE[c]}
@@ -74,7 +74,7 @@ export default async function MandatsPage(props: PageProps<"/detenus/mandats">) 
         ))}
       </StatGrid>
 
-      <Panel flush className="overflow-hidden">
+      <Panel variante="eleve" flush className="overflow-hidden">
         <FilterBar action={CHEMIN} actif={actif} reinitialiserHref={CHEMIN} resultat={pluriel(filtres.length, "mandat")}>
           <SearchInput
             name="recherche"

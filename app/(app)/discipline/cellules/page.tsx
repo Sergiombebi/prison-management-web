@@ -1,15 +1,15 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { api } from "@/lib/api";
 import type { Cellule } from "@/lib/domain/types";
 import { TYPES_CELLULE } from "@/lib/domain/referentiels";
-import { formatNombre, formatPourcent, ouVide, pluriel } from "@/lib/format";
+import { formatNombre, ouVide, pluriel } from "@/lib/format";
 import { filtresActifs, param } from "@/lib/url";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n/fr";
 import { Page, PageHeader } from "@/components/layout/page";
-import { DataTable } from "@/components/data/data-table";
 import { FilterBar } from "@/components/data/filter-bar";
-import { Jauge } from "@/components/data/charts";
+import { JaugeRadiale } from "@/components/data/charts";
 import { Stat, StatGrid } from "@/components/data/stat";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
@@ -50,6 +50,13 @@ export default async function CellulesPage(props: PageProps<"/discipline/cellule
   const effectif = cellules.reduce((s, c) => s + c.effectifReel, 0);
   const saturees = cellules.filter((c) => c.effectifReel >= c.capaciteMax).length;
 
+  // Regroupement par quartier : c'est ainsi que les agents pensent le bâtiment
+  const parQuartier = filtrees.reduce<Record<string, Cellule[]>>((acc, c) => {
+    const cle = c.bloc ?? "Sans quartier";
+    (acc[cle] ??= []).push(c);
+    return acc;
+  }, {});
+
   return (
     <Page>
       <PageHeader
@@ -57,83 +64,138 @@ export default async function CellulesPage(props: PageProps<"/discipline/cellule
         titre="Logement & cellules"
         description="Capacité d’accueil par cellule et taux d’occupation réel, calculé à partir des affectations en cours."
         actions={
-          <ButtonLink href="/discipline/affectations" icone="arrowRight" transitionTypes={["nav-forward"]}>
+          <ButtonLink
+            href="/discipline/affectations"
+            variante="primaire"
+            icone="arrowRight"
+            transitionTypes={["nav-forward"]}
+          >
             Affecter un détenu
           </ButtonLink>
         }
       />
 
       <StatGrid colonnes={4}>
-        <Stat style={{ ["--i" as string]: 0 }} label="Cellules" valeur={formatNombre(cellules.length)} contexte={pluriel(blocs.length, "quartier")} />
-        <Stat style={{ ["--i" as string]: 1 }} label="Capacité totale" valeur={formatNombre(capacite)} contexte={`${formatNombre(Math.max(capacite - effectif, 0))} places disponibles`} />
+        <Stat
+          style={{ ["--i" as string]: 0 }}
+          icone="cell"
+          label="Cellules"
+          nombre={cellules.length}
+          contexte={pluriel(blocs.length, "quartier")}
+        />
+        <Stat
+          style={{ ["--i" as string]: 1 }}
+          icone="door"
+          label="Capacité totale"
+          nombre={capacite}
+          contexte={`${formatNombre(Math.max(capacite - effectif, 0))} places disponibles`}
+        />
         <Stat
           style={{ ["--i" as string]: 2 }}
+          icone="detenus"
           label="Occupation moyenne"
-          valeur={formatNombre(capacite ? Math.round((effectif / capacite) * 1000) / 10 : 0)}
+          nombre={capacite ? Math.round((effectif / capacite) * 1000) / 10 : 0}
+          decimales={1}
           unite="%"
           signal={effectif > capacite ? "critique" : effectif / (capacite || 1) >= 0.9 ? "attention" : "neutre"}
           contexte={`${formatNombre(effectif)} détenus logés`}
         />
         <Stat
           style={{ ["--i" as string]: 3 }}
+          icone="alert"
           label="Cellules pleines"
-          valeur={formatNombre(saturees)}
+          nombre={saturees}
           signal={saturees > 0 ? "attention" : "positif"}
           contexte={saturees > 0 ? "Aucune nouvelle affectation possible" : "Toutes ont de la place"}
         />
       </StatGrid>
 
-      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
-        <Panel flush className="overflow-hidden">
-          <FilterBar action={CHEMIN} actif={filtresActifs(sp, ["recherche", "bloc", "etat"])} reinitialiserHref={CHEMIN} resultat={pluriel(filtrees.length, "cellule")}>
-            <SearchInput name="recherche" defaultValue={param(sp, "recherche")} placeholder="Numéro de cellule…" aria-label="Rechercher une cellule" className="w-full sm:w-56" />
-            <Select name="bloc" defaultValue={bloc} aria-label="Filtrer par quartier" className="w-44">
-              <option value="tous">Tous quartiers</option>
-              {blocs.map((b) => (
-                <option key={b}>{b}</option>
-              ))}
-            </Select>
-            <Select name="etat" defaultValue={etat} aria-label="Filtrer par disponibilité" className="w-40">
-              <option value="tous">Tous états</option>
-              <option value="disponibles">Disponibles</option>
-              <option value="pleines">Pleines ou presque</option>
-            </Select>
-          </FilterBar>
+      <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="flex flex-col gap-4">
+          <Panel flush variante="eleve">
+            <FilterBar
+              action={CHEMIN}
+              actif={filtresActifs(sp, ["recherche", "bloc", "etat"])}
+              reinitialiserHref={CHEMIN}
+              resultat={pluriel(filtrees.length, "cellule")}
+              className="border-b-0"
+            >
+              <SearchInput
+                name="recherche"
+                defaultValue={param(sp, "recherche")}
+                placeholder="Numéro de cellule…"
+                aria-label="Rechercher une cellule"
+                className="w-full sm:w-56"
+              />
+              <Select name="bloc" defaultValue={bloc} aria-label="Filtrer par quartier" className="w-44">
+                <option value="tous">Tous quartiers</option>
+                {blocs.map((b) => (
+                  <option key={b}>{b}</option>
+                ))}
+              </Select>
+              <Select name="etat" defaultValue={etat} aria-label="Filtrer par disponibilité" className="w-40">
+                <option value="tous">Tous états</option>
+                <option value="disponibles">Disponibles</option>
+                <option value="pleines">Pleines ou presque</option>
+              </Select>
+            </FilterBar>
+          </Panel>
 
-          <DataTable<Cellule>
-            legende="Cellules de l’établissement"
-            lignes={filtrees}
-            cleLigne={(c) => c.id}
-            colonnes={[
-              { cle: "numero", titre: "Cellule", rendu: (c) => <span className="font-mono font-medium">{c.numero}</span> },
-              { cle: "bloc", titre: "Quartier", rendu: (c) => ouVide(c.bloc) },
-              { cle: "type", titre: "Type", masquerSous: "md", rendu: (c) => <span className="text-muted">{ouVide(c.typeCellule)}</span> },
-              {
-                cle: "effectif",
-                titre: "Effectif",
-                align: "droite",
-                rendu: (c) => (
-                  <span className={cn("tnum", c.effectifReel > c.capaciteMax && "font-semibold text-danger")}>
-                    {c.effectifReel}
-                    <span className="text-faint"> / {c.capaciteMax}</span>
-                  </span>
-                ),
-              },
-              { cle: "occupation", titre: "Occupation", masquerSous: "sm", rendu: (c) => <Jauge valeur={c.effectifReel} max={c.capaciteMax} /> },
-              {
-                cle: "etat",
-                titre: "État",
-                rendu: (c) => {
-                  const e = etatCellule(c);
-                  return <Badge ton={e.ton}>{e.label}</Badge>;
-                },
-              },
-            ]}
-            vide={<EmptyState icone="cell" titre={t.etats.aucunResultatTitre} texte={t.etats.aucunResultatTexte} />}
-          />
-        </Panel>
+          {filtrees.length === 0 ? (
+            <Panel variante="eleve">
+              <EmptyState icone="cell" titre={t.etats.aucunResultatTitre} texte={t.etats.aucunResultatTexte} />
+            </Panel>
+          ) : (
+            Object.entries(parQuartier).map(([quartier, liste]) => (
+              <section key={quartier} aria-labelledby={`q-${quartier}`}>
+                <div className="mb-2.5 flex items-baseline gap-3">
+                  <h2 id={`q-${quartier}`} className="text-sm font-semibold text-ink">
+                    {quartier}
+                  </h2>
+                  <span className="h-px flex-1 bg-hairline" />
+                  <span className="tnum text-xs text-muted">{pluriel(liste.length, "cellule")}</span>
+                </div>
 
-        <Panel titre="Nouvelle cellule" className="xl:sticky xl:top-20">
+                <ul className="stagger grid gap-3 sm:grid-cols-2 2xl:grid-cols-3">
+                  {liste.map((c, i) => {
+                    const e = etatCellule(c);
+                    return (
+                      <li key={c.id} style={{ ["--i" as string]: Math.min(i, 12) }}>
+                        <Link
+                          href={`/discipline/affectations?cellule=${c.id}`}
+                          transitionTypes={["nav-forward"]}
+                          className={cn(
+                            "lift flex h-full items-center gap-4 rounded-lg border bg-surface p-4 shadow-e1",
+                            e.ton === "danger"
+                              ? "border-danger/25"
+                              : e.ton === "alerte"
+                                ? "border-warning/25"
+                                : "border-hairline hover:border-accent/30",
+                          )}
+                        >
+                          <JaugeRadiale valeur={c.effectifReel} max={c.capaciteMax} />
+                          <div className="min-w-0 flex-1">
+                            <p className="font-mono text-lg font-semibold tracking-tight text-ink">
+                              {c.numero}
+                            </p>
+                            <p className="mt-0.5 truncate text-xs text-muted">
+                              {ouVide(c.typeCellule)}
+                            </p>
+                            <div className="mt-2.5">
+                              <Badge ton={e.ton}>{e.label}</Badge>
+                            </div>
+                          </div>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            ))
+          )}
+        </div>
+
+        <Panel titre="Nouvelle cellule" variante="eleve" className="xl:sticky xl:top-20">
           <form className="flex flex-col gap-4">
             <Field label="Numéro de la cellule" requis aide="Unique au sein du quartier">
               {(p) => <Input {...p} name="numero" className="font-mono uppercase" placeholder="Ex. B-04" />}
@@ -159,10 +221,11 @@ export default async function CellulesPage(props: PageProps<"/discipline/cellule
               {(p) => <Input {...p} name="capaciteMax" type="number" min={1} max={200} inputMode="numeric" />}
             </Field>
             <div className="border-t border-hairline pt-4">
-              <DemoSubmit icone="plus" endpoint="POST /cellules">Créer la cellule</DemoSubmit>
+              <DemoSubmit icone="plus" endpoint="POST /cellules">
+                Créer la cellule
+              </DemoSubmit>
             </div>
           </form>
-          <p className="mt-3 text-xs text-muted">Taux cible : {formatPourcent(90, 0)} maximum par cellule.</p>
         </Panel>
       </div>
     </Page>

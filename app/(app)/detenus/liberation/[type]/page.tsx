@@ -78,7 +78,7 @@ export default async function LiberationPage(props: PageProps<"/detenus/liberati
       />
 
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">
-        <Panel titre="Historique" sousTitre={pluriel(sorties.length, "sortie enregistrée", "sorties enregistrées")} flush className="overflow-hidden">
+        <Panel variante="eleve" titre="Historique" sousTitre={pluriel(sorties.length, "sortie enregistrée", "sorties enregistrées")} flush className="overflow-hidden">
           <DataTable<SortieDetenu>
             legende={`Historique : ${LIBELLE_TYPE_SORTIE[typeSortie]}`}
             lignes={sorties}
@@ -114,7 +114,7 @@ export default async function LiberationPage(props: PageProps<"/detenus/liberati
           />
         </Panel>
 
-        <Panel
+        <Panel variante="eleve"
           titre="Consigner une sortie"
           sousTitre="La levée d’écrou retire le détenu de l’effectif"
           className={cn("xl:sticky xl:top-20", config.grave && "border-danger/30")}

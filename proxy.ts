@@ -8,6 +8,9 @@ export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
   const connecte = request.cookies.has("sgp_session");
 
+  // Nettoyage d'une session inutilisable : accessible connecté ou non (voir app/deconnexion)
+  if (pathname === "/deconnexion") return NextResponse.next();
+
   if (pathname === "/connexion") {
     return connecte
       ? NextResponse.redirect(new URL("/tableau-de-bord", request.url))

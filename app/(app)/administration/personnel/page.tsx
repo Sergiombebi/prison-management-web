@@ -14,7 +14,7 @@ import { Avatar, EmptyState, Panel } from "@/components/ui/surface";
 
 export const metadata: Metadata = { title: "Personnel" };
 
-const ROLES: RoleUtilisateur[] = ["Administrateur", "Gestionnaire", "Consultation"];
+const ROLES: RoleUtilisateur[] = ["admin", "agent", "medecin"];
 
 export default async function PersonnelPage() {
   const profil = await getProfil();
@@ -23,7 +23,7 @@ export default async function PersonnelPage() {
     return (
       <Page>
         <PageHeader surtitre={t.modules.administration} titre="Personnel" />
-        <Panel>
+        <Panel variante="eleve">
           <EmptyState
             icone="lock"
             titre={t.etats.horsPerimetre}
@@ -47,13 +47,13 @@ export default async function PersonnelPage() {
       />
 
       <StatGrid colonnes={4}>
-        <Stat style={{ ["--i" as string]: 0 }} label="Comptes" valeur={formatNombre(utilisateurs.length)} contexte={`${formatNombre(actifs)} actifs`} />
+        <Stat icone="user" style={{ ["--i" as string]: 0 }} label="Comptes" valeur={formatNombre(utilisateurs.length)} contexte={`${formatNombre(actifs)} actifs`} />
         {ROLES.map((r, i) => (
-          <Stat key={r} style={{ ["--i" as string]: i + 1 }} label={`${LIBELLE_ROLE[r]}s`} valeur={formatNombre(utilisateurs.filter((u) => u.role === r).length)} contexte={DESCRIPTION_ROLE[r]} />
+          <Stat icone="user" key={r} style={{ ["--i" as string]: i + 1 }} label={`${LIBELLE_ROLE[r]}s`} valeur={formatNombre(utilisateurs.filter((u) => u.role === r).length)} contexte={DESCRIPTION_ROLE[r]} />
         ))}
       </StatGrid>
 
-      <Panel titre="Comptes utilisateurs" flush className="overflow-hidden">
+      <Panel variante="eleve" titre="Comptes utilisateurs" flush className="overflow-hidden">
         <DataTable<Utilisateur>
           legende="Comptes utilisateurs"
           lignes={utilisateurs}
@@ -80,7 +80,7 @@ export default async function PersonnelPage() {
               cle: "role",
               titre: t.champs.role,
               rendu: (u) => (
-                <Badge ton={u.role === "Administrateur" ? "accent" : "neutre"} title={DESCRIPTION_ROLE[u.role]}>
+                <Badge ton={u.role === "admin" ? "accent" : "neutre"} title={DESCRIPTION_ROLE[u.role]}>
                   {LIBELLE_ROLE[u.role]}
                 </Badge>
               ),

@@ -38,11 +38,11 @@ const ALIGN = {
 /**
  * Tableau de registre.
  *
- * - En-tête collant, filets horizontaux uniquement (pas de grille).
+ * - En-tête collant translucide, qui reste lisible quand les lignes défilent dessous.
  * - Chiffres alignés (tabular-nums hérité de `table`).
- * - Ligne entière cliquable via un lien étiré sur la première cellule : la
- *   ligne reste un vrai `<a>` pour le clavier et le clic-milieu.
- * - Apparition des lignes en cascade, plafonnée pour ne pas ralentir les longues listes.
+ * - Ligne entière cliquable via un lien étiré sur la première cellule, avec un
+ *   repère qui se révèle au survol : la ligne survolée est sans ambiguïté.
+ * - Apparition en cascade, plafonnée pour ne pas ralentir les longues listes.
  */
 export function DataTable<T>({
   colonnes,
@@ -73,8 +73,8 @@ export function DataTable<T>({
     <div className={cn("relative overflow-x-auto", className)}>
       <table className="w-full border-collapse text-sm">
         <caption className="sr-only">{legende}</caption>
-        <thead className="sticky top-0 z-10 bg-raised">
-          <tr className="border-b border-rule">
+        <thead className="sticky top-0 z-10 verre">
+          <tr className="border-b border-hairline">
             {colonnes.map((c) => {
               const actif = tri?.cle === c.cle;
               const prochain = actif && tri?.sens === "asc" ? "desc" : "asc";
@@ -86,7 +86,7 @@ export function DataTable<T>({
                     actif ? (tri?.sens === "asc" ? "ascending" : "descending") : undefined
                   }
                   className={cn(
-                    "h-9 px-3 text-2xs font-semibold uppercase tracking-[0.08em] text-faint whitespace-nowrap first:pl-4 last:pr-4",
+                    "h-10 px-3 text-2xs font-semibold uppercase tracking-[0.08em] text-faint whitespace-nowrap first:pl-4 last:pr-4",
                     ALIGN[c.align ?? "gauche"],
                     c.masquerSous && MASQUE[c.masquerSous],
                   )}
@@ -97,7 +97,7 @@ export function DataTable<T>({
                       scroll={false}
                       className={cn(
                         "group inline-flex items-center gap-1 rounded-xs transition-colors hover:text-ink",
-                        actif && "text-ink",
+                        actif && "text-accent-ink",
                       )}
                     >
                       {c.titre}
@@ -121,15 +121,16 @@ export function DataTable<T>({
             })}
           </tr>
         </thead>
-        <tbody className="stagger" style={{ ["--stagger-step" as string]: "18ms" }}>
+        <tbody className="stagger" style={{ ["--stagger-step" as string]: "16ms" }}>
           {lignes.map((ligne, index) => {
             const href = lienLigne?.(ligne);
             return (
               <tr
                 key={cleLigne(ligne)}
-                style={{ ["--i" as string]: Math.min(index, 20) }}
+                style={{ ["--i" as string]: Math.min(index, 18) }}
                 className={cn(
-                  "relative border-b border-hairline last:border-b-0 transition-colors duration-[var(--dur-fast)]",
+                  "group/ligne relative border-b border-hairline last:border-b-0",
+                  "transition-colors duration-[var(--dur-fast)]",
                   href && "hover:bg-raised focus-within:bg-raised",
                 )}
               >
@@ -137,13 +138,20 @@ export function DataTable<T>({
                   <td
                     key={c.cle}
                     className={cn(
-                      "px-3 align-middle text-ink first:pl-4 last:pr-4",
-                      dense ? "h-10" : "h-12",
+                      "relative px-3 align-middle text-ink first:pl-4 last:pr-4",
+                      dense ? "h-11" : "h-13",
                       ALIGN[c.align ?? "gauche"],
                       c.masquerSous && MASQUE[c.masquerSous],
                       c.className,
                     )}
                   >
+                    {/* Repère vertical révélé au survol, sur la première cellule */}
+                    {ci === 0 && href && (
+                      <span
+                        aria-hidden
+                        className="absolute inset-y-1.5 left-0 w-0.5 origin-center scale-y-0 rounded-full bg-accent transition-transform duration-[var(--dur-base)] ease-[var(--ease-spring)] group-hover/ligne:scale-y-100"
+                      />
+                    )}
                     {ci === 0 && href ? (
                       <Link
                         href={href}
@@ -171,13 +179,13 @@ export function DataTable<T>({
 export function DataTableSkeleton({ colonnes = 6, lignes = 8 }: { colonnes?: number; lignes?: number }) {
   return (
     <div aria-hidden className="overflow-hidden">
-      <div className="flex h-9 items-center gap-6 border-b border-rule bg-raised px-4">
+      <div className="flex h-10 items-center gap-6 border-b border-hairline bg-raised px-4">
         {Array.from({ length: colonnes }, (_, i) => (
           <div key={i} className="skeleton h-2 flex-1 rounded-xs" />
         ))}
       </div>
       {Array.from({ length: lignes }, (_, r) => (
-        <div key={r} className="flex h-12 items-center gap-6 border-b border-hairline px-4 last:border-b-0">
+        <div key={r} className="flex h-13 items-center gap-6 border-b border-hairline px-4 last:border-b-0">
           {Array.from({ length: colonnes }, (_, i) => (
             <div
               key={i}

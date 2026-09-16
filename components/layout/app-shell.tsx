@@ -1,9 +1,8 @@
 "use client";
 
-import Form from "next/form";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { initiales } from "@/lib/format";
 import { t } from "@/lib/i18n/fr";
@@ -17,8 +16,10 @@ import {
   type ModuleNav,
 } from "@/lib/navigation";
 import type { ProfilSession } from "@/lib/session";
+import type { EtatApi } from "@/lib/api/contract";
 import { Icon } from "@/components/ui/icon";
 import { ThemeToggle } from "./theme-toggle";
+import { CommandPalette } from "./command-palette";
 
 export function AppShell({
   profil,
@@ -27,7 +28,7 @@ export function AppShell({
   children,
 }: {
   profil: ProfilSession;
-  modeApi: "mock" | "live";
+  modeApi: EtatApi;
   seDeconnecter: () => Promise<void>;
   children: ReactNode;
 }) {
@@ -36,7 +37,6 @@ export function AppShell({
   // change, il se referme de lui-même, sans effet ni rendu supplémentaire.
   const [ouvertSur, setOuvertSur] = useState<string | null>(null);
   const ouvert = ouvertSur === pathname;
-  const setOuvert = (valeur: boolean) => setOuvertSur(valeur ? pathname : null);
 
   useEffect(() => {
     if (!ouvert) return;
@@ -50,7 +50,7 @@ export function AppShell({
   }, [ouvert]);
 
   return (
-    <div className="min-h-screen lg:grid lg:grid-cols-[264px_minmax(0,1fr)]">
+    <div className="min-h-screen lg:grid lg:grid-cols-[268px_minmax(0,1fr)]">
       <a
         href="#contenu"
         className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-accent focus:px-3 focus:py-2 focus:text-ink-inverse"
@@ -61,9 +61,9 @@ export function AppShell({
       {/* Voile du tiroir mobile */}
       <div
         aria-hidden
-        onClick={() => setOuvert(false)}
+        onClick={() => setOuvertSur(null)}
         className={cn(
-          "fixed inset-0 z-30 bg-inverse/30 backdrop-blur-[2px] transition-opacity duration-[var(--dur-base)] lg:hidden",
+          "fixed inset-0 z-30 bg-inverse/40 backdrop-blur-[3px] transition-opacity duration-[var(--dur-base)] lg:hidden",
           ouvert ? "opacity-100" : "pointer-events-none opacity-0",
         )}
       />
@@ -73,12 +73,12 @@ export function AppShell({
         profil={profil}
         modeApi={modeApi}
         ouvert={ouvert}
-        onFermer={() => setOuvert(false)}
+        onFermer={() => setOuvertSur(null)}
         seDeconnecter={seDeconnecter}
       />
 
       <div className="flex min-w-0 flex-col">
-        <Topbar pathname={pathname} onOuvrirMenu={() => setOuvert(true)} />
+        <Topbar pathname={pathname} onOuvrirMenu={() => setOuvertSur(pathname)} />
         <main id="contenu" className="flex-1">
           {children}
         </main>
@@ -99,7 +99,7 @@ function Sidebar({
 }: {
   pathname: string;
   profil: ProfilSession;
-  modeApi: "mock" | "live";
+  modeApi: EtatApi;
   ouvert: boolean;
   onFermer: () => void;
   seDeconnecter: () => Promise<void>;
@@ -112,20 +112,23 @@ function Sidebar({
       data-print-hide
       aria-label="Navigation principale"
       className={cn(
-        "fixed inset-y-0 left-0 z-40 flex w-[264px] flex-col border-r border-hairline bg-surface",
+        "fixed inset-y-0 left-0 z-40 flex w-[268px] flex-col border-r border-hairline verre",
         "transition-transform duration-[var(--dur-slow)] ease-[var(--ease-out)]",
         "lg:sticky lg:top-0 lg:h-screen lg:translate-x-0",
-        ouvert ? "translate-x-0" : "-translate-x-full",
+        ouvert ? "translate-x-0 shadow-e4" : "-translate-x-full",
       )}
     >
       {/* En-tête institutionnel */}
-      <div className="relative border-b border-hairline px-5 pb-4 pt-5">
-        <span aria-hidden className="absolute inset-x-0 top-0 h-0.5 bg-accent" />
+      <div className="relative px-5 pb-4 pt-5">
+        <span
+          aria-hidden
+          className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent to-transparent"
+        />
         <div className="flex items-start justify-between gap-2">
-          <Link href="/tableau-de-bord" className="group flex items-center gap-3 rounded-sm">
+          <Link href="/tableau-de-bord" className="group flex items-center gap-3 rounded-md">
             <span
               aria-hidden
-              className="grid size-9 place-items-center rounded-md border border-rule-strong font-mono text-2xs font-semibold tracking-tight text-ink transition-colors group-hover:border-accent group-hover:text-accent"
+              className="grid size-9 place-items-center rounded-md bg-gradient-to-br from-accent to-accent-hover font-mono text-2xs font-bold tracking-tight text-ink-inverse shadow-e2 transition-transform duration-[var(--dur-base)] ease-[var(--ease-spring)] group-hover:scale-105"
             >
               SGP
             </span>
@@ -133,7 +136,7 @@ function Sidebar({
               <span className="block text-2xs font-semibold uppercase tracking-[0.12em] text-faint">
                 {t.app.republique}
               </span>
-              <span className="block truncate text-sm font-semibold text-ink">
+              <span className="block truncate text-sm font-semibold tracking-[-0.01em] text-ink">
                 {t.app.nomComplet}
               </span>
             </span>
@@ -149,7 +152,7 @@ function Sidebar({
         </div>
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-3 py-4">
+      <nav className="flex-1 overflow-y-auto px-3 py-2">
         <SectionNav titre={t.nav.menuPrincipal}>
           {MODULES_PRINCIPAUX.map((m) => (
             <EntreeModule
@@ -174,24 +177,30 @@ function Sidebar({
       </nav>
 
       <div className="border-t border-hairline p-3">
-        {modeApi === "mock" && (
+        {modeApi !== "live" && (
           <div
-            className="mb-3 flex items-start gap-2 rounded-md border border-dashed border-rule px-2.5 py-2"
-            title={t.mockBanner.texte}
+            className="mb-3 flex items-start gap-2 rounded-md border border-dashed border-rule bg-raised px-2.5 py-2"
+            title={modeApi === "mock" ? t.mockBanner.texte : t.mockBanner.texteHybride}
           >
-            <span aria-hidden className="mt-1.5 size-1.5 shrink-0 rounded-full bg-warning" />
+            <span
+              aria-hidden
+              className="mt-1.5 size-1.5 shrink-0 rounded-full bg-warning"
+              style={{ animation: "sgp-halo 2.6s ease-in-out infinite" }}
+            />
             <p className="text-2xs leading-4 text-muted">
-              <span className="font-semibold text-ink">{t.mockBanner.titre}</span>
+              <span className="font-semibold text-ink">
+                {modeApi === "mock" ? t.mockBanner.titre : t.mockBanner.titreHybride}
+              </span>
               <br />
-              API non branchée
+              {modeApi === "mock" ? "API non branchée" : "API branchée en partie"}
             </p>
           </div>
         )}
 
-        <div className="flex items-center gap-2.5 rounded-md px-1.5 py-1">
+        <div className="flex items-center gap-2.5 rounded-lg border border-hairline bg-surface px-2 py-2 shadow-e1">
           <span
             aria-hidden
-            className="grid size-8 shrink-0 place-items-center rounded-md bg-sunken text-2xs font-semibold text-muted"
+            className="grid size-8 shrink-0 place-items-center rounded-md bg-gradient-to-br from-raised to-sunken text-2xs font-semibold text-muted shadow-e1"
           >
             {initiales(`${profil.prenom} ${profil.nom}`)}
           </span>
@@ -213,7 +222,7 @@ function Sidebar({
           </form>
         </div>
 
-        <div className="mt-2 flex items-center justify-between px-1.5">
+        <div className="mt-2 flex items-center justify-between px-1">
           <span className="text-2xs text-faint">{t.nav.theme}</span>
           <ThemeToggle />
         </div>
@@ -261,21 +270,24 @@ function EntreeModule({
         aria-current={actif && !aSousNav ? "page" : undefined}
         className={cn(
           "group relative flex h-9 items-center gap-3 rounded-md px-2.5 text-base transition-colors duration-[var(--dur-fast)]",
-          actif ? "bg-sunken font-medium text-ink" : "text-muted hover:bg-sunken/60 hover:text-ink",
+          actif ? "font-medium text-accent-ink" : "text-muted hover:bg-sunken/70 hover:text-ink",
         )}
       >
-        {/* Repère actif : nommé pour glisser d'un module à l'autre pendant la transition */}
+        {/* Pilule active : nommée, elle glisse d'un module à l'autre pendant la transition */}
         {actif && (
           <span
             aria-hidden
-            className="absolute inset-y-2 left-0 w-0.5 rounded-full bg-accent"
+            className="repere absolute inset-0 -z-10 rounded-md border border-accent/15 bg-accent-soft shadow-e1"
             style={{ viewTransitionName: "sgp-repere-module" }}
           />
         )}
         <Icon
           name={module.icone}
           size={17}
-          className={cn("shrink-0 transition-colors", actif ? "text-accent" : "text-faint group-hover:text-muted")}
+          className={cn(
+            "shrink-0 transition-colors",
+            actif ? "text-accent" : "text-faint group-hover:text-muted",
+          )}
         />
         <span className="truncate">{module.label}</span>
         {aSousNav && (
@@ -283,7 +295,7 @@ function EntreeModule({
             name="chevronRight"
             size={13}
             className={cn(
-              "ml-auto text-faint transition-transform duration-[var(--dur-base)] ease-out",
+              "ml-auto text-faint transition-transform duration-[var(--dur-base)] ease-[var(--ease-spring)]",
               actif && "rotate-90",
             )}
           />
@@ -299,7 +311,7 @@ function EntreeModule({
           )}
         >
           <div className="overflow-hidden">
-            <div className="ml-[18px] mt-1 mb-2 border-l border-hairline pl-3">
+            <div className="ml-[19px] mb-2 mt-1 border-l border-hairline pl-3">
               {groupes.map((g) => (
                 <div key={g.label} className="mt-1.5 first:mt-0">
                   {groupes.length > 1 && (
@@ -316,13 +328,15 @@ function EntreeModule({
                             aria-current={courant ? "page" : undefined}
                             className={cn(
                               "relative flex h-7 items-center rounded-sm px-2 text-sm transition-colors",
-                              courant ? "font-medium text-accent-ink" : "text-muted hover:text-ink",
+                              courant
+                                ? "font-medium text-accent-ink"
+                                : "text-muted hover:text-ink",
                             )}
                           >
                             {courant && (
                               <span
                                 aria-hidden
-                                className="absolute -left-[13px] inset-y-1.5 w-px bg-accent"
+                                className="repere absolute -left-[13px] inset-y-1.5 w-0.5 rounded-full bg-accent"
                                 style={{ viewTransitionName: "sgp-repere-lien" }}
                               />
                             )}
@@ -346,24 +360,24 @@ function EntreeModule({
 
 function Topbar({ pathname, onOuvrirMenu }: { pathname: string; onOuvrirMenu: () => void }) {
   const miettes = filAriane(pathname);
-  const recherche = useRef<HTMLInputElement>(null);
+  const [condense, setCondense] = useState(false);
 
-  // « / » place le curseur dans la recherche, comme dans la plupart des outils métier
+  // La barre se resserre dès qu'on quitte le haut de page : plus de place au contenu
   useEffect(() => {
-    const surTouche = (e: KeyboardEvent) => {
-      const cible = e.target as HTMLElement;
-      if (e.key !== "/" || cible.closest("input, textarea, select, [contenteditable]")) return;
-      e.preventDefault();
-      recherche.current?.focus();
-    };
-    document.addEventListener("keydown", surTouche);
-    return () => document.removeEventListener("keydown", surTouche);
+    const surDefilement = () => setCondense(window.scrollY > 8);
+    surDefilement();
+    window.addEventListener("scroll", surDefilement, { passive: true });
+    return () => window.removeEventListener("scroll", surDefilement);
   }, []);
 
   return (
     <header
       data-print-hide
-      className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-hairline bg-canvas/85 px-4 backdrop-blur-md sm:px-6 lg:px-8"
+      className={cn(
+        "sticky top-0 z-20 flex items-center gap-3 border-b px-4 transition-[height,border-color,box-shadow] duration-[var(--dur-base)] ease-out sm:px-6 lg:px-8",
+        "verre",
+        condense ? "h-12 border-hairline shadow-e2" : "h-15 border-transparent",
+      )}
       style={{ viewTransitionName: "sgp-topbar" }}
     >
       <button
@@ -380,14 +394,24 @@ function Topbar({ pathname, onOuvrirMenu }: { pathname: string; onOuvrirMenu: ()
           {miettes.map((m, i) => {
             const dernier = i === miettes.length - 1;
             return (
-              <li key={`${m.label}-${i}`} className={cn("flex min-w-0 items-center gap-1.5", !dernier && "hidden sm:flex")}>
+              <li
+                key={`${m.label}-${i}`}
+                className={cn("flex min-w-0 items-center gap-1.5", !dernier && "hidden sm:flex")}
+              >
                 {i > 0 && <Icon name="chevronRight" size={12} className="shrink-0 text-faint" />}
                 {m.href && !dernier ? (
-                  <Link href={m.href} transitionTypes={["nav-back"]} className="truncate text-muted transition-colors hover:text-ink">
+                  <Link
+                    href={m.href}
+                    transitionTypes={["nav-back"]}
+                    className="truncate rounded-xs text-muted transition-colors hover:text-ink"
+                  >
                     {m.label}
                   </Link>
                 ) : (
-                  <span aria-current={dernier ? "page" : undefined} className={cn("truncate", dernier ? "font-medium text-ink" : "text-muted")}>
+                  <span
+                    aria-current={dernier ? "page" : undefined}
+                    className={cn("truncate", dernier ? "font-medium text-ink" : "text-muted")}
+                  >
                     {m.label}
                   </span>
                 )}
@@ -397,24 +421,9 @@ function Topbar({ pathname, onOuvrirMenu }: { pathname: string; onOuvrirMenu: ()
         </ol>
       </nav>
 
-      <Form action="/detenus" role="search" className="relative hidden w-full max-w-72 md:block">
-        <Icon name="search" size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-faint" />
-        <label htmlFor="recherche-globale" className="sr-only">
-          Rechercher un détenu par nom ou numéro d&apos;écrou
-        </label>
-        <input
-          ref={recherche}
-          id="recherche-globale"
-          name="recherche"
-          type="search"
-          autoComplete="off"
-          placeholder="Nom ou n° d'écrou…"
-          className="h-8 w-full rounded-md border border-hairline bg-surface pl-9 pr-9 text-sm text-ink placeholder:text-faint transition-colors hover:border-rule focus:border-accent focus:outline-none focus:ring-3 focus:ring-accent/15"
-        />
-        <kbd className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 rounded-xs border border-hairline px-1.5 font-mono text-2xs text-faint">
-          /
-        </kbd>
-      </Form>
+      <div className="hidden md:block">
+        <CommandPalette />
+      </div>
     </header>
   );
 }

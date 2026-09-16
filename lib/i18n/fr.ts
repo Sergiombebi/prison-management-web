@@ -125,7 +125,7 @@ export const fr = {
   connexion: {
     titre: "Connexion",
     sousTitre: "Accès réservé au personnel habilité",
-    identifiant: "Identifiant",
+    identifiant: "Identifiant ou adresse e-mail",
     motDePasse: "Mot de passe",
     motDePasseOublie: "Mot de passe oublié ?",
     erreurIdentifiants: "Identifiant ou mot de passe incorrect.",
@@ -133,12 +133,17 @@ export const fr = {
     compteVerrouille:
       "Ce compte est temporairement verrouillé après plusieurs tentatives.",
     enCours: "Vérification…",
+    sessionExpiree: "Votre session a expiré. Reconnectez-vous pour continuer.",
+    sessionInvalide: "Votre session n’est plus valide. Reconnectez-vous.",
   },
 
   mockBanner: {
     titre: "Données de démonstration",
     texte:
       "L'API n'est pas branchée. Les écrans affichent des données fictives générées localement.",
+    titreHybride: "Mode hybride",
+    texteHybride:
+      "Certains modules utilisent l'API réelle, les autres des données fictives générées localement.",
   },
 } as const;
 

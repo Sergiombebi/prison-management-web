@@ -17,7 +17,7 @@ export function Page({ children, className }: { children: ReactNode; className?:
     >
       <div
         className={cn(
-          "mx-auto flex w-full max-w-[1440px] flex-col gap-6 px-4 pb-16 pt-6 sm:px-6 lg:px-8",
+          "mx-auto flex w-full max-w-[1480px] flex-col gap-5 px-4 pb-20 pt-6 sm:px-6 lg:px-8",
           className,
         )}
       >
@@ -45,19 +45,35 @@ export function PageHeader({
   meta?: ReactNode;
 }) {
   return (
-    <header className="flex flex-col gap-4 border-b border-rule pb-5 md:flex-row md:items-end md:justify-between">
+    <header className="relative flex flex-col gap-4 pb-5 md:flex-row md:items-end md:justify-between">
+      {/* Filet de base dégradé : il ferme l'en-tête sans le cloisonner */}
+      <span
+        aria-hidden
+        className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-rule via-hairline to-transparent"
+      />
+
       <div className="min-w-0 animate-rise">
         {surtitre && (
-          <p className="mb-1.5 text-2xs font-semibold uppercase tracking-[0.14em] text-accent">
+          <p className="mb-2 flex items-center gap-2 text-2xs font-semibold uppercase tracking-[0.14em] text-accent">
+            <span aria-hidden className="inline-block h-px w-5 bg-accent/50" />
             {surtitre}
           </p>
         )}
-        <h1 className="text-xl font-semibold tracking-[-0.015em] text-ink text-balance">{titre}</h1>
+        <h1 className="text-balance text-xl font-semibold tracking-[-0.025em] text-ink md:text-2xl">
+          {titre}
+        </h1>
         {description && (
-          <p className="mt-1.5 max-w-[68ch] text-base text-muted text-pretty">{description}</p>
+          <p className="mt-2 max-w-[68ch] text-pretty text-base leading-relaxed text-muted">
+            {description}
+          </p>
         )}
-        {meta && <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">{meta}</div>}
+        {meta && (
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
+            {meta}
+          </div>
+        )}
       </div>
+
       {actions && (
         <div
           className="flex shrink-0 flex-wrap items-center gap-2 animate-rise"

@@ -19,6 +19,7 @@ export function Pagination({
   const pages = Math.max(1, Math.ceil(total / parPage));
   const debut = total === 0 ? 0 : (page - 1) * parPage + 1;
   const fin = Math.min(total, page * parPage);
+  const progression = total === 0 ? 0 : (fin / total) * 100;
 
   const lien = (cible: number, actif: boolean, contenu: React.ReactNode, label: string) =>
     actif ? (
@@ -26,12 +27,15 @@ export function Pagination({
         href={href(cible)}
         scroll={false}
         aria-label={label}
-        className="grid size-8 place-items-center rounded-md text-muted transition-colors hover:bg-sunken hover:text-ink"
+        className="grid size-8 place-items-center rounded-md border border-hairline bg-surface text-muted shadow-e1 transition-all duration-[var(--dur-fast)] hover:-translate-y-px hover:border-rule hover:text-ink hover:shadow-e2"
       >
         {contenu}
       </Link>
     ) : (
-      <span aria-hidden className="grid size-8 place-items-center text-faint/50">
+      <span
+        aria-hidden
+        className="grid size-8 place-items-center rounded-md border border-transparent text-faint/40"
+      >
         {contenu}
       </span>
     );
@@ -39,15 +43,23 @@ export function Pagination({
   return (
     <nav
       aria-label="Pagination"
-      className="flex flex-wrap items-center justify-between gap-3 border-t border-hairline px-4 py-2.5 text-xs text-muted"
+      className="relative flex flex-wrap items-center justify-between gap-3 border-t border-hairline px-4 py-3 text-xs text-muted"
     >
+      {/* Avancement dans le jeu de résultats */}
+      <span aria-hidden className="absolute inset-x-0 top-0 h-px bg-sunken">
+        <span
+          className="block h-full origin-left bg-accent/60 transition-[width] duration-[var(--dur-slow)]"
+          style={{ width: `${progression}%` }}
+        />
+      </span>
+
       <p className="tnum">
         <span className="font-medium text-ink">
           {formatNombre(debut)}–{formatNombre(fin)}
         </span>{" "}
         {t.tableau.surTotal} {formatNombre(total)} {t.tableau.resultats}
       </p>
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1.5">
         {lien(page - 1, page > 1, <Icon name="chevronLeft" size={14} />, t.actions.precedent)}
         <span className={cn("tnum px-2")}>
           {t.tableau.page} <span className="font-medium text-ink">{page}</span> / {pages}

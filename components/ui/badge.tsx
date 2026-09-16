@@ -10,12 +10,12 @@ import {
 export type Ton = "neutre" | "accent" | "succes" | "alerte" | "danger" | "info";
 
 const TONS: Record<Ton, string> = {
-  neutre: "bg-sunken text-muted",
-  accent: "bg-accent-soft text-accent-ink",
-  succes: "bg-success-soft text-success",
-  alerte: "bg-warning-soft text-warning",
-  danger: "bg-danger-soft text-danger",
-  info: "bg-info-soft text-info",
+  neutre: "bg-sunken text-muted ring-rule/40",
+  accent: "bg-accent-soft text-accent-ink ring-accent/20",
+  succes: "bg-success-soft text-success ring-success/20",
+  alerte: "bg-warning-soft text-warning ring-warning/25",
+  danger: "bg-danger-soft text-danger ring-danger/25",
+  info: "bg-info-soft text-info ring-info/20",
 };
 
 /**
@@ -39,7 +39,7 @@ export function Badge({
     <span
       title={title}
       className={cn(
-        "inline-flex h-5 items-center gap-1.5 rounded-sm px-1.5 text-2xs font-medium whitespace-nowrap",
+        "inline-flex h-5.5 items-center gap-1.5 whitespace-nowrap rounded-full px-2 text-2xs font-medium ring-1 ring-inset",
         TONS[ton],
         className,
       )}

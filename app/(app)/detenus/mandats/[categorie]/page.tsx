@@ -63,7 +63,7 @@ export default async function CategoriePage(props: PageProps<"/detenus/mandats/[
         </div>
       </div>
 
-      <Panel flush className="overflow-hidden">
+      <Panel variante="eleve" flush className="overflow-hidden">
         <div className="px-4">
           <TabsNav
             label="Catégories pénales"
