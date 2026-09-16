@@ -87,9 +87,57 @@ Next qui appelle l'API, donc **l'API n'a pas besoin de configurer CORS**.
 
 | Domaine | État | Détail |
 |---|---|---|
-| `auth` | ✅ Adapté | Connexion (identifiant ou email), déconnexion avec révocation du jeton, vérification de session via `/auth/me` |
-| `detenus`, `mandats` | ⏳ À adapter | Routes livrées par l'API, traduction snake_case et pagination à faire |
-| Autres | ⛔ Pas encore dans l'API | Restent en démonstration |
+| `auth` | ✅ Réel | Connexion (identifiant ou email), déconnexion avec révocation du jeton, session vérifiée via `/auth/me` |
+| `detenus` | ✅ Réel | Registre paginé (10/page), recherche (nom, écrou, CNI, passeport), filtre par catégorie pénale, fiche détenu avec ses mandats, **écritures** (enregistrement, restauration, mandats, photos) |
+| `mandats` | ⏳ Démo | L'API n'expose ni liste globale des mandats, ni mandats expirés |
+| Autres | ⛔ Démo | Tableau de bord, discipline, santé, états, administration : routes absentes de l'API |
+
+En mode réel, le registre **masque** les colonnes que l'API ne fournit pas encore
+(catégorie pénale, cellule, échéance du mandat) et désactive le tri et le filtre par sexe,
+plutôt que d'afficher des contrôles qui ne feraient rien.
+
+> ⚠️ Deux catégories renvoient une erreur 500 côté API : `condamnes` et `dpac`
+> (`HAVING clause on a non-aggregate query`). L'écran l'explique au lieu d'afficher
+> une liste vide. Les trois autres catégories fonctionnent.
+
+### Écritures branchées (registre des détenus)
+
+Vérifiées de bout en bout contre l'API locale : chaque ligne ci-dessous a été jouée
+sur une vraie base, cas d'échec compris.
+
+| Flux | Route API | Comportement |
+|---|---|---|
+| Enregistrement d'un entrant | `POST /detenus` puis `POST /detenus/{id}/mandas` | Deux appels enchaînés. Si le mandat échoue, la fiche existe déjà : la reprise n'envoie que le mandat. |
+| Photographies | `POST /detenus/photos` (multipart) | Optionnelles et non bloquantes : si le dépôt échoue, l'écrou est créé quand même et l'écran le signale. |
+| Identité déjà connue | 409 + `conflict` | Panneau proposant de restaurer le dossier désactivé (`POST /detenus/{id}/restore`) ou de le consulter d'abord. |
+| Évolution d'un mandat | `PUT /detenus/{id}/mandas/{mandatId}` | Écran `/detenus/{id}/mandats/{mandatId}` : changement de statut pénal, rubriques Jugement / Appel / Cassation ouvertes selon le cas. |
+| Erreurs de validation | 422 | Message posé sur le champ fautif, saisies conservées. |
+
+> ⚠️ Trois points à signaler côté API :
+> `date_expiration_mandat` est **obligatoire** à la création comme à la mise à jour, alors
+> qu'une exécution de peine n'a pas d'échéance (la colonne accepte pourtant `null`) ;
+> le message de ce champ n'est pas traduit (« The date expiration mandat field is required. ») ;
+> le dépôt des photos réclame de vrais identifiants Cloudinary — avec le `CLOUDINARY_URL`
+> d'exemple, l'API répond « Unknown API key ».
+
+### Lancer l'API en local
+
+Dans le dépôt `prison-management-api` :
+
+```bash
+composer install
+```
+
+```bash
+php artisan migrate:fresh --seed
+```
+
+```bash
+php artisan serve --host=127.0.0.1 --port=8000
+```
+
+Comptes créés par le seeder (mot de passe `password`) : `admin`, `eric.agent`, `sophie.medecin`.
+La base est vide de détenus : créez-en via l'API ou via Postman pour voir le registre se remplir.
 
 ### Le contrat entre front et API
 
@@ -123,7 +171,8 @@ Deux points à ne pas perdre de vue :
 | Tableau de bord | `/tableau-de-bord` | Points d'attention cliquables, indicateurs, graphiques animés |
 | Registre d'écrou | `/detenus` | Recherche, filtres, tri et pagination conservés dans l'URL |
 | Dossier détenu | `/detenus/1` | Onglets ; l'onglet Mandats montre la progression de la procédure |
-| Enregistrement | `/detenus/nouveau` | Sommaire qui suit le défilement ; rubriques selon le statut pénal |
+| Enregistrement | `/detenus/nouveau` | Sommaire qui suit le défilement ; rubriques selon le statut pénal ; en mode réel, l'écrou est créé avec son mandat |
+| Évolution d'un mandat | `/detenus/1/mandats/1` | Effet du nouveau statut pénal expliqué avant l'enregistrement |
 | Catégories pénales | `/detenus/mandats/dpac` | Règle de classement affichée, onglets entre catégories |
 | Libération | `/detenus/liberation/evasion` | Avertissement et autorités ampliataires |
 | Cellules | `/discipline/cellules` | Jauges d'occupation, filtres |
@@ -182,7 +231,8 @@ proxy.ts                redirige vers /connexion sans session (ex-middleware)
 
 ## Limites connues
 
-- Écritures simulées : les formulaires valident et conservent les saisies, sans rien envoyer.
+- Écritures : branchées pour le registre des détenus (fiche, mandat, restauration, photos).
+  Les autres modules valident et conservent les saisies sans rien envoyer, faute de routes côté API.
 - Matrice des droits par rôle (`admin` / `agent` / `medecin`) à confirmer avec l'API : seul
   l'accès à l'administration dépend du rôle pour l'instant.
 - Photos, logo et génération PDF non branchés (impression par le navigateur).

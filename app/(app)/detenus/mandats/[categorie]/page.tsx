@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { api } from "@/lib/api";
+import { api, ApiErreur, modeDe } from "@/lib/api";
 import type { CategoriePenale, DetenuResume } from "@/lib/domain/types";
 import {
   CATEGORIE_SLUG,
@@ -32,19 +32,38 @@ export async function generateMetadata(props: PageProps<"/detenus/mandats/[categ
   return { title: c ? TITRES[c] : "Catégorie inconnue" };
 }
 
+/**
+ * Une catégorie peut échouer alors que les autres répondent : deux scopes de l'API
+ * (`condamnes`, `dpac`) posent un `having` sans `group by`, ce que SQLite refuse.
+ * On isole la panne au lieu de faire tomber tout l'écran.
+ */
+async function chargerCategorie(categorie: CategoriePenale) {
+  const tb = await api.getTableauDeBord();
+  try {
+    return [await api.listParCategorie(categorie), tb, null] as const;
+  } catch (e) {
+    if (!(e instanceof ApiErreur)) throw e;
+    return [[] as DetenuResume[], tb, e.message] as const;
+  }
+}
+
 export default async function CategoriePage(props: PageProps<"/detenus/mandats/[categorie]">) {
   const { categorie: slug } = await props.params;
   const categorie = SLUG_CATEGORIE[slug];
   if (!categorie) notFound();
 
-  const [detenus, tb] = await Promise.all([api.listParCategorie(categorie), api.getTableauDeBord()]);
+  const [detenus, tb, indisponible] = await chargerCategorie(categorie);
 
   return (
     <Page>
       <PageHeader
         surtitre="Gestion des mandats"
         titre={TITRES[categorie]}
-        description={pluriel(detenus.length, "détenu") + " dans cette catégorie."}
+        description={
+          indisponible
+            ? "Catégorie momentanément indisponible : l’API ne parvient pas à la produire."
+            : pluriel(detenus.length, "détenu") + " dans cette catégorie."
+        }
         actions={
           <ButtonLink href={`/etats/categories?categorie=${slug}`} icone="printer" transitionTypes={["nav-forward"]}>
             État nominatif
@@ -63,6 +82,18 @@ export default async function CategoriePage(props: PageProps<"/detenus/mandats/[
         </div>
       </div>
 
+      {indisponible && (
+        <div className="flex items-start gap-3 rounded-lg border border-danger/30 bg-danger-soft px-4 py-3.5 text-sm animate-rise">
+          <Icon name="alert" size={16} className="mt-0.5 shrink-0 text-danger" />
+          <div>
+            <p className="font-medium text-danger">Catégorie indisponible côté API</p>
+            <p className="mt-0.5 text-muted">
+              {indisponible} Les autres catégories restent consultables.
+            </p>
+          </div>
+        </div>
+      )}
+
       <Panel variante="eleve" flush className="overflow-hidden">
         <div className="px-4">
           <TabsNav
@@ -70,7 +101,9 @@ export default async function CategoriePage(props: PageProps<"/detenus/mandats/[
             items={(Object.keys(TITRES) as CategoriePenale[]).map((c) => ({
               href: `/detenus/mandats/${CATEGORIE_SLUG[c]}`,
               label: LIBELLE_CATEGORIE[c],
-              compte: tb.effectifsParCategorie[c],
+              // En mode réel, l'API n'expose pas encore de compteurs par catégorie
+              // (retour A4) : mieux vaut aucun chiffre qu'un chiffre de démonstration.
+              compte: modeDe("detenus") === "live" ? undefined : tb.effectifsParCategorie[c],
               actif: c === categorie,
             }))}
           />
@@ -111,11 +144,19 @@ export default async function CategoriePage(props: PageProps<"/detenus/mandats/[
             },
           ]}
           vide={
-            <EmptyState
-              icone="detenus"
-              titre={`Aucun détenu ${LIBELLE_CATEGORIE[categorie].toLowerCase()}`}
-              texte="Aucun détenu ne remplit actuellement les conditions de cette catégorie."
-            />
+            indisponible ? (
+              <EmptyState
+                icone="alert"
+                titre="Liste non chargée"
+                texte="L’API n’a pas pu produire cette catégorie. Rien n’indique qu’elle soit vide : réessayez une fois le correctif livré."
+              />
+            ) : (
+              <EmptyState
+                icone="detenus"
+                titre={`Aucun détenu ${LIBELLE_CATEGORIE[categorie].toLowerCase()}`}
+                texte="Aucun détenu ne remplit actuellement les conditions de cette catégorie."
+              />
+            )
           }
         />
       </Panel>

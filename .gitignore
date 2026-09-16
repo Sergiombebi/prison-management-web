@@ -24,6 +24,11 @@
 .DS_Store
 *.pem
 
+# médias lourds : références de design, captures d'écran de travail…
+*.mp4
+*.mov
+*.webm
+
 # debug
 npm-debug.log*
 yarn-debug.log*

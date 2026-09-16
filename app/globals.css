@@ -80,6 +80,24 @@
   --dur-exit: 150ms;
   --dur-enter: 210ms;
   --dur-move: 400ms;
+  /* Écran de connexion — le fond est une image : il change entièrement avec le thème */
+  --sgp-connexion-fond: url("/fond-connexion-jour.svg");
+  --sgp-connexion-voile: linear-gradient(
+    180deg,
+    rgb(255 255 255 / 0.40) 0%,
+    rgb(247 247 251 / 0.04) 36%,
+    rgb(230 235 249 / 0.28) 68%,
+    rgb(206 217 241 / 0.82) 100%
+  );
+  --sgp-connexion-vignette: radial-gradient(
+    ellipse 78% 62% at 50% 46%,
+    transparent 0%,
+    rgb(134 153 208 / 0.40) 100%
+  );
+  --sgp-connexion-ink: #17152b;
+  --sgp-connexion-ink-doux: #403d5e;
+  --sgp-connexion-ink-faible: #524f76;
+  --sgp-connexion-filet: rgb(23 21 43 / 0.18);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -134,6 +152,23 @@
     --shadow-3: 0 6px 16px -6px rgb(0 0 0 / 0.55), 0 20px 40px -14px rgb(0 0 0 / 0.65);
     --shadow-4: 0 12px 28px -10px rgb(0 0 0 / 0.6), 0 44px 76px -26px rgb(0 0 0 / 0.72);
     --shadow-accent: 0 6px 22px -8px rgb(166 139 255 / 0.45);
+    --sgp-connexion-fond: url("/fond-connexion.svg");
+    --sgp-connexion-voile: linear-gradient(
+      180deg,
+      rgb(10 4 32 / 0.70) 0%,
+      rgb(13 5 39 / 0.26) 38%,
+      rgb(11 4 34 / 0.48) 68%,
+      rgb(8 3 26 / 0.84) 100%
+    );
+    --sgp-connexion-vignette: radial-gradient(
+      ellipse 78% 62% at 50% 46%,
+      transparent 0%,
+      rgb(8 3 26 / 0.42) 100%
+    );
+    --sgp-connexion-ink: #ffffff;
+    --sgp-connexion-ink-doux: rgb(255 255 255 / 0.72);
+    --sgp-connexion-ink-faible: rgb(255 255 255 / 0.58);
+    --sgp-connexion-filet: rgb(255 255 255 / 0.22);
   }
 }
 
@@ -188,6 +223,23 @@
   --shadow-3: 0 6px 16px -6px rgb(0 0 0 / 0.55), 0 20px 40px -14px rgb(0 0 0 / 0.65);
   --shadow-4: 0 12px 28px -10px rgb(0 0 0 / 0.6), 0 44px 76px -26px rgb(0 0 0 / 0.72);
   --shadow-accent: 0 6px 22px -8px rgb(166 139 255 / 0.45);
+  --sgp-connexion-fond: url("/fond-connexion.svg");
+  --sgp-connexion-voile: linear-gradient(
+    180deg,
+    rgb(10 4 32 / 0.70) 0%,
+    rgb(13 5 39 / 0.26) 38%,
+    rgb(11 4 34 / 0.48) 68%,
+    rgb(8 3 26 / 0.84) 100%
+  );
+  --sgp-connexion-vignette: radial-gradient(
+    ellipse 78% 62% at 50% 46%,
+    transparent 0%,
+    rgb(8 3 26 / 0.42) 100%
+  );
+  --sgp-connexion-ink: #ffffff;
+  --sgp-connexion-ink-doux: rgb(255 255 255 / 0.72);
+  --sgp-connexion-ink-faible: rgb(255 255 255 / 0.58);
+  --sgp-connexion-filet: rgb(255 255 255 / 0.22);
 }
 
 @theme inline {

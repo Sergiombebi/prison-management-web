@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { api } from "@/lib/api";
+import { api, modeDe } from "@/lib/api";
 import type { CategoriePenale, DetenuResume, Sexe } from "@/lib/domain/types";
 import { LIBELLE_CATEGORIE } from "@/lib/domain/referentiels";
 import { formatDate, formatNombre, initiales, joursRestants, ouVide, pluriel, tronquer } from "@/lib/format";
@@ -11,18 +11,23 @@ import { Page, PageHeader } from "@/components/layout/page";
 import { DataTable, type Colonne } from "@/components/data/data-table";
 import { FilterBar } from "@/components/data/filter-bar";
 import { Pagination } from "@/components/data/pagination";
-import { BadgeCategorie } from "@/components/ui/badge";
+import { Badge, BadgeCategorie } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
+import { Icon } from "@/components/ui/icon";
 import { SearchInput, Select } from "@/components/ui/field";
 import { Avatar, EmptyState, Ecrou, Panel } from "@/components/ui/surface";
 
 export const metadata: Metadata = { title: "Liste des détenus" };
 
-const PAR_PAGE = 15;
 const CHEMIN = "/detenus";
 
 export default async function DetenusPage(props: PageProps<"/detenus">) {
   const sp = await props.searchParams;
+
+  // L'API impose 10 par page et n'expose ni tri, ni filtre par sexe, ni catégorie
+  // dans la liste. On adapte l'écran au lieu d'afficher des contrôles qui mentent.
+  const reel = modeDe("detenus") === "live";
+  const parPage = reel ? 10 : 15;
 
   const recherche = param(sp, "recherche") ?? "";
   const categorieBrute = param(sp, "categorie");
@@ -39,97 +44,138 @@ export default async function DetenusPage(props: PageProps<"/detenus">) {
   const resultat = await api.listDetenus({
     recherche,
     categorie,
-    sexe,
+    sexe: reel ? "tous" : sexe,
     tri,
     sens,
     page,
-    parPage: PAR_PAGE,
+    parPage,
   });
 
-  const actif = filtresActifs(sp, ["recherche", "categorie", "sexe"]);
+  const actif = filtresActifs(sp, reel ? ["recherche", "categorie"] : ["recherche", "categorie", "sexe"]);
 
-  const colonnes: Colonne<DetenuResume>[] = [
-    {
-      cle: "numeroEcrou",
-      titre: t.champs.numeroEcrou,
-      triable: true,
-      rendu: (d) => <Ecrou className="font-medium">{d.numeroEcrou}</Ecrou>,
-    },
-    {
-      cle: "nom",
-      titre: t.champs.nom,
-      triable: true,
-      rendu: (d) => (
-        <div className="flex min-w-0 items-center gap-2.5">
-          <Avatar initiales={initiales(d.nom)} taille="sm" />
-          <div className="min-w-0">
-            <p className="max-w-[26ch] truncate font-medium text-ink" title={d.nom}>
-              {d.nom}
-            </p>
-            <p className="text-xs text-muted">
-              {d.sexe === "Féminin" ? "F" : "M"} · {d.age ? `${d.age} ans` : "âge inconnu"}
-            </p>
-          </div>
+  const colonneEcrou: Colonne<DetenuResume> = {
+    cle: "numeroEcrou",
+    titre: t.champs.numeroEcrou,
+    triable: !reel,
+    rendu: (d) => <Ecrou className="font-medium">{d.numeroEcrou}</Ecrou>,
+  };
+
+  const colonneNom: Colonne<DetenuResume> = {
+    cle: "nom",
+    titre: t.champs.nom,
+    triable: !reel,
+    rendu: (d) => (
+      <div className="flex min-w-0 items-center gap-2.5">
+        <Avatar initiales={initiales(d.nom)} taille="sm" />
+        <div className="min-w-0">
+          <p className="max-w-[26ch] truncate font-medium text-ink" title={d.nom}>
+            {d.nom}
+          </p>
+          <p className="text-xs text-muted">
+            {d.sexe === "Féminin" ? "F" : "M"}
+            {d.age ? ` · ${d.age} ans` : ""}
+          </p>
         </div>
-      ),
-    },
-    {
-      cle: "categorie",
-      titre: t.champs.categoriePenale,
-      triable: true,
-      rendu: (d) => <BadgeCategorie categorie={d.categoriePenale} />,
-    },
-    {
-      cle: "motif",
-      titre: t.champs.motifDetention,
-      masquerSous: "lg",
-      rendu: (d) => (
-        <span className="text-muted" title={d.mandatCourant?.motifDetention ?? undefined}>
-          {tronquer(d.mandatCourant?.motifDetention, 34)}
-        </span>
-      ),
-    },
-    {
-      cle: "dateIncarceration",
-      titre: "Incarcéré le",
-      triable: true,
-      masquerSous: "md",
-      rendu: (d) => <span className="text-muted">{formatDate(d.mandatCourant?.dateIncarceration)}</span>,
-    },
-    {
-      cle: "cellule",
-      titre: t.champs.cellule,
-      masquerSous: "xl",
-      rendu: (d) =>
-        d.cellule ? (
-          <span className="rounded-md bg-sunken px-2 py-1 font-mono text-xs text-muted">
-            {d.cellule.numero}
-          </span>
-        ) : (
-          <span className="text-xs text-warning">Non logé</span>
-        ),
-    },
-    {
-      cle: "expiration",
-      titre: "Fin du mandat",
-      align: "droite",
-      masquerSous: "sm",
-      rendu: (d) => {
-        const jours = joursRestants(d.mandatCourant?.dateSortieMandat);
-        if (jours === null) return <span className="text-faint">{ouVide(null)}</span>;
-        return (
-          <span className="inline-flex flex-col items-end leading-tight">
-            <span className={cn(jours <= 30 ? "font-medium text-warning" : "text-ink")}>
-              {formatDate(d.mandatCourant?.dateSortieMandat)}
-            </span>
-            <span className="text-2xs text-faint">
-              {jours <= 0 ? "échu" : `dans ${formatNombre(jours)} j`}
-            </span>
-          </span>
-        );
-      },
-    },
-  ];
+      </div>
+    ),
+  };
+
+  const colonneMotif: Colonne<DetenuResume> = {
+    cle: "motif",
+    titre: t.champs.motifDetention,
+    masquerSous: "lg",
+    rendu: (d) => (
+      <span className="text-muted" title={d.mandatCourant?.motifDetention ?? undefined}>
+        {tronquer(d.mandatCourant?.motifDetention, 34)}
+      </span>
+    ),
+  };
+
+  const colonneIncarceration: Colonne<DetenuResume> = {
+    cle: "dateIncarceration",
+    titre: "Incarcéré le",
+    triable: !reel,
+    masquerSous: "md",
+    rendu: (d) => <span className="text-muted">{formatDate(d.mandatCourant?.dateIncarceration)}</span>,
+  };
+
+  const colonnes: Colonne<DetenuResume>[] = reel
+    ? [
+        colonneEcrou,
+        colonneNom,
+        {
+          cle: "statutPenal",
+          titre: "Statut pénal",
+          rendu: (d) =>
+            d.mandatCourant?.typeStatutPenal ? (
+              <Badge ton="info" point={false}>
+                {d.mandatCourant.typeStatutPenal}
+              </Badge>
+            ) : (
+              <span className="text-xs text-faint">Aucun mandat</span>
+            ),
+        },
+        colonneMotif,
+        colonneIncarceration,
+        {
+          cle: "typeMandat",
+          titre: t.champs.typeMandat,
+          masquerSous: "xl",
+          rendu: (d) => <span className="text-muted">{tronquer(d.mandatCourant?.typeMandat, 26)}</span>,
+        },
+        {
+          cle: "nationalite",
+          titre: t.champs.nationalite,
+          align: "droite",
+          masquerSous: "sm",
+          rendu: (d) => <span className="text-muted">{ouVide(d.nationalite)}</span>,
+        },
+      ]
+    : [
+        colonneEcrou,
+        colonneNom,
+        {
+          cle: "categorie",
+          titre: t.champs.categoriePenale,
+          triable: true,
+          rendu: (d) => <BadgeCategorie categorie={d.categoriePenale} />,
+        },
+        colonneMotif,
+        colonneIncarceration,
+        {
+          cle: "cellule",
+          titre: t.champs.cellule,
+          masquerSous: "xl",
+          rendu: (d) =>
+            d.cellule ? (
+              <span className="rounded-md bg-sunken px-2 py-1 font-mono text-xs text-muted">
+                {d.cellule.numero}
+              </span>
+            ) : (
+              <span className="text-xs text-warning">Non logé</span>
+            ),
+        },
+        {
+          cle: "expiration",
+          titre: "Fin du mandat",
+          align: "droite",
+          masquerSous: "sm",
+          rendu: (d) => {
+            const jours = joursRestants(d.mandatCourant?.dateSortieMandat);
+            if (jours === null) return <span className="text-faint">{ouVide(null)}</span>;
+            return (
+              <span className="inline-flex flex-col items-end leading-tight">
+                <span className={cn(jours <= 30 ? "font-medium text-warning" : "text-ink")}>
+                  {formatDate(d.mandatCourant?.dateSortieMandat)}
+                </span>
+                <span className="text-2xs text-faint">
+                  {jours <= 0 ? "échu" : `dans ${formatNombre(jours)} j`}
+                </span>
+              </span>
+            );
+          },
+        },
+      ];
 
   const categories: Array<{ cle: CategoriePenale | "toutes"; label: string }> = [
     { cle: "toutes", label: "Toutes" },
@@ -146,10 +192,18 @@ export default async function DetenusPage(props: PageProps<"/detenus">) {
         titre="Registre d’écrou"
         description="Tous les détenus présents dans l’établissement, avec leur situation pénale calculée à partir des mandats actifs."
         meta={
-          <span className="inline-flex items-center gap-1.5">
-            <span className="tnum font-medium text-ink">{formatNombre(resultat.total)}</span>
-            {resultat.total > 1 ? "détenus correspondent" : "détenu correspond"} aux filtres
-          </span>
+          <>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="tnum font-medium text-ink">{formatNombre(resultat.total)}</span>
+              {resultat.total > 1 ? "détenus correspondent" : "détenu correspond"} aux filtres
+            </span>
+            {reel && (
+              <span className="inline-flex items-center gap-1.5 text-accent">
+                <Icon name="pulse" size={12} />
+                Données réelles de l’API
+              </span>
+            )}
+          </>
         }
         actions={
           <ButtonLink
@@ -193,21 +247,23 @@ export default async function DetenusPage(props: PageProps<"/detenus">) {
           reinitialiserHref={CHEMIN}
           resultat={pluriel(resultat.total, "détenu")}
         >
-          {tri !== "numeroEcrou" && <input type="hidden" name="tri" value={tri} />}
-          {sens !== "asc" && <input type="hidden" name="sens" value={sens} />}
+          {!reel && tri !== "numeroEcrou" && <input type="hidden" name="tri" value={tri} />}
+          {!reel && sens !== "asc" && <input type="hidden" name="sens" value={sens} />}
           {categorie !== "toutes" && <input type="hidden" name="categorie" value={categorie} />}
           <SearchInput
             name="recherche"
             defaultValue={recherche}
-            placeholder="Nom, n° d’écrou ou motif…"
+            placeholder={reel ? "Nom, écrou, CNI ou passeport…" : "Nom, n° d’écrou ou motif…"}
             aria-label="Rechercher un détenu"
             className="w-full sm:w-80"
           />
-          <Select name="sexe" defaultValue={sexe} aria-label="Filtrer par sexe" className="w-36">
-            <option value="tous">Tous sexes</option>
-            <option value="Masculin">Hommes</option>
-            <option value="Féminin">Femmes</option>
-          </Select>
+          {!reel && (
+            <Select name="sexe" defaultValue={sexe} aria-label="Filtrer par sexe" className="w-36">
+              <option value="tous">Tous sexes</option>
+              <option value="Masculin">Hommes</option>
+              <option value="Féminin">Femmes</option>
+            </Select>
+          )}
         </FilterBar>
 
         <DataTable
@@ -217,11 +273,15 @@ export default async function DetenusPage(props: PageProps<"/detenus">) {
           cleLigne={(d) => d.id}
           lienLigne={(d) => `/detenus/${d.id}`}
           libelleLien={(d) => `Ouvrir le dossier de ${d.nom}, écrou ${d.numeroEcrou}`}
-          tri={{
-            cle: tri,
-            sens,
-            href: (cle, s) => hrefAvec(CHEMIN, sp, { tri: cle, sens: s, page: null }),
-          }}
+          tri={
+            reel
+              ? undefined
+              : {
+                  cle: tri,
+                  sens,
+                  href: (cle, s) => hrefAvec(CHEMIN, sp, { tri: cle, sens: s, page: null }),
+                }
+          }
           vide={
             actif ? (
               <EmptyState
@@ -253,7 +313,7 @@ export default async function DetenusPage(props: PageProps<"/detenus">) {
           }
         />
 
-        {resultat.total > PAR_PAGE && (
+        {resultat.total > resultat.parPage && (
           <Pagination
             page={resultat.page}
             parPage={resultat.parPage}

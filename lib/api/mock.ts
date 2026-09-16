@@ -99,6 +99,46 @@ export const mockApi: ApiClient = {
     return u;
   },
 
+  async creerDetenu(entree) {
+    await attendre();
+    // On rejoue le seul contrôle que l'API ferait à coup sûr : l'unicité de l'écrou
+    const existe = fx.detenus.some(
+      (d) => d.numeroEcrou.toLowerCase() === entree.numeroEcrou.trim().toLowerCase(),
+    );
+    if (existe) {
+      const message = "Ce numéro d'écrou est déjà utilisé par un autre détenu.";
+      throw new ApiErreur(message, 422, "VALIDATION", { numero_ecrou: [message] });
+    }
+    // En démonstration rien n'est persisté : on renvoie un dossier existant pour
+    // que le lien « Voir le dossier » mène quelque part.
+    return { id: fx.detenus[0].id };
+  },
+
+  async restaurerDetenu() {
+    await attendre();
+  },
+
+  async televerserPhotos() {
+    await attendre();
+    // Aucun stockage en démonstration : la fiche est créée sans photo
+    return {};
+  },
+
+  async creerMandat(detenuId) {
+    await attendre();
+    return { id: fx.mandats.find((m) => m.detenuId === detenuId)?.id ?? fx.mandats[0].id };
+  },
+
+  async getMandat(mandatId) {
+    await attendre();
+    const m = fx.mandats.find((x) => x.id === mandatId);
+    return m ? detailler(m) : null;
+  },
+
+  async majMandat() {
+    await attendre();
+  },
+
   async getTableauDeBord(): Promise<TableauDeBord> {
     await attendre();
     const maintenant = new Date();

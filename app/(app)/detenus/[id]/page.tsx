@@ -20,6 +20,8 @@ import { PrintButton } from "@/components/ui/client-actions";
 import { Icon, type NomIcone } from "@/components/ui/icon";
 import { Avatar, DataPair, EmptyState, Ecrou, Panel } from "@/components/ui/surface";
 import { TabsNav } from "@/components/ui/tabs";
+import { BoutonRestaurer } from "@/components/detenus/bouton-restaurer";
+import { restaurerDossier } from "../nouveau/actions";
 
 export async function generateMetadata(props: PageProps<"/detenus/[id]">): Promise<Metadata> {
   const { id } = await props.params;
@@ -90,6 +92,23 @@ export default async function DossierDetenuPage(props: PageProps<"/detenus/[id]"
       >
         Registre d’écrou
       </ButtonLink>
+
+      {/* Dossier désactivé : aucune modification n'est possible tant qu'il n'est pas restauré */}
+      {d.statut !== "Present" && (
+        <div className="flex flex-col gap-3 rounded-lg border border-warning/40 bg-warning-soft px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between animate-rise">
+          <div className="flex items-start gap-3">
+            <Icon name="alert" size={17} className="mt-0.5 shrink-0 text-warning" />
+            <div>
+              <p className="text-sm font-medium text-ink">Dossier désactivé</p>
+              <p className="mt-0.5 text-sm text-muted">
+                Ce détenu n’est plus présent dans l’établissement. Le dossier doit être restauré
+                avant toute modification ou ajout de mandat.
+              </p>
+            </div>
+          </div>
+          <BoutonRestaurer detenuId={d.id} restaurer={restaurerDossier} />
+        </div>
+      )}
 
       {/* En-tête d'identité — la carte du dossier */}
       <header className="relative overflow-hidden rounded-xl border border-hairline bg-surface shadow-e2 animate-pop">
@@ -398,6 +417,14 @@ function CarteMandat({ mandat: m }: { mandat: MandatDetaille }) {
             </Badge>
           )}
           <Badge ton={m.actif ? "succes" : "danger"}>{m.actif ? "Actif" : "Expiré"}</Badge>
+          <ButtonLink
+            href={`/detenus/${m.detenuId}/mandats/${m.id}`}
+            taille="sm"
+            icone="edit"
+            transitionTypes={["nav-forward"]}
+          >
+            Faire évoluer
+          </ButtonLink>
         </>
       }
     >

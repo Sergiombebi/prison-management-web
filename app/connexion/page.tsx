@@ -3,39 +3,10 @@ import { modeDe } from "@/lib/api";
 import { t } from "@/lib/i18n/fr";
 import { param } from "@/lib/url";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
-import { Icon } from "@/components/ui/icon";
+import { Armoiries } from "@/components/ui/armoiries";
 import { LoginForm, type AideConnexion } from "./login-form";
 
 export const metadata: Metadata = { title: t.connexion.titre };
-
-/** Vignettes flottantes : un aperçu de l'application, pas une capture d'écran. */
-const VIGNETTES = [
-  {
-    classe: "left-[6%] top-[18%] hidden xl:flex",
-    delai: "1.1s",
-    icone: "detenus" as const,
-    titre: "Population détenue",
-    valeur: "48",
-    detail: "+2 cette semaine",
-  },
-  {
-    classe: "right-[7%] top-[24%] hidden xl:flex",
-    delai: "1.35s",
-    icone: "file" as const,
-    titre: "Mandats expirés",
-    valeur: "16",
-    detail: "à régulariser",
-    alerte: true,
-  },
-  {
-    classe: "left-[10%] bottom-[16%] hidden xl:flex",
-    delai: "1.6s",
-    icone: "cell" as const,
-    titre: "Taux d'occupation",
-    valeur: "35,8 %",
-    detail: "86 places libres",
-  },
-];
 
 export default async function ConnexionPage(props: PageProps<"/connexion">) {
   const sp = await props.searchParams;
@@ -57,81 +28,76 @@ export default async function ConnexionPage(props: PageProps<"/connexion">) {
         : undefined;
 
   return (
-    <div className="relative flex min-h-screen flex-col overflow-hidden bg-inverse">
-      {/* Nappes de couleur — le fond respire au lieu d'être un aplat */}
+    <div className="relative flex min-h-screen flex-col overflow-hidden bg-canvas">
+      {/*
+        Le décor suit le thème : palais en plein jour en clair, au crépuscule en
+        sombre. Les deux images partagent le même cadrage, donc le basculement ne
+        déplace rien. Tout est piloté par les jetons `--sgp-connexion-*` de
+        globals.css — pour mettre une photographie, déposer le fichier dans
+        /public et changer l'URL du jeton, rien d'autre ne bouge.
+      */}
       <div
         aria-hidden
-        className="pointer-events-none absolute -left-60 -top-60 size-[46rem] rounded-full opacity-45 blur-3xl"
-        style={{
-          background: "radial-gradient(circle, var(--sgp-viz-1), transparent 62%)",
-          animation: "sgp-halo 16s ease-in-out infinite",
-        }}
+        className="absolute inset-0 bg-cover bg-center"
+        style={{ backgroundImage: "var(--sgp-connexion-fond)" }}
+      />
+      {/* Deux dégradés légers : lisibilité du texte, puis mise au centre du regard */}
+      <div
+        aria-hidden
+        className="absolute inset-0"
+        style={{ background: "var(--sgp-connexion-voile)" }}
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute -bottom-72 -right-52 size-[52rem] rounded-full opacity-35 blur-3xl"
-        style={{
-          background: "radial-gradient(circle, var(--sgp-viz-2), transparent 62%)",
-          animation: "sgp-halo 21s ease-in-out 3s infinite",
-        }}
-      />
-
-      {/* Trame de registre en filigrane */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-[0.05]"
-        style={{
-          backgroundImage:
-            "linear-gradient(to right, #fff 1px, transparent 1px), linear-gradient(to bottom, #fff 1px, transparent 1px)",
-          backgroundSize: "64px 64px",
-          maskImage: "radial-gradient(ellipse at 50% 40%, #000 30%, transparent 78%)",
-        }}
+        className="absolute inset-0"
+        style={{ background: "var(--sgp-connexion-vignette)" }}
       />
 
-      <header className="relative z-10 flex items-center justify-between px-6 py-5 sm:px-10">
-        <div className="flex items-center gap-3 animate-rise">
+      <header className="relative z-10 flex items-start justify-between gap-4 px-5 py-5 sm:px-10 sm:py-6">
+        {/* Bloc-marque de l'État, à l'angle : armoiries, puis l'emblème du système */}
+        <div className="flex min-w-0 items-center gap-3 animate-rise sm:gap-4">
+          <Armoiries size={42} className="shrink-0 drop-shadow-[0_2px_5px_rgb(23_21_43/0.22)]" />
+
           <span
             aria-hidden
-            className="grid size-9 place-items-center rounded-lg bg-white/12 font-mono text-2xs font-bold tracking-tight text-white ring-1 ring-inset ring-white/25"
-          >
-            SGP
-          </span>
-          <span className="text-2xs font-semibold uppercase tracking-[0.2em] text-white/70">
-            {t.app.republique}
+            className="h-9 w-px shrink-0"
+            style={{ backgroundColor: "var(--sgp-connexion-filet)" }}
+          />
+
+          <span
+            aria-hidden
+            className="size-10 shrink-0 rounded-lg bg-white shadow-e2 ring-1 ring-inset ring-black/5"
+            style={{
+              backgroundImage: "url('/kzsgp.png')",
+              backgroundSize: "185%",
+              backgroundPosition: "50% 22%",
+              backgroundRepeat: "no-repeat",
+            }}
+          />
+
+          {/* Sous 640 px, les deux emblèmes suffisent : le texte céderait la place au sélecteur de thème */}
+          <span className="hidden min-w-0 leading-tight sm:block">
+            <span className="block truncate text-2xs font-semibold uppercase tracking-[0.18em] text-[color:var(--sgp-connexion-ink)] opacity-85">
+              {t.app.republique}
+            </span>
+            <span className="mt-0.5 block truncate text-2xs text-[color:var(--sgp-connexion-ink-faible)]">
+              {t.app.devise}
+            </span>
           </span>
         </div>
+
         <ThemeToggle />
       </header>
 
-      <main className="relative z-10 flex flex-1 items-center justify-center px-6 py-8">
-        {VIGNETTES.map((v) => (
-          <figure
-            key={v.titre}
-            aria-hidden
-            className={`absolute w-56 items-center gap-3 rounded-xl border border-white/15 bg-white/10 p-3.5 backdrop-blur-md ${v.classe}`}
-            style={{ animation: `sgp-pop 700ms var(--ease-spring) ${v.delai} both` }}
-          >
-            <span
-              className={`grid size-9 shrink-0 place-items-center rounded-lg ${
-                v.alerte ? "bg-danger/25 text-white" : "bg-white/15 text-white"
-              }`}
-            >
-              <Icon name={v.icone} size={16} />
-            </span>
-            <figcaption className="min-w-0">
-              <p className="truncate text-2xs text-white/60">{v.titre}</p>
-              <p className="tnum text-md font-semibold text-white">{v.valeur}</p>
-              <p className="truncate text-2xs text-white/50">{v.detail}</p>
-            </figcaption>
-          </figure>
-        ))}
-
+      <main className="relative z-10 flex flex-1 items-center justify-center px-5 py-8 sm:px-6">
         <div className="w-full max-w-[26rem]">
           <div className="mb-6 text-center animate-rise">
-            <h1 className="text-2xl font-semibold tracking-[-0.03em] text-white">
+            <h1 className="text-2xl font-semibold tracking-[-0.03em] text-[color:var(--sgp-connexion-ink)]">
               {t.connexion.titre}
             </h1>
-            <p className="mt-2 text-base text-white/60">{t.connexion.sousTitre}</p>
+            <p className="mt-2 text-base text-[color:var(--sgp-connexion-ink-doux)]">
+              {t.connexion.sousTitre}
+            </p>
           </div>
 
           <div
@@ -142,17 +108,17 @@ export default async function ConnexionPage(props: PageProps<"/connexion">) {
           </div>
 
           <p
-            className="mt-6 text-center text-2xs leading-5 text-white/45 animate-rise"
+            className="mt-6 text-center text-2xs leading-5 text-[color:var(--sgp-connexion-ink-faible)] animate-rise"
             style={{ animationDelay: "260ms" }}
           >
-            {t.app.nomComplet} — {t.app.devise}
+            {t.app.nomComplet}
             <br />
             Accès journalisé : tout usage est tracé.
           </p>
         </div>
       </main>
 
-      <footer className="relative z-10 px-6 py-5 text-center text-2xs text-white/35 sm:px-10">
+      <footer className="relative z-10 px-5 py-5 text-center text-2xs text-[color:var(--sgp-connexion-ink-faible)] sm:px-10">
         © {new Date().getFullYear()} {t.app.nom} · Ministère de la Justice · Administration pénitentiaire
       </footer>
     </div>

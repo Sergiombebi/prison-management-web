@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Fond de l'écran de connexion — version claire (thème clair).
+  Même palais, même cadrage que fond-connexion.svg, mais en plein jour :
+  pierre pâle, ciel lavande, ombres froides. Les deux fichiers partagent
+  exactement la même géométrie pour que le basculement de thème ne déplace rien.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900"
+     preserveAspectRatio="xMidYMid slice" role="img" aria-label="Palais de justice en plein jour">
+  <defs>
+    <linearGradient id="ciel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e3e9fb" />
+      <stop offset="0.45" stop-color="#d8e0f8" />
+      <stop offset="0.78" stop-color="#c9d4f2" />
+      <stop offset="1" stop-color="#b6c6ec" />
+    </linearGradient>
+    <radialGradient id="soleil" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#fff4d2" stop-opacity="0.95" />
+      <stop offset="0.45" stop-color="#ffe9b8" stop-opacity="0.45" />
+      <stop offset="1" stop-color="#ffe9b8" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="aurore" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#b9cdf7" stop-opacity="0.55" />
+      <stop offset="1" stop-color="#b9cdf7" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="brume" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0" />
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0.55" />
+    </linearGradient>
+    <linearGradient id="parvis" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#dde3f5" />
+      <stop offset="1" stop-color="#c9d3ec" />
+    </linearGradient>
+    <linearGradient id="facade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" />
+      <stop offset="1" stop-color="#e7ebf9" />
+    </linearGradient>
+  </defs>
+
+  <!-- Ciel -->
+  <rect width="1600" height="900" fill="url(#ciel)" />
+  <ellipse cx="1180" cy="250" rx="520" ry="420" fill="url(#soleil)" />
+  <ellipse cx="300" cy="180" rx="460" ry="300" fill="url(#aurore)" />
+
+  <!-- Nuages — la texture du ciel de jour remplace les étoiles -->
+  <g fill="#ffffff" opacity="0.72">
+    <ellipse cx="250" cy="150" rx="96" ry="26" />
+    <ellipse cx="316" cy="136" rx="62" ry="22" />
+    <ellipse cx="196" cy="140" rx="52" ry="18" />
+    <ellipse cx="1010" cy="108" rx="110" ry="24" />
+    <ellipse cx="1082" cy="96" rx="64" ry="20" />
+    <ellipse cx="948" cy="98" rx="56" ry="17" />
+    <ellipse cx="620" cy="222" rx="84" ry="19" />
+    <ellipse cx="676" cy="212" rx="50" ry="15" />
+    <ellipse cx="1400" cy="248" rx="90" ry="21" />
+    <ellipse cx="1456" cy="238" rx="54" ry="16" />
+  </g>
+
+  <!-- Reliefs lointains -->
+  <path d="M0 640 L0 566 Q150 498 302 544 Q430 584 524 548 Q646 502 764 556 Q902 612 1046 558 Q1188 506 1326 550 Q1466 592 1600 552 L1600 640 Z"
+        fill="#a9b9e4" opacity="0.85" />
+  <path d="M0 640 L0 608 Q190 566 356 600 Q520 632 690 598 Q860 562 1030 604 Q1210 648 1380 606 Q1500 578 1600 596 L1600 640 Z"
+        fill="#97a9dc" />
+  <rect x="0" y="470" width="1600" height="190" fill="url(#brume)" opacity="0.9" />
+
+  <!-- Enceinte : un mur ponctué de pilastres, de part et d'autre du bâtiment -->
+  <g fill="#e9edfa">
+    <rect x="0" y="602" width="392" height="44" />
+    <rect x="1208" y="602" width="392" height="44" />
+  </g>
+  <g fill="#cdd6ef">
+    <rect x="24" y="590" width="14" height="56" /><rect x="108" y="590" width="14" height="56" />
+    <rect x="192" y="590" width="14" height="56" /><rect x="276" y="590" width="14" height="56" />
+    <rect x="360" y="590" width="14" height="56" /><rect x="1234" y="590" width="14" height="56" />
+    <rect x="1318" y="590" width="14" height="56" /><rect x="1402" y="590" width="14" height="56" />
+    <rect x="1486" y="590" width="14" height="56" /><rect x="1570" y="590" width="14" height="56" />
+  </g>
+
+  <!-- Palais : fronton, colonnade, emmarchement -->
+  <path d="M800 284 L1166 442 L434 442 Z" fill="url(#facade)" />
+  <path d="M800 284 L1166 442 L434 442 Z" fill="none" stroke="#9aa9d8" stroke-opacity="0.65" stroke-width="2" />
+  <circle cx="800" cy="410" r="16" fill="none" stroke="#8494ce" stroke-opacity="0.7" stroke-width="2.5" />
+  <path d="M800 396 L803.8 406.4 L814.6 406.4 L805.9 413 L809.3 423.6 L800 417.2 L790.7 423.6 L794.1 413 L785.4 406.4 L796.2 406.4 Z"
+        fill="#8494ce" opacity="0.7" />
+
+  <rect x="446" y="442" width="708" height="36" fill="#f2f4fd" />
+  <rect x="446" y="474" width="708" height="4" fill="#9aa9d8" opacity="0.5" />
+
+  <g fill="url(#facade)">
+    <rect x="474" y="478" width="38" height="126" /><rect x="566" y="478" width="38" height="126" />
+    <rect x="658" y="478" width="38" height="126" /><rect x="750" y="478" width="38" height="126" />
+    <rect x="842" y="478" width="38" height="126" /><rect x="934" y="478" width="38" height="126" />
+    <rect x="1026" y="478" width="38" height="126" /><rect x="1088" y="478" width="38" height="126" />
+  </g>
+  <!-- Ombre portée de chaque colonne : c'est elle qui donne le plein jour -->
+  <g fill="#9aa9d8" opacity="0.32">
+    <rect x="504" y="478" width="8" height="126" /><rect x="596" y="478" width="8" height="126" />
+    <rect x="688" y="478" width="8" height="126" /><rect x="780" y="478" width="8" height="126" />
+    <rect x="872" y="478" width="8" height="126" /><rect x="964" y="478" width="8" height="126" />
+    <rect x="1056" y="478" width="8" height="126" /><rect x="1118" y="478" width="8" height="126" />
+  </g>
+
+  <!-- Portail central : une ouverture sombre dans la pierre claire -->
+  <path d="M770 604 L770 522 Q800 496 830 522 L830 604 Z" fill="#8090c9" opacity="0.55" />
+  <path d="M770 604 L770 522 Q800 496 830 522 L830 604 Z" fill="none" stroke="#7385c4" stroke-opacity="0.5" stroke-width="2" />
+
+  <g fill="#e4e9f8">
+    <rect x="446" y="604" width="708" height="26" />
+    <rect x="418" y="630" width="764" height="16" />
+    <rect x="390" y="646" width="820" height="16" />
+    <rect x="362" y="662" width="876" height="18" />
+  </g>
+  <g fill="#b9c5e9" opacity="0.7">
+    <rect x="446" y="628" width="708" height="2" />
+    <rect x="418" y="644" width="764" height="2" />
+    <rect x="390" y="660" width="820" height="2" />
+  </g>
+
+  <!-- Parvis -->
+  <rect x="0" y="680" width="1600" height="220" fill="url(#parvis)" />
+  <g stroke="#8e9ccd" stroke-opacity="0.22" stroke-width="1.5">
+    <path d="M800 680 L360 900" /><path d="M800 680 L560 900" /><path d="M800 680 L720 900" />
+    <path d="M800 680 L880 900" /><path d="M800 680 L1040 900" /><path d="M800 680 L1240 900" />
+  </g>
+  <g stroke="#8e9ccd" stroke-opacity="0.16" stroke-width="1.5">
+    <path d="M0 724 H1600" /><path d="M0 782 H1600" /><path d="M0 850 H1600" />
+  </g>
+</svg>

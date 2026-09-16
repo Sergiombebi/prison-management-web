@@ -38,10 +38,22 @@ const DOMAINE_DE: Record<keyof ApiClient, DomaineApi> = {
   getTableauDeBord: "tableauDeBord",
   listDetenus: "detenus",
   getDossierDetenu: "detenus",
-  listDetenusNonLoges: "detenus",
+  // Écran d'affectation : il appartient à la discipline, pas au registre — ainsi
+  // basculer « detenus » en réel ne casse pas un module que l'API n'expose pas.
+  listDetenusNonLoges: "discipline",
+  creerDetenu: "detenus",
+  restaurerDetenu: "detenus",
+  televerserPhotos: "detenus",
+  // Les écritures de mandats vivent sous /detenus/{id}/mandas : elles suivent le
+  // registre, sinon créer un détenu réel puis un mandat fictif casserait le flux.
+  creerMandat: "detenus",
+  getMandat: "detenus",
+  majMandat: "detenus",
   listMandats: "mandats",
   listMandatsExpires: "mandats",
-  listParCategorie: "mandats",
+  // Même point d'entrée que le registre (`GET /detenus?categorie_penale=`) :
+  // il suit donc le domaine « detenus », pas « mandats ».
+  listParCategorie: "detenus",
   listCellules: "discipline",
   listAffectations: "discipline",
   listSanctions: "discipline",
@@ -98,9 +110,13 @@ export const api = Object.fromEntries(
 
 export { ApiErreur } from "./contract";
 export type {
+  ConflitApi,
   DossierDetenu,
+  EntreeDetenu,
+  EntreeMandat,
   EtatApi,
   MandatDetaille,
+  PhotoTeleversee,
   ProfilUtilisateur,
   SessionUtilisateur,
 } from "./contract";
