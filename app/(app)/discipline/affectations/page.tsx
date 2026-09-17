@@ -1,46 +1,67 @@
 import type { Metadata } from "next";
 import { api } from "@/lib/api";
+import { tenter } from "@/lib/api/disponibilite";
 import type { Affectation } from "@/lib/domain/types";
 import { formatDate, initiales, ouVide, pluriel } from "@/lib/format";
+import { param } from "@/lib/url";
 import { t } from "@/lib/i18n/fr";
 import { Page, PageHeader } from "@/components/layout/page";
 import { DataTable } from "@/components/data/data-table";
 import { Badge } from "@/components/ui/badge";
-import { DemoSubmit } from "@/components/ui/client-actions";
-import { Field, Input, Select } from "@/components/ui/field";
+import { EnAttenteApi } from "@/components/ui/en-attente-api";
 import { Avatar, EmptyState, Ecrou, Panel } from "@/components/ui/surface";
+import { FormulaireAffectation } from "@/components/discipline/formulaires";
 
 export const metadata: Metadata = { title: "Affectations" };
 
-export default async function AffectationsPage() {
-  const [nonLoges, cellules, affectations, detenus] = await Promise.all([
-    api.listDetenusNonLoges(),
+export default async function AffectationsPage(props: PageProps<"/discipline/affectations">) {
+  const sp = await props.searchParams;
+  const [nonLoges, affectations, cellules, detenus] = await Promise.all([
+    // Ces deux listes n'existent pas encore partout : elles ne doivent pas bloquer la saisie
+    tenter(() => api.listDetenusNonLoges()),
+    tenter(() => api.listAffectations()),
     api.listCellules(),
-    api.listAffectations(),
     api.listDetenus({ parPage: 1000, tri: "nom" }),
   ]);
+
+  const nombre = (cle: string) => {
+    const n = Number.parseInt(param(sp, cle) ?? "", 10);
+    return Number.isFinite(n) ? n : undefined;
+  };
 
   return (
     <Page>
       <PageHeader
         surtitre={t.modules.discipline}
         titre="Affectation des détenus"
-        description="Attribuer une cellule à un détenu entrant, ou le réaffecter. Les cellules pleines ne sont pas proposées."
+        description="Attribuer une cellule à un détenu entrant, ou le réaffecter. L’affectation en cours est clôturée automatiquement ; une cellule pleine est refusée."
       />
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
         <div className="flex flex-col gap-6">
-          <Panel variante="eleve"
+          <Panel
+            variante="eleve"
             titre="Détenus non logés"
-            sousTitre={nonLoges.length ? `${pluriel(nonLoges.length, "détenu")} en attente d’affectation` : undefined}
-            actions={nonLoges.length > 0 && <Badge ton="alerte">À traiter</Badge>}
+            sousTitre={
+              nonLoges.ok && nonLoges.donnees.length
+                ? `${pluriel(nonLoges.donnees.length, "détenu")} en attente d’affectation`
+                : undefined
+            }
+            actions={nonLoges.ok && nonLoges.donnees.length > 0 && <Badge ton="alerte">À traiter</Badge>}
             flush
           >
-            {nonLoges.length === 0 ? (
+            {!nonLoges.ok ? (
+              <EnAttenteApi
+                compact
+                icone="cell"
+                route="GET /detenus?sans_cellule=1"
+                texte="L’API ne dit pas encore quels détenus sont sans cellule. La cellule actuelle reste visible sur chaque fiche."
+              />
+            ) : nonLoges.donnees.length === 0 ? (
               <EmptyState compact icone="check" titre="Tous les détenus sont logés" texte="Aucun détenu n’attend d’affectation." />
             ) : (
               <ul className="stagger divide-y divide-hairline">
-                {nonLoges.map((d, i) => (
+                {nonLoges.donnees.map((d, i) => (
                   <li key={d.id} style={{ ["--i" as string]: i }} className="flex items-center gap-3 px-4 py-2.5">
                     <Avatar initiales={initiales(d.nom)} taille="sm" />
                     <div className="min-w-0 flex-1">
@@ -57,78 +78,48 @@ export default async function AffectationsPage() {
           </Panel>
 
           <Panel variante="eleve" titre="Affectations récentes" flush className="overflow-hidden">
-            <DataTable<Affectation>
-              legende="Historique des affectations"
-              lignes={affectations.slice(0, 25)}
-              cleLigne={(a) => a.id}
-              lienLigne={(a) => `/detenus/${a.detenuId}?onglet=detention`}
-              colonnes={[
-                {
-                  cle: "detenu",
-                  titre: "Détenu",
-                  rendu: (a) => (
-                    <div>
-                      <p className="font-medium">{a.detenuNom}</p>
-                      <Ecrou className="text-xs text-muted">{a.numeroEcrou}</Ecrou>
-                    </div>
-                  ),
-                },
-                { cle: "cellule", titre: "Cellule", rendu: (a) => a.celluleLibelle },
-                { cle: "motif", titre: "Motif", masquerSous: "md", rendu: (a) => <span className="text-muted">{ouVide(a.motifAffectation)}</span> },
-                { cle: "date", titre: "Date", align: "droite", rendu: (a) => formatDate(a.dateAffectation) },
-              ]}
-              vide={<EmptyState icone="cell" titre="Aucune affectation enregistrée" />}
-            />
+            {!affectations.ok ? (
+              <EnAttenteApi
+                compact
+                icone="cell"
+                route="GET /affectations"
+                texte="L’historique global n’existe pas encore ; celui de chaque détenu est dans l’onglet Détention de sa fiche."
+              />
+            ) : (
+              <DataTable<Affectation>
+                legende="Historique des affectations"
+                lignes={affectations.donnees.slice(0, 25)}
+                cleLigne={(a) => a.id}
+                lienLigne={(a) => `/detenus/${a.detenuId}?onglet=detention`}
+                colonnes={[
+                  {
+                    cle: "detenu",
+                    titre: "Détenu",
+                    rendu: (a) => (
+                      <div>
+                        <p className="font-medium">{a.detenuNom}</p>
+                        <Ecrou className="text-xs text-muted">{a.numeroEcrou}</Ecrou>
+                      </div>
+                    ),
+                  },
+                  { cle: "cellule", titre: "Cellule", rendu: (a) => a.celluleLibelle },
+                  { cle: "motif", titre: "Motif", masquerSous: "md", rendu: (a) => <span className="text-muted">{ouVide(a.motifAffectation)}</span> },
+                  { cle: "date", titre: "Date", align: "droite", rendu: (a) => formatDate(a.dateAffectation) },
+                ]}
+                vide={<EmptyState icone="cell" titre="Aucune affectation enregistrée" />}
+              />
+            )}
           </Panel>
         </div>
 
         <Panel variante="eleve" titre="Affecter à une cellule" className="lg:sticky lg:top-20">
-          <form className="flex flex-col gap-4">
-            <Field label="Détenu" requis aide={nonLoges.length ? "Les détenus non logés apparaissent en premier." : undefined}>
-              {(p) => (
-                <Select {...p} name="detenuId" defaultValue="" placeholder="Sélectionner un détenu…">
-                  {nonLoges.length > 0 && (
-                    <optgroup label="Non logés">
-                      {nonLoges.map((d) => (
-                        <option key={d.id} value={d.id}>
-                          {d.nom} — {d.numeroEcrou}
-                        </option>
-                      ))}
-                    </optgroup>
-                  )}
-                  <optgroup label="Réaffectation">
-                    {detenus.items
-                      .filter((d) => d.cellule)
-                      .map((d) => (
-                        <option key={d.id} value={d.id}>
-                          {d.nom} — actuellement {d.cellule!.numero}
-                        </option>
-                      ))}
-                  </optgroup>
-                </Select>
-              )}
-            </Field>
-            <Field label="Cellule" requis>
-              {(p) => (
-                <Select {...p} name="celluleId" defaultValue="" placeholder="Sélectionner une cellule…">
-                  {cellules.map((c) => {
-                    const libres = c.capaciteMax - c.effectifReel;
-                    return (
-                      <option key={c.id} value={c.id} disabled={libres <= 0}>
-                        {c.bloc} · {c.numero} — {libres > 0 ? pluriel(libres, "place") : "pleine"}
-                      </option>
-                    );
-                  })}
-                </Select>
-              )}
-            </Field>
-            <Field label="Motif de l’affectation">
-              {(p) => <Input {...p} name="motifAffectation" placeholder="Ex. Affectation initiale" />}
-            </Field>
-            <div className="border-t border-hairline pt-4">
-              <DemoSubmit icone="arrowRight" endpoint="POST /affectations">Affecter le détenu</DemoSubmit>
-            </div>
-          </form>
+          <FormulaireAffectation
+            detenus={detenus.items}
+            nonLoges={nonLoges.ok ? nonLoges.donnees : null}
+            cellules={cellules}
+            detenuInitial={nombre("detenu")}
+            celluleInitiale={nombre("cellule")}
+          />
         </Panel>
       </div>
     </Page>

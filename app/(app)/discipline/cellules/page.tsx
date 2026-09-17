@@ -13,9 +13,9 @@ import { JaugeRadiale } from "@/components/data/charts";
 import { Stat, StatGrid } from "@/components/data/stat";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
-import { DemoSubmit } from "@/components/ui/client-actions";
-import { Field, Input, SearchInput, Select } from "@/components/ui/field";
+import { SearchInput, Select } from "@/components/ui/field";
 import { EmptyState, Panel } from "@/components/ui/surface";
+import { FormulaireCellule } from "@/components/discipline/formulaires";
 
 export const metadata: Metadata = { title: "Logement & cellules" };
 
@@ -36,6 +36,9 @@ export default async function CellulesPage(props: PageProps<"/discipline/cellule
   const bloc = param(sp, "bloc") ?? "tous";
   const etat = param(sp, "etat") ?? "tous";
   const blocs = [...new Set(cellules.map((c) => c.bloc).filter(Boolean))] as string[];
+  // Les types réellement utilisés en base ; le référentiel ne sert qu'à amorcer une base vide
+  const typesExistants = [...new Set(cellules.map((c) => c.typeCellule).filter(Boolean))] as string[];
+  const types = typesExistants.length > 0 ? typesExistants : [...TYPES_CELLULE];
 
   const filtrees = cellules.filter((c) => {
     const e = etatCellule(c).label;
@@ -196,36 +199,7 @@ export default async function CellulesPage(props: PageProps<"/discipline/cellule
         </div>
 
         <Panel titre="Nouvelle cellule" variante="eleve" className="xl:sticky xl:top-20">
-          <form className="flex flex-col gap-4">
-            <Field label="Numéro de la cellule" requis aide="Unique au sein du quartier">
-              {(p) => <Input {...p} name="numero" className="font-mono uppercase" placeholder="Ex. B-04" />}
-            </Field>
-            <Field label="Quartier" requis>
-              {(p) => <Input {...p} name="bloc" list="quartiers" placeholder="Ex. Bloc B" />}
-            </Field>
-            <datalist id="quartiers">
-              {blocs.map((b) => (
-                <option key={b} value={b} />
-              ))}
-            </datalist>
-            <Field label="Type de cellule">
-              {(p) => (
-                <Select {...p} name="typeCellule" defaultValue="Standard">
-                  {TYPES_CELLULE.map((ty) => (
-                    <option key={ty}>{ty}</option>
-                  ))}
-                </Select>
-              )}
-            </Field>
-            <Field label="Capacité maximale" requis aide="Nombre de places réglementaires">
-              {(p) => <Input {...p} name="capaciteMax" type="number" min={1} max={200} inputMode="numeric" />}
-            </Field>
-            <div className="border-t border-hairline pt-4">
-              <DemoSubmit icone="plus" endpoint="POST /cellules">
-                Créer la cellule
-              </DemoSubmit>
-            </div>
-          </form>
+          <FormulaireCellule quartiers={blocs} types={types} />
         </Panel>
       </div>
     </Page>

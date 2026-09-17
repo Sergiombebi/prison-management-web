@@ -63,15 +63,15 @@ Copier `.env.example` en `.env.local`, adapter, puis **redémarrer `npm run dev`
 
 ```env
 SGP_API_URL=http://127.0.0.1:8000/api/v1
-SGP_API_LIVE=auth
+SGP_API_LIVE=auth,detenus,discipline,sorties
 ```
 
 | Réglage | Effet |
 |---|---|
 | rien | Tout en données de démonstration |
-| `SGP_API_LIVE=auth` | Connexion réelle, écrans en démonstration (**état actuel**) |
-| `SGP_API_LIVE=auth,detenus,mandats` | Ces domaines sur l'API, le reste en démonstration |
-| `SGP_API_MODE=live` | Tout sur l'API (prioritaire sur `SGP_API_LIVE`) |
+| `SGP_API_LIVE=auth` | Connexion réelle, écrans en démonstration |
+| `SGP_API_LIVE=auth,detenus,discipline,sorties` | Tout ce que l'API sait faire aujourd'hui, le reste en démonstration (**réglage recommandé**) |
+| `SGP_API_MODE=live` | Tout sur l'API (prioritaire sur `SGP_API_LIVE`) — les écrans sans route affichent « En attente de l'API » |
 
 Domaines : `auth`, `tableauDeBord`, `detenus`, `mandats`, `discipline`, `sante`, `sorties`,
 `administration`. Un domaine inconnu est ignoré avec un avertissement dans la console du serveur.
@@ -88,9 +88,15 @@ Next qui appelle l'API, donc **l'API n'a pas besoin de configurer CORS**.
 | Domaine | État | Détail |
 |---|---|---|
 | `auth` | ✅ Réel | Connexion (identifiant ou email), déconnexion avec révocation du jeton, session vérifiée via `/auth/me` |
-| `detenus` | ✅ Réel | Registre paginé (10/page), recherche (nom, écrou, CNI, passeport), filtre par catégorie pénale, fiche détenu avec ses mandats, **écritures** (enregistrement, restauration, mandats, photos) |
+| `detenus` | ✅ Réel | Registre paginé (10/page), recherche, filtre par catégorie pénale ; fiche avec mandats, cellule actuelle, historique des affectations et des sorties, photos ; enregistrement, **modification**, désactivation et restauration du dossier ; évolution et désactivation d'un mandat |
+| `discipline` | ✅ Réel, en partie | Cellules (liste, occupation, création), affectation d'un détenu, sanctions avec cellule disciplinaire. **En attente** : liste des sanctions, historique global des affectations, détenus non logés |
+| `sorties` | ✅ Réel | Archive par type ; libération normale (par mandat), transfert, évasion, décès |
 | `mandats` | ⏳ Démo | L'API n'expose ni liste globale des mandats, ni mandats expirés |
-| Autres | ⛔ Démo | Tableau de bord, discipline, santé, états, administration : routes absentes de l'API |
+| Autres | ⛔ Démo | Tableau de bord, santé, visites, états, administration : routes absentes de l'API |
+
+Quand un domaine est réel mais qu'une de ses listes n'existe pas encore, le panneau concerné
+affiche **« En attente de l'API »** avec la route attendue, au lieu d'une liste vide trompeuse ;
+le reste de l'écran (formulaires compris) fonctionne.
 
 En mode réel, le registre **masque** les colonnes que l'API ne fournit pas encore
 (catégorie pénale, cellule, échéance du mandat) et désactive le tri et le filtre par sexe,
@@ -100,18 +106,26 @@ plutôt que d'afficher des contrôles qui ne feraient rien.
 > (`HAVING clause on a non-aggregate query`). L'écran l'explique au lieu d'afficher
 > une liste vide. Les trois autres catégories fonctionnent.
 
-### Écritures branchées (registre des détenus)
+### Écritures branchées
 
 Vérifiées de bout en bout contre l'API locale : chaque ligne ci-dessous a été jouée
-sur une vraie base, cas d'échec compris.
+sur une vraie base, cas d'échec compris, puis contrôlée directement en base.
 
-| Flux | Route API | Comportement |
-|---|---|---|
-| Enregistrement d'un entrant | `POST /detenus` puis `POST /detenus/{id}/mandas` | Deux appels enchaînés. Si le mandat échoue, la fiche existe déjà : la reprise n'envoie que le mandat. |
-| Photographies | `POST /detenus/photos` (multipart) | Optionnelles et non bloquantes : si le dépôt échoue, l'écrou est créé quand même et l'écran le signale. |
-| Identité déjà connue | 409 + `conflict` | Panneau proposant de restaurer le dossier désactivé (`POST /detenus/{id}/restore`) ou de le consulter d'abord. |
-| Évolution d'un mandat | `PUT /detenus/{id}/mandas/{mandatId}` | Écran `/detenus/{id}/mandats/{mandatId}` : changement de statut pénal, rubriques Jugement / Appel / Cassation ouvertes selon le cas. |
-| Erreurs de validation | 422 | Message posé sur le champ fautif, saisies conservées. |
+| Flux | Écran | Route API | Comportement |
+|---|---|---|---|
+| Enregistrement d'un entrant | `/detenus/nouveau` | `POST /detenus` puis `POST /detenus/{id}/mandas` | Deux appels enchaînés. Si le mandat échoue, la reprise n'envoie que le mandat. |
+| Modification de l'identité | `/detenus/{id}/modifier` | `PUT /detenus/{id}` | Champ vidé → effacé en base ; champs non touchés (contact d'urgence compris) conservés. |
+| Photographies | enregistrement, modification | `POST /detenus/photos` | Non bloquantes : si le dépôt échoue, l'écran le signale. |
+| Identité déjà connue | `/detenus/nouveau` | 409 + `conflict` | Propose de restaurer le dossier désactivé ou de le consulter. |
+| Désactivation d'un dossier | fiche, onglet Identité | `DELETE /detenus/{id}` | Correction administrative seulement, avec confirmation ; aucune sortie archivée. |
+| Évolution d'un mandat | `/detenus/{id}/mandats/{mandatId}` | `PUT /mandas/{id}` | Rubriques Jugement / Appel / Cassation selon le statut pénal. |
+| Désactivation d'un mandat | fiche, onglet Mandats | `DELETE /mandas/{id}` | Avec confirmation. |
+| Création d'une cellule | `/discipline/cellules` | `POST /cellules` | Doublon dans le même quartier → 422 sous le champ. |
+| Affectation | `/discipline/affectations` | `POST /detenus/{id}/affectations` | Clôt l'affectation en cours ; cellule pleine → 422. |
+| Sanction | `/discipline/sanctions` | `POST /detenus/{id}/sanctions` | Types lus depuis `GET /types-sanction` ; une cellule disciplinaire déplace réellement le détenu. |
+| Libération normale | `/detenus/liberation/normale` | `POST /detenus/{id}/sorties/liberation-normale` | Porte sur **un mandat** : un DPAC reste écroué tant qu'un autre mandat est ouvert. |
+| Transfert, évasion, décès | `/detenus/liberation/{type}` | `POST /detenus/{id}/sorties/{type}` | Sortie définitive : mandats clos, cellule libérée, détenu retiré des listes. |
+| Erreurs de validation | tous | 422 | Message sous le champ fautif, saisies conservées. |
 
 > ⚠️ Trois points à signaler côté API :
 > `date_expiration_mandat` est **obligatoire** à la création comme à la mise à jour, alors
@@ -137,7 +151,35 @@ php artisan serve --host=127.0.0.1 --port=8000
 ```
 
 Comptes créés par le seeder (mot de passe `password`) : `admin`, `eric.agent`, `sophie.medecin`.
-La base est vide de détenus : créez-en via l'API ou via Postman pour voir le registre se remplir.
+Le seeder de démonstration remplit aussi la base : 19 détenus (dont 4 sortis), 21 mandats,
+8 cellules, affectations, sanctions et sorties.
+
+Après chaque `git pull` de l'API, relancer `php artisan migrate` (nouvelles tables). La commande
+`migrate:fresh --seed` remet la base de démonstration à zéro — elle **efface** tout ce qui a été saisi.
+
+### Interroger l'API en ligne de commande
+
+`scripts/api.mjs` évite d'ouvrir Postman pour une vérification rapide. Le jeton est
+conservé dans `.sgp-token` (ignoré par git) : on se connecte une fois.
+
+```bash
+node scripts/api.mjs sonde
+```
+
+Passe en revue toutes les routes connues et affiche leur état — c'est le premier
+réflexe quand un écran se met à répondre de travers.
+
+```bash
+node scripts/api.mjs connexion admin password
+node scripts/api.mjs GET /detenus?search=Bello
+node scripts/api.mjs POST /detenus '{"numero_ecrou":"2026-999","nom":"Essomba"}'
+```
+
+Comptes de test : `admin`, `sophie.medecin`, `eric.agent` — mot de passe `password`.
+L'adresse par défaut est `http://127.0.0.1:8000/api/v1`, surchargeable avec `SGP_API_URL`.
+
+Côté API, `php artisan route:list --path=api` donne la liste exacte des routes livrées,
+et la collection Postman du dépôt couvre les mêmes appels avec leurs exemples de corps.
 
 ### Le contrat entre front et API
 

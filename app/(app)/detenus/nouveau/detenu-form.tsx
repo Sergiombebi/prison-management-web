@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useState } from "react";
@@ -20,6 +21,15 @@ import { FormSection, Pleine } from "@/components/ui/form-section";
 import { Icon } from "@/components/ui/icon";
 import { enregistrerDetenu, restaurerDossier, type EtatEnregistrement } from "./actions";
 
+/** Mode modification : fiche existante, sans les rubriques du mandat. */
+export interface EditionDetenu {
+  detenuId: number;
+  /** Valeurs actuelles, sous les noms de champs de l'API. */
+  initial: Record<string, string>;
+  photos: { face: string | null; profil: string | null };
+  action: (precedent: EtatEnregistrement, formulaire: FormData) => Promise<EtatEnregistrement>;
+}
+
 const SECTIONS = [
   { id: "identite", label: "Identité" },
   { id: "filiation", label: "Filiation" },
@@ -29,6 +39,18 @@ const SECTIONS = [
   { id: "incarceration", label: "Incarcération" },
   { id: "procedure", label: "Procédure" },
 ] as const;
+
+/** Rubriques d'identité seules, pour la modification d'une fiche existante. */
+const SECTIONS_IDENTITE = SECTIONS.slice(0, 5);
+
+/**
+ * Options d'une liste, complétées de la valeur enregistrée si elle n'y figure pas :
+ * l'API accepte du texte libre, et un <select> sans l'option afficherait vide —
+ * puis effacerait la donnée à l'enregistrement.
+ */
+function avecValeur(options: readonly string[], valeur: string | undefined): string[] {
+  return valeur && !options.includes(valeur) ? [...options, valeur] : [...options];
+}
 
 function age(dateIso: string): number | null {
   if (!dateIso) return null;
@@ -48,17 +70,24 @@ function age(dateIso: string): number | null {
  * - Après une erreur, les saisies reviennent du serveur : rien n'est perdu.
  * - L'API crée la fiche puis le mandat en deux appels ; si le second échoue,
  *   la reprise n'envoie que le mandat.
+ * - En modification, seules les rubriques d'identité sont proposées : un mandat
+ *   évolue depuis sa propre page.
  */
-export function DetenuForm() {
+export function DetenuForm({ edition }: { edition?: EditionDetenu } = {}) {
   const router = useRouter();
   const [etat, action, enCours] = useActionState<EtatEnregistrement, FormData>(
-    enregistrerDetenu,
+    edition?.action ?? enregistrerDetenu,
     {},
   );
+  const sections = edition ? SECTIONS_IDENTITE : SECTIONS;
 
   const [sectionVisible, setSectionVisible] = useState<string>("identite");
   const [modifie, setModifie] = useState(false);
-  const [dateNaissance, setDateNaissance] = useState("");
+  // Noms des fichiers choisis, valables pour l'état courant seulement : après un
+  // envoi, React vide les champs fichier, l'affichage doit suivre.
+  const [choix, setChoix] = useState<{ pour: EtatEnregistrement; noms: Record<string, string> }>({ pour: {}, noms: {} });
+  const fichiers = choix.pour === etat ? choix.noms : {};
+  const [dateNaissance, setDateNaissance] = useState(edition?.initial.date_naissance ?? "");
   const [statutPenal, setStatutPenal] = useState("");
   const [dateIncarceration, setDateIncarceration] = useState("");
   const [dateExpiration, setDateExpiration] = useState("");
@@ -69,8 +98,12 @@ export function DetenuForm() {
   const avecAppel = statutPenal === "Appellant";
   const avecCassation = statutPenal === "Cassationnaire";
 
-  /** Valeur renvoyée par le serveur après une erreur, pour ne rien reperdre. */
-  const v = (champ: string) => etat.valeurs?.[champ] ?? undefined;
+  /**
+   * Après une erreur : les saisies renvoyées par le serveur, et elles seules — un
+   * champ vidé volontairement ne doit pas se remplir de l'ancienne valeur.
+   * Sinon, en modification, la valeur actuelle du dossier.
+   */
+  const v = (champ: string) => (etat.valeurs ?? edition?.initial)?.[champ] ?? undefined;
   const err = (champ: string) => etat.erreurs?.[champ]?.[0];
 
   // Sommaire qui suit la section lue
@@ -84,12 +117,12 @@ export function DetenuForm() {
       },
       { rootMargin: "-20% 0px -65% 0px" },
     );
-    SECTIONS.forEach((s) => {
+    sections.forEach((s) => {
       const el = document.getElementById(s.id);
       if (el) observer.observe(el);
     });
     return () => observer.disconnect();
-  }, []);
+  }, [sections]);
 
   // Garde-fou : ne jamais perdre une fiche à moitié remplie
   useEffect(() => {
@@ -148,7 +181,7 @@ export function DetenuForm() {
       {/* Sommaire */}
       <nav aria-label="Rubriques du formulaire" className="hidden lg:block" data-print-hide>
         <ol className="sticky top-24 flex flex-col rounded-lg border border-hairline bg-surface p-2 shadow-e1">
-          {SECTIONS.map((s, i) => {
+          {sections.map((s, i) => {
             const courant = sectionVisible === s.id;
             return (
               <li key={s.id}>
@@ -277,7 +310,7 @@ export function DetenuForm() {
               {(p) => <Input {...p} name="lieu_naissance" defaultValue={v("lieu_naissance")} />}
             </Field>
             <Field label="Nationalité" erreur={err("nationalite")}>
-              {(p) => <Input {...p} name="nationalite" defaultValue={v("nationalite") ?? "Camerounaise"} />}
+              {(p) => <Input {...p} name="nationalite" defaultValue={v("nationalite") ?? (edition ? undefined : "Camerounaise")} />}
             </Field>
             <Field label="Profession" requis erreur={err("profession")}>
               {(p) => <Input {...p} name="profession" defaultValue={v("profession")} />}
@@ -298,7 +331,7 @@ export function DetenuForm() {
               {(p) => (
                 <Select {...p} name="statut_matrimonial" defaultValue={v("statut_matrimonial") ?? ""}>
                   <option value="">Non renseignée</option>
-                  {STATUTS_MATRIMONIAUX.map((s) => (
+                  {avecValeur(STATUTS_MATRIMONIAUX, v("statut_matrimonial")).map((s) => (
                     <option key={s}>{s}</option>
                   ))}
                 </Select>
@@ -311,7 +344,7 @@ export function DetenuForm() {
               {(p) => (
                 <Select {...p} name="niveau_etudes" defaultValue={v("niveau_etudes") ?? ""}>
                   <option value="">Non renseigné</option>
-                  {NIVEAUX_ETUDES.map((s) => (
+                  {avecValeur(NIVEAUX_ETUDES, v("niveau_etudes")).map((s) => (
                     <option key={s}>{s}</option>
                   ))}
                 </Select>
@@ -358,7 +391,7 @@ export function DetenuForm() {
               {(p) => (
                 <Select {...p} name="contact_urgence_lien_parente" defaultValue={v("contact_urgence_lien_parente") ?? ""}>
                   <option value="">Non renseigné</option>
-                  {LIENS_PARENTE.map((l) => (
+                  {avecValeur(LIENS_PARENTE, v("contact_urgence_lien_parente")).map((l) => (
                     <option key={l}>{l}</option>
                   ))}
                 </Select>
@@ -383,20 +416,53 @@ export function DetenuForm() {
                 ["photo_face", "Photo de face"],
                 ["photo_profil", "Photo de profil"],
               ] as const
-            ).map(([nom, libelle]) => (
-              <Field key={nom} label={libelle} aide="JPG ou PNG, 8 Mo maximum" erreur={err(nom)}>
-                {(p) => (
-                  <label
-                    htmlFor={p.id}
-                    className="group flex h-28 cursor-pointer flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed border-rule bg-raised text-sm text-muted transition-colors hover:border-accent hover:text-ink"
-                  >
-                    <Icon name="user" size={20} className="text-faint transition-colors group-hover:text-accent" />
-                    Choisir un fichier
-                    <input {...p} type="file" accept="image/png,image/jpeg,image/webp" name={nom} className="sr-only" />
-                  </label>
-                )}
-              </Field>
-            ))}
+            ).map(([nom, libelle]) => {
+              const actuelle = edition?.photos[nom === "photo_face" ? "face" : "profil"];
+              const choisi = fichiers[nom];
+              return (
+                <Field
+                  key={nom}
+                  label={libelle}
+                  aide={actuelle && !choisi ? "Photo actuelle conservée si aucun fichier n’est choisi" : "JPG ou PNG, 8 Mo maximum"}
+                  erreur={err(nom)}
+                >
+                  {(p) => (
+                    <label
+                      htmlFor={p.id}
+                      className={cn(
+                        "group relative flex h-28 cursor-pointer flex-col items-center justify-center gap-1.5 overflow-hidden rounded-lg border border-dashed bg-raised text-sm text-muted transition-colors hover:border-accent hover:text-ink",
+                        choisi ? "border-accent" : "border-rule",
+                      )}
+                    >
+                      {actuelle && !choisi && (
+                        <Image src={actuelle} alt="" fill unoptimized sizes="240px" className="object-cover opacity-35" />
+                      )}
+                      <span className="relative flex flex-col items-center gap-1.5 px-3 text-center">
+                        <Icon
+                          name={choisi ? "check" : "user"}
+                          size={20}
+                          className={choisi ? "text-accent" : "text-faint transition-colors group-hover:text-accent"}
+                        />
+                        <span className="max-w-full truncate">
+                          {choisi ?? (actuelle ? "Remplacer la photo" : "Choisir un fichier")}
+                        </span>
+                      </span>
+                      <input
+                        {...p}
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp"
+                        name={nom}
+                        className="sr-only"
+                        onChange={(e) => {
+                          const fichier = e.target.files?.[0];
+                          setChoix({ pour: etat, noms: { ...fichiers, [nom]: fichier?.name ?? "" } });
+                        }}
+                      />
+                    </label>
+                  )}
+                </Field>
+              );
+            })}
             <Pleine>
               <Field label="Anthropométrie et signes particuliers" aide="Taille, cicatrices, tatouages…" erreur={err("anthropometrie")}>
                 {(p) => <Textarea {...p} name="anthropometrie" rows={3} defaultValue={v("anthropometrie")} />}
@@ -405,6 +471,8 @@ export function DetenuForm() {
           </FormSection>
         </fieldset>
 
+        {!edition && (
+        <>
         <FormSection id="incarceration" numero="06" titre="Incarcération" description="Titre de détention qui fonde l’écrou.">
           <Field label="Date d’incarcération" requis erreur={err("date_incarceration")}>
             {(p) => (
@@ -559,19 +627,34 @@ export function DetenuForm() {
             </Field>
           </Pleine>
         </FormSection>
+        </>
+        )}
 
         <div className="flex flex-col-reverse items-stretch justify-between gap-4 rounded-lg border border-hairline bg-surface p-5 shadow-e1 sm:flex-row sm:items-center sm:p-6">
           <p className="max-w-sm text-xs text-muted">
             <span className="text-danger">*</span> Champs obligatoires. L’unicité de l’écrou et de la
             CNI est vérifiée par le serveur.
+            {edition && " Les mandats se modifient depuis l’onglet Mandats du dossier."}
           </p>
-          <Button type="submit" variante="primaire" icone="check" chargement={enCours} taille="lg">
-            {enCours
-              ? "Enregistrement…"
-              : etat.detenuId
-                ? "Réessayer l’enregistrement du mandat"
-                : "Enregistrer le détenu"}
-          </Button>
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center">
+            {edition && (
+              <Link
+                href={`/detenus/${edition.detenuId}`}
+                className="inline-flex h-11 items-center justify-center rounded-md px-4 text-sm text-muted transition-colors hover:bg-sunken hover:text-ink"
+              >
+                Annuler
+              </Link>
+            )}
+            <Button type="submit" variante="primaire" icone="check" chargement={enCours} taille="lg">
+              {enCours
+                ? "Enregistrement…"
+                : edition
+                  ? "Enregistrer les modifications"
+                  : etat.detenuId
+                    ? "Réessayer l’enregistrement du mandat"
+                    : "Enregistrer le détenu"}
+            </Button>
+          </div>
         </div>
       </form>
     </div>

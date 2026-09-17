@@ -77,6 +77,16 @@ export interface Detenu {
   numeroCNI: string | null;
   numeroPasseport: string | null;
   contact: string | null;
+  /**
+   * Contact d'urgence complet — seulement sur la fiche détaillée. `contact` n'en
+   * garde que le téléphone, pour les listes.
+   */
+  contactUrgence?: {
+    nom: string | null;
+    lienParente: string | null;
+    telephone: string | null;
+    adresse: string | null;
+  };
   nomPere: string;
   nomMere: string;
   photoFaceUrl: string | null;
@@ -161,6 +171,8 @@ export interface Affectation {
   celluleLibelle: string;
   dateAffectation: string;
   motifAffectation: string | null;
+  /** Fin de l'affectation (réaffectation, sanction, sortie) ; nulle tant qu'elle court. */
+  dateFin?: string | null;
 }
 
 export interface Sanction {
@@ -175,8 +187,15 @@ export interface Sanction {
   dateFin: string | null;
   typeSanction: string | null;
   motif: string | null;
-  statut: "En cours" | "Terminée" | "Annulée" | null;
+  statut: "À venir" | "En cours" | "Terminée" | "Annulée" | null;
   dateCreation: string;
+}
+
+/** Type de sanction : table de référence gérée côté API, désactivable mais jamais supprimée. */
+export interface TypeSanction {
+  id: number;
+  libelle: string;
+  estActif: boolean;
 }
 
 export interface SuiviMedical {
@@ -238,6 +257,11 @@ export interface SortieDetenu {
   cause: string | null;
   observation: string | null;
   dateEnregistrement: string;
+  /**
+   * La sortie a-t-elle fait quitter l'établissement ? Une libération normale ne lève
+   * qu'un mandat : le détenu reste écroué s'il en a d'autres (cas des DPAC).
+   */
+  definitive?: boolean;
 }
 
 export interface Utilisateur {

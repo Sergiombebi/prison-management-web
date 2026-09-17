@@ -6,7 +6,7 @@
  * types de `contract.ts`.
  *
  * Référence : docs/GUIDE_FRONTEND.md du dépôt `prison-management-api`.
- * Les routes absentes de l'API (sorties, visites, suivi médical, tableau de bord…)
+ * Les routes absentes de l'API (visites, suivi médical, tableau de bord…)
  * lèvent une erreur explicite : leur domaine doit rester en démonstration.
  */
 
@@ -14,12 +14,16 @@ import "server-only";
 
 import { redirect } from "next/navigation";
 import type {
+  Affectation,
   CategoriePenale,
+  Cellule,
   DetenuResume,
   FiltreDetenus,
   Mandas,
   RoleUtilisateur,
   Sexe,
+  SortieDetenu,
+  TypeSortie,
   TypeStatutPenal,
 } from "@/lib/domain/types";
 import { CATEGORIE_SLUG, ROLES_UTILISATEUR } from "@/lib/domain/referentiels";
@@ -123,6 +127,42 @@ async function requete<T>(
   return (texte ? JSON.parse(texte) : undefined) as T;
 }
 
+/** Pagination Laravel : `meta` accompagne toute liste paginée. */
+interface MetaPagination {
+  current_page: number;
+  per_page: number;
+  total: number;
+  last_page: number;
+}
+
+/**
+ * Parcourt toutes les pages d'une liste. Le plafond évite une boucle sans fin si
+ * l'API renvoyait un `last_page` incohérent ; il reste large pour un établissement.
+ */
+async function toutesLesPages<T>(
+  chemin: string,
+  query: Record<string, unknown> = {},
+  maxPages = 50,
+): Promise<T[]> {
+  const tous: T[] = [];
+  for (let page = 1; page <= maxPages; page += 1) {
+    const corps = await requete<{ data: T[]; meta?: MetaPagination }>(chemin, {
+      query: { ...query, page },
+    });
+    tous.push(...(corps?.data ?? []));
+    if (!corps?.meta || page >= corps.meta.last_page) break;
+  }
+  return tous;
+}
+
+/** Retire les clés vides : l'API applique alors ses propres valeurs par défaut. */
+function sansVides(corps: Record<string, unknown>): Record<string, unknown> {
+  for (const cle of Object.keys(corps)) {
+    if (corps[cle] === undefined || corps[cle] === null || corps[cle] === "") delete corps[cle];
+  }
+  return corps;
+}
+
 /** Route décrite dans le guide mais pas encore livrée par l'API. */
 function nonLivre(route: string): never {
   throw new ApiErreur(
@@ -170,12 +210,8 @@ function versProfil(u: UtilisateurApi): ProfilUtilisateur {
 // Détenus — GUIDE_FRONTEND.md §3 et §4
 // ---------------------------------------------------------------------------
 
-interface MetaPagination {
-  current_page: number;
-  per_page: number;
-  total: number;
-  last_page: number;
-}
+/** Taille de page fixée par l'API sur `GET /detenus` (non paramétrable). */
+const PAGE_API_DETENUS = 10;
 
 /** Vue résumée renvoyée par `GET /detenus` (colonnes de l'ancienne app C#). */
 interface DetenuListeApi {
@@ -251,8 +287,112 @@ interface DetenuDetailApi extends Omit<DetenuListeApi, "contact" | "statut_penal
   photo_profil_url: string | null;
   anthropometrie: string | null;
   mandas?: MandasApi[];
+  cellule_actuelle?: AffectationApi | null;
   created_at: string | null;
   updated_at: string | null;
+}
+
+interface CelluleApi {
+  id: number;
+  numero: string;
+  bloc: string | null;
+  type_cellule: string | null;
+  capacite_max: number;
+  effectif_actuel: number;
+  places_disponibles: number;
+}
+
+interface AffectationApi {
+  id: number;
+  detenu_id: number;
+  cellule?: { id: number; numero: string; bloc: string | null };
+  date_affectation: string | null;
+  date_fin: string | null;
+  est_active: boolean;
+  motif_affectation: string | null;
+}
+
+interface SortieApi {
+  id: number;
+  detenu_id: number;
+  detenu?: { id: number; numero_ecrou: string; nom: string };
+  mandas_id: number | null;
+  mandas?: { id: number; type_statut_penal: string | null; reference_mandat: string | null } | null;
+  type_sortie: string;
+  date_sortie: string | null;
+  motif: string | null;
+  destination: string | null;
+  cause: string | null;
+  observation: string | null;
+  sortie_definitive: boolean;
+  created_at: string | null;
+}
+
+/** Valeur de `type_sortie` dans les réponses et dans le filtre de l'archive. */
+const TYPE_SORTIE_API: Record<TypeSortie, string> = {
+  LiberationNormale: "liberation_normale",
+  Deces: "deces",
+  Transfert: "transfert",
+  Evasion: "evasion",
+};
+
+/** Segment d'URL de création — avec un tiret, contrairement à la valeur ci-dessus. */
+const ROUTE_SORTIE: Record<TypeSortie, string> = {
+  LiberationNormale: "liberation-normale",
+  Deces: "deces",
+  Transfert: "transfert",
+  Evasion: "evasion",
+};
+
+const libelleCellule = (c: { numero: string; bloc: string | null }) =>
+  c.bloc ? `${c.bloc} · ${c.numero}` : c.numero;
+
+function versCellule(c: CelluleApi): Cellule {
+  return {
+    id: c.id,
+    numero: c.numero,
+    bloc: c.bloc,
+    typeCellule: c.type_cellule,
+    capaciteMax: c.capacite_max,
+    // L'API ne stocke aucun effectif théorique : l'occupation est toujours calculée
+    effectifTheorique: c.effectif_actuel,
+    effectifReel: c.effectif_actuel,
+  };
+}
+
+function versAffectation(a: AffectationApi, detenu: { nom: string; numeroEcrou: string }): Affectation {
+  return {
+    id: a.id,
+    detenuId: a.detenu_id,
+    detenuNom: detenu.nom,
+    numeroEcrou: detenu.numeroEcrou,
+    celluleId: a.cellule?.id ?? 0,
+    celluleLibelle: a.cellule ? libelleCellule(a.cellule) : "—",
+    dateAffectation: a.date_affectation ?? "",
+    motifAffectation: a.motif_affectation,
+    dateFin: a.date_fin,
+  };
+}
+
+function versSortie(x: SortieApi, detenu?: { nom: string; numeroEcrou: string }): SortieDetenu {
+  const type = (Object.keys(TYPE_SORTIE_API) as TypeSortie[]).find(
+    (t) => TYPE_SORTIE_API[t] === x.type_sortie,
+  );
+  return {
+    id: x.id,
+    detenuId: x.detenu_id,
+    detenuNom: x.detenu?.nom ?? detenu?.nom ?? "",
+    numeroEcrou: x.detenu?.numero_ecrou ?? detenu?.numeroEcrou ?? "",
+    typeSortie: type ?? "LiberationNormale",
+    dateSortie: x.date_sortie ?? "",
+    situationPenale: x.mandas?.type_statut_penal ?? null,
+    motif: x.motif,
+    destination: x.destination,
+    cause: x.cause,
+    observation: x.observation,
+    dateEnregistrement: x.created_at ?? "",
+    definitive: x.sortie_definitive,
+  };
 }
 
 const versSexe = (s: string): Sexe => (s === "Féminin" ? "Féminin" : "Masculin");
@@ -355,9 +495,10 @@ function versResume(d: DetenuListeApi): DetenuResume {
 }
 
 /** Fiche complète → résumé, mandats compris (là, tout est disponible). */
-function versResumeDetail(d: DetenuDetailApi, mandats: Mandas[]): DetenuResume {
+function versResumeDetail(d: DetenuDetailApi, mandats: MandatDetaille[]): DetenuResume {
+  // `actif` tient compte de la désactivation par l'API, pas seulement de l'échéance
   const actifs = mandats
-    .filter((m) => !m.dateSortieMandat || new Date(m.dateSortieMandat) > new Date())
+    .filter((m) => m.actif)
     .sort((a, b) => b.dateIncarceration.localeCompare(a.dateIncarceration));
   const courant = actifs[0] ?? null;
 
@@ -383,6 +524,12 @@ function versResumeDetail(d: DetenuDetailApi, mandats: Mandas[]): DetenuResume {
     numeroCNI: d.numero_cni,
     numeroPasseport: d.numero_passeport,
     contact: d.contact_urgence?.telephone ?? null,
+    contactUrgence: {
+      nom: d.contact_urgence?.nom ?? null,
+      lienParente: d.contact_urgence?.lien_parente ?? null,
+      telephone: d.contact_urgence?.telephone ?? null,
+      adresse: d.contact_urgence?.adresse ?? null,
+    },
     nomPere: d.nom_pere,
     nomMere: d.nom_mere,
     photoFaceUrl: d.photo_face_url,
@@ -403,17 +550,25 @@ function versResumeDetail(d: DetenuDetailApi, mandats: Mandas[]): DetenuResume {
           typeStatutPenal: courant.typeStatutPenal,
         }
       : null,
-    cellule: null,
+    cellule: d.cellule_actuelle?.cellule
+      ? {
+          id: d.cellule_actuelle.cellule.id,
+          numero: d.cellule_actuelle.cellule.numero,
+          bloc: d.cellule_actuelle.cellule.bloc,
+        }
+      : null,
   };
 }
 
 /**
  * Corps JSON attendu par l'API pour un détenu.
  *
- * Les clés absentes ne sont pas envoyées : sur un PUT, l'API conserve alors la
- * valeur existante (contrairement à ce qu'annonce son guide — retour A17).
+ * À la création, les clés vides ne partent pas. En mise à jour, l'API ne touche
+ * qu'aux clés reçues : un champ que l'agent a vidé doit donc partir à `null`, sinon
+ * l'ancienne valeur resterait en base. Les photos ne partent que si une nouvelle a
+ * été déposée.
  */
-function versCorpsDetenu(e: EntreeDetenu): Record<string, unknown> {
+function versCorpsDetenu(e: EntreeDetenu, mode: "creation" | "maj" = "creation"): Record<string, unknown> {
   const corps: Record<string, unknown> = {
     numero_ecrou: e.numeroEcrou,
     nom: e.nom,
@@ -452,10 +607,13 @@ function versCorpsDetenu(e: EntreeDetenu): Record<string, unknown> {
     corps.photo_profil_public_id = e.photoProfil.publicId;
   }
 
-  for (const cle of Object.keys(corps)) {
-    if (corps[cle] === undefined || corps[cle] === null || corps[cle] === "") delete corps[cle];
+  if (mode === "maj") {
+    for (const cle of Object.keys(corps)) {
+      if (corps[cle] === undefined || corps[cle] === "") corps[cle] = null;
+    }
+    return corps;
   }
-  return corps;
+  return sansVides(corps);
 }
 
 /** Corps JSON attendu par l'API pour un mandat. */
@@ -487,11 +645,7 @@ function versCorpsMandat(e: EntreeMandat): Record<string, unknown> {
     decision_cassation: e.decisionCassation,
     observations_cassation: e.observationsCassation,
   };
-
-  for (const cle of Object.keys(corps)) {
-    if (corps[cle] === undefined || corps[cle] === null || corps[cle] === "") delete corps[cle];
-  }
-  return corps;
+  return sansVides(corps);
 }
 
 export const liveApi: ApiClient = {
@@ -530,6 +684,19 @@ export const liveApi: ApiClient = {
         ? CATEGORIE_SLUG[filtre.categorie]
         : undefined;
 
+    // Les écrans de saisie demandent « tous les détenus » pour une liste déroulante :
+    // l'API pagine à 10 sans option, on parcourt donc les pages.
+    if (filtre.parPage && filtre.parPage > PAGE_API_DETENUS) {
+      const tous = (
+        await toutesLesPages<DetenuListeApi>("/detenus", {
+          search: filtre.recherche,
+          categorie_penale: categorie,
+        })
+      ).map(versResume);
+      if (filtre.tri === "nom") tous.sort((a, b) => a.nom.localeCompare(b.nom, "fr"));
+      return { items: tous.slice(0, filtre.parPage), total: tous.length, page: 1, parPage: filtre.parPage };
+    }
+
     const corps = await requete<{ data: DetenuListeApi[]; meta: MetaPagination }>("/detenus", {
       query: {
         page: filtre.page,
@@ -547,9 +714,11 @@ export const liveApi: ApiClient = {
   },
 
   async getDossierDetenu(id): Promise<DossierDetenu | null> {
-    const corps = await requete<{ data: DetenuDetailApi } | null>(`/detenus/${id}`, {
-      nullSur404: true,
-    });
+    const [corps, affectationsApi, sortiesApi] = await Promise.all([
+      requete<{ data: DetenuDetailApi } | null>(`/detenus/${id}`, { nullSur404: true }),
+      requete<{ data: AffectationApi[] } | null>(`/detenus/${id}/affectations`, { nullSur404: true }),
+      requete<{ data: SortieApi[] } | null>(`/detenus/${id}/sorties`, { nullSur404: true }),
+    ]);
     if (!corps?.data) return null;
 
     const brut = corps.data;
@@ -560,35 +729,30 @@ export const liveApi: ApiClient = {
         detenuNom: brut.nom,
         numeroEcrou: brut.numero_ecrou,
         actif: mandatActif(m),
+        ouvert: m.est_actif,
       }))
       .sort((a, b) => b.dateIncarceration.localeCompare(a.dateIncarceration));
 
+    const identite = { nom: brut.nom, numeroEcrou: brut.numero_ecrou };
     return {
       detenu: versResumeDetail(brut, mandats),
       mandats,
-      // Modules absents de l'API : les onglets correspondants restent vides
-      affectations: [],
+      affectations: (affectationsApi?.data ?? []).map((a) => versAffectation(a, identite)),
+      sorties: (sortiesApi?.data ?? []).map((x) => versSortie(x, identite)),
+      // L'API ne sait pas encore lister les sanctions, visites et consultations d'un
+      // détenu : on le signale plutôt que d'afficher « aucune sanction ».
       sanctions: [],
       visites: [],
       suivisMedicaux: [],
-      sorties: [],
+      indisponibles: ["sanctions", "visites", "suivisMedicaux"],
     };
   },
 
   async listParCategorie(categorie: CategoriePenale) {
-    const slug = CATEGORIE_SLUG[categorie];
-    const tous: DetenuResume[] = [];
-
-    // L'API pagine à 10 : on parcourt, avec un garde-fou pour ne pas boucler sans fin
-    for (let page = 1; page <= 20; page += 1) {
-      const corps = await requete<{ data: DetenuListeApi[]; meta: MetaPagination }>("/detenus", {
-        query: { categorie_penale: slug, page },
-      });
-      tous.push(...(corps?.data ?? []).map(versResume));
-      if (!corps?.meta || page >= corps.meta.last_page) break;
-    }
-
-    return tous.map((d) => ({ ...d, categoriePenale: categorie }));
+    const tous = await toutesLesPages<DetenuListeApi>("/detenus", {
+      categorie_penale: CATEGORIE_SLUG[categorie],
+    });
+    return tous.map((d) => ({ ...versResume(d), categoriePenale: categorie }));
   },
 
   async creerDetenu(entree) {
@@ -597,6 +761,17 @@ export const liveApi: ApiClient = {
       body: JSON.stringify(versCorpsDetenu(entree)),
     });
     return { id: corps.data.id };
+  },
+
+  async majDetenu(id, entree) {
+    await requete(`/detenus/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(versCorpsDetenu(entree, "maj")),
+    });
+  },
+
+  async desactiverDetenu(id) {
+    await requete(`/detenus/${id}`, { method: "DELETE" });
   },
 
   async restaurerDetenu(id) {
@@ -649,6 +824,7 @@ export const liveApi: ApiClient = {
       detenuNom: m.detenu?.nom ?? "",
       numeroEcrou: m.detenu?.numero_ecrou ?? "",
       actif: mandatActif(m),
+      ouvert: m.est_actif,
     };
   },
 
@@ -659,20 +835,120 @@ export const liveApi: ApiClient = {
     });
   },
 
+  async desactiverMandat(mandatId) {
+    await requete(`/mandas/${mandatId}`, { method: "DELETE" });
+  },
+
   // -------------------------------------------------------------------------
-  // Modules que l'API n'expose pas encore (cf. bloc A signalé au back)
+  // Discipline — GUIDE_FRONTEND.md §9
   // -------------------------------------------------------------------------
 
-  getTableauDeBord: () => nonLivre("GET /tableau-de-bord"),
-  listDetenusNonLoges: () => nonLivre("GET /detenus/non-loges"),
-  listMandats: () => nonLivre("GET /mandats"),
-  listMandatsExpires: () => nonLivre("GET /mandats/expires"),
-  listCellules: () => nonLivre("GET /cellules"),
-  listAffectations: () => nonLivre("GET /affectations"),
-  listSanctions: () => nonLivre("GET /sanctions"),
-  listSuivisMedicaux: () => nonLivre("GET /suivis-medicaux"),
-  listVisites: () => nonLivre("GET /visites"),
-  listSorties: () => nonLivre("GET /sorties"),
-  listUtilisateurs: () => nonLivre("GET /utilisateurs"),
-  getParametres: () => nonLivre("GET /parametres"),
+  async listCellules() {
+    return (await toutesLesPages<CelluleApi>("/cellules")).map(versCellule);
+  },
+
+  async creerCellule(entree) {
+    const corps = await requete<{ data: { id: number } }>("/cellules", {
+      method: "POST",
+      body: JSON.stringify(
+        sansVides({
+          numero: entree.numero,
+          bloc: entree.bloc,
+          type_cellule: entree.typeCellule,
+          capacite_max: entree.capaciteMax,
+        }),
+      ),
+    });
+    return { id: corps.data.id };
+  },
+
+  async affecterDetenu(detenuId, entree) {
+    await requete(`/detenus/${detenuId}/affectations`, {
+      method: "POST",
+      body: JSON.stringify(
+        sansVides({
+          cellule_id: entree.celluleId,
+          date_affectation: entree.dateAffectation,
+          motif_affectation: entree.motif,
+        }),
+      ),
+    });
+  },
+
+  async listTypesSanction() {
+    const corps = await requete<{ data: Array<{ id: number; libelle: string; est_actif: boolean }> }>(
+      "/types-sanction",
+    );
+    return (corps?.data ?? []).map((t) => ({ id: t.id, libelle: t.libelle, estActif: t.est_actif }));
+  },
+
+  async creerSanction(detenuId, entree) {
+    const corps = await requete<{ data: { id: number } }>(`/detenus/${detenuId}/sanctions`, {
+      method: "POST",
+      body: JSON.stringify(
+        sansVides({
+          type_sanction_id: entree.typeSanctionId,
+          motif: entree.motif,
+          date_faute: entree.dateFaute,
+          date_debut: entree.dateDebut,
+          date_fin: entree.dateFin,
+          cellule_disciplinaire_id: entree.celluleDisciplinaireId,
+        }),
+      ),
+    });
+    return { id: corps.data.id };
+  },
+
+  // -------------------------------------------------------------------------
+  // Sorties — GUIDE_FRONTEND.md §10
+  // -------------------------------------------------------------------------
+
+  async listSorties(type) {
+    const sorties = await toutesLesPages<SortieApi>(
+      "/sorties",
+      { type_sortie: type ? TYPE_SORTIE_API[type] : undefined },
+      10,
+    );
+    return sorties.map((x) => versSortie(x));
+  },
+
+  async enregistrerSortie(detenuId, entree) {
+    const corps = await requete<{ data: { id: number; sortie_definitive: boolean } }>(
+      `/detenus/${detenuId}/sorties/${ROUTE_SORTIE[entree.type]}`,
+      {
+        method: "POST",
+        body: JSON.stringify(
+          sansVides({
+            mandas_id: entree.type === "LiberationNormale" ? entree.mandatId : undefined,
+            date_sortie: entree.dateSortie,
+            motif: entree.type === "LiberationNormale" || entree.type === "Transfert" ? entree.motif : undefined,
+            destination: entree.type === "Transfert" ? entree.destination : undefined,
+            cause: entree.type === "Deces" || entree.type === "Evasion" ? entree.cause : undefined,
+            observation: entree.observation,
+          }),
+        ),
+      },
+    );
+    return { id: corps.data.id, definitive: corps.data.sortie_definitive };
+  },
+
+  // -------------------------------------------------------------------------
+  // Modules que l'API n'expose pas encore (cf. bloc A signalé au back).
+  // `async` : l'échec doit être une promesse rejetée, comme pour toute méthode
+  // du contrat — une exception synchrone échapperait à qui attend la promesse.
+  // -------------------------------------------------------------------------
+
+  getTableauDeBord: async () => nonLivre("GET /tableau-de-bord"),
+  // La liste des détenus ne dit pas lesquels ont une cellule
+  listDetenusNonLoges: async () => nonLivre("GET /detenus?sans_cellule=1"),
+  listMandats: async () => nonLivre("GET /mandats"),
+  listMandatsExpires: async () => nonLivre("GET /mandats/expires"),
+  // L'API n'expose que l'historique d'UN détenu : GET /detenus/{id}/affectations
+  listAffectations: async () => nonLivre("GET /affectations"),
+  // Créer, consulter une sanction et la terminer existent ; la liste, non
+  listSanctions: async () => nonLivre("GET /sanctions"),
+  listSuivisMedicaux: async () => nonLivre("GET /suivis-medicaux"),
+  listVisites: async () => nonLivre("GET /visites"),
+  listUtilisateurs: async () => nonLivre("GET /utilisateurs"),
+  getParametres: async () => nonLivre("GET /parametres"),
 };

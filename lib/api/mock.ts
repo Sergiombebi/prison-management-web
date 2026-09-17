@@ -11,7 +11,7 @@ import type {
   FiltreDetenus,
   TableauDeBord,
 } from "@/lib/domain/types";
-import { LIBELLE_CATEGORIE } from "@/lib/domain/referentiels";
+import { LIBELLE_CATEGORIE, TYPES_SANCTION } from "@/lib/domain/referentiels";
 import {
   ApiErreur,
   type ApiClient,
@@ -62,6 +62,8 @@ function detailler(m: (typeof fx.mandats)[number]): MandatDetaille {
     detenuNom: d.nom,
     numeroEcrou: d.numeroEcrou,
     actif: fx.estMandatActif(m),
+    // Les fixtures ne désactivent jamais un mandat : seule l'échéance compte
+    ouvert: true,
   };
 }
 
@@ -114,6 +116,16 @@ export const mockApi: ApiClient = {
     return { id: fx.detenus[0].id };
   },
 
+  // En démonstration, les écritures ne persistent rien : elles répondent comme l'API
+  // pour que les parcours restent testables de bout en bout.
+  async majDetenu() {
+    await attendre();
+  },
+
+  async desactiverDetenu() {
+    await attendre();
+  },
+
   async restaurerDetenu() {
     await attendre();
   },
@@ -136,6 +148,10 @@ export const mockApi: ApiClient = {
   },
 
   async majMandat() {
+    await attendre();
+  },
+
+  async desactiverMandat() {
     await attendre();
   },
 
@@ -327,6 +343,30 @@ export const mockApi: ApiClient = {
     return [...fx.cellules];
   },
 
+  async creerCellule() {
+    await attendre();
+    return { id: fx.cellules[0].id };
+  },
+
+  async affecterDetenu(_detenuId, entree) {
+    await attendre();
+    const cellule = fx.cellules.find((c) => c.id === entree.celluleId);
+    if (cellule && cellule.effectifReel >= cellule.capaciteMax) {
+      const message = `La cellule ${cellule.numero} est complète (${cellule.effectifReel}/${cellule.capaciteMax}).`;
+      throw new ApiErreur(message, 422, "VALIDATION", { cellule_id: [message] });
+    }
+  },
+
+  async listTypesSanction() {
+    await attendre();
+    return TYPES_SANCTION.map((libelle, i) => ({ id: i + 1, libelle, estActif: true }));
+  },
+
+  async creerSanction() {
+    await attendre();
+    return { id: fx.sanctions[0]?.id ?? 1 };
+  },
+
   async listAffectations() {
     await attendre();
     return [...fx.affectations].sort((a, b) =>
@@ -356,6 +396,17 @@ export const mockApi: ApiClient = {
     return fx.sorties
       .filter((s) => !type || s.typeSortie === type)
       .sort((a, b) => b.dateSortie.localeCompare(a.dateSortie));
+  },
+
+  async enregistrerSortie(detenuId, entree) {
+    await attendre();
+    const autresMandats = fx.mandats.filter(
+      (m) => m.detenuId === detenuId && fx.estMandatActif(m) && (entree.type !== "LiberationNormale" || m.id !== entree.mandatId),
+    );
+    return {
+      id: fx.sorties[0]?.id ?? 1,
+      definitive: entree.type !== "LiberationNormale" || autresMandats.length === 0,
+    };
   },
 
   async listUtilisateurs() {

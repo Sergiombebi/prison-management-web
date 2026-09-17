@@ -24,6 +24,9 @@
 .DS_Store
 *.pem
 
+# jeton du client d'API en ligne de commande (scripts/api.mjs)
+.sgp-token
+
 # médias lourds : références de design, captures d'écran de travail…
 *.mp4
 *.mov

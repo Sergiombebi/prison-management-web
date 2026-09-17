@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { api, type MandatDetaille } from "@/lib/api";
 import { LIBELLE_TYPE_SORTIE, REGLE_CATEGORIE } from "@/lib/domain/referentiels";
@@ -20,8 +21,16 @@ import { PrintButton } from "@/components/ui/client-actions";
 import { Icon, type NomIcone } from "@/components/ui/icon";
 import { Avatar, DataPair, EmptyState, Ecrou, Panel } from "@/components/ui/surface";
 import { TabsNav } from "@/components/ui/tabs";
+import { BoutonConfirmation } from "@/components/ui/bouton-confirmation";
+import { EnAttenteApi } from "@/components/ui/en-attente-api";
 import { BoutonRestaurer } from "@/components/detenus/bouton-restaurer";
 import { restaurerDossier } from "../nouveau/actions";
+import { desactiverDossier, desactiverMandat } from "./actions";
+
+/** Retours affichés après une redirection depuis un formulaire. */
+const CONFIRMATIONS: Record<string, string> = {
+  identite: "Fiche d’identité mise à jour.",
+};
 
 export async function generateMetadata(props: PageProps<"/detenus/[id]">): Promise<Metadata> {
   const { id } = await props.params;
@@ -79,6 +88,10 @@ export default async function DossierDetenuPage(props: PageProps<"/detenus/[id]"
   const lien = (o: OngletId) => hrefAvec(chemin, {}, { onglet: o === "identite" ? null : o });
 
   const joursMandat = joursRestants(d.mandatCourant?.dateSortieMandat);
+  const present = d.statut === "Present";
+  const confirmation = CONFIRMATIONS[param(sp, "maj") ?? ""];
+  const indisponible = (r: "sanctions" | "visites" | "suivisMedicaux") =>
+    dossier.indisponibles?.includes(r) ?? false;
 
   return (
     <Page>
@@ -93,8 +106,18 @@ export default async function DossierDetenuPage(props: PageProps<"/detenus/[id]"
         Registre d’écrou
       </ButtonLink>
 
+      {confirmation && (
+        <p
+          role="status"
+          className="flex items-center gap-2.5 rounded-lg border border-success/30 bg-success-soft px-4 py-3 text-sm text-success animate-rise"
+        >
+          <Icon name="check" size={15} className="shrink-0" />
+          {confirmation}
+        </p>
+      )}
+
       {/* Dossier désactivé : aucune modification n'est possible tant qu'il n'est pas restauré */}
-      {d.statut !== "Present" && (
+      {!present && (
         <div className="flex flex-col gap-3 rounded-lg border border-warning/40 bg-warning-soft px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between animate-rise">
           <div className="flex items-start gap-3">
             <Icon name="alert" size={17} className="mt-0.5 shrink-0 text-warning" />
@@ -120,7 +143,20 @@ export default async function DossierDetenuPage(props: PageProps<"/detenus/[id]"
         <div className="relative flex flex-col gap-5 p-5 sm:p-6">
           <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
             <div className="flex min-w-0 items-start gap-4 sm:gap-5">
-              <Avatar initiales={initiales(d.nom)} taille="xl" className="hidden sm:grid" />
+              {d.photoFaceUrl ? (
+                <span className="relative hidden size-24 shrink-0 overflow-hidden rounded-xl border border-hairline shadow-e1 sm:block">
+                  <Image
+                    src={d.photoFaceUrl}
+                    alt={`Photographie de face de ${d.nom}`}
+                    fill
+                    unoptimized
+                    sizes="96px"
+                    className="object-cover"
+                  />
+                </span>
+              ) : (
+                <Avatar initiales={initiales(d.nom)} taille="xl" className="hidden sm:grid" />
+              )}
               <div className="min-w-0">
                 <p className="font-mono text-sm font-medium text-accent">Écrou n° {d.numeroEcrou}</p>
                 <h1 className="mt-1 text-balance text-xl font-semibold tracking-[-0.03em] text-ink md:text-2xl">
@@ -144,7 +180,25 @@ export default async function DossierDetenuPage(props: PageProps<"/detenus/[id]"
               </div>
             </div>
 
-            <div className="flex shrink-0 gap-2" data-print-hide>
+            <div className="flex shrink-0 flex-wrap gap-2" data-print-hide>
+              {present && (
+                <>
+                  <ButtonLink
+                    href={`/detenus/${d.id}/modifier`}
+                    icone="edit"
+                    transitionTypes={["nav-forward"]}
+                  >
+                    Modifier
+                  </ButtonLink>
+                  <ButtonLink
+                    href={`/detenus/liberation/normale?detenu=${d.id}`}
+                    icone="exit"
+                    transitionTypes={["nav-forward"]}
+                  >
+                    Consigner une sortie
+                  </ButtonLink>
+                </>
+              )}
               <PrintButton />
               <ButtonLink
                 href={`/etats/fiches-avis?etat=${encodeURIComponent("Fiche signalétique")}&detenu=${d.id}`}
@@ -194,9 +248,10 @@ export default async function DossierDetenuPage(props: PageProps<"/detenus/[id]"
               { href: lien("identite"), label: "Identité", actif: onglet === "identite" },
               { href: lien("mandats"), label: "Mandats", compte: dossier.mandats.length, actif: onglet === "mandats" },
               { href: lien("detention"), label: "Détention", compte: dossier.affectations.length + dossier.sorties.length, actif: onglet === "detention" },
-              { href: lien("discipline"), label: "Discipline", compte: dossier.sanctions.length, actif: onglet === "discipline" },
-              { href: lien("sante"), label: "Santé", compte: dossier.suivisMedicaux.length, actif: onglet === "sante" },
-              { href: lien("visites"), label: "Visites", compte: dossier.visites.length, actif: onglet === "visites" },
+              // Pas de compteur quand la source ne sait pas lister : « 0 » serait faux
+              { href: lien("discipline"), label: "Discipline", compte: indisponible("sanctions") ? undefined : dossier.sanctions.length, actif: onglet === "discipline" },
+              { href: lien("sante"), label: "Santé", compte: indisponible("suivisMedicaux") ? undefined : dossier.suivisMedicaux.length, actif: onglet === "sante" },
+              { href: lien("visites"), label: "Visites", compte: indisponible("visites") ? undefined : dossier.visites.length, actif: onglet === "visites" },
             ]}
           />
         </div>
@@ -233,7 +288,38 @@ export default async function DossierDetenuPage(props: PageProps<"/detenus/[id]"
                   <DataPair label="N° passeport" mono>{ouVide(d.numeroPasseport)}</DataPair>
                 </dl>
               </Panel>
+              {d.contactUrgence && (
+                <Panel titre="Contact d’urgence" variante="eleve">
+                  <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2 xl:grid-cols-1">
+                    <DataPair label="Proche à prévenir">{ouVide(d.contactUrgence.nom)}</DataPair>
+                    <DataPair label="Lien de parenté">{ouVide(d.contactUrgence.lienParente)}</DataPair>
+                    <DataPair label="Téléphone" mono>{ouVide(d.contactUrgence.telephone)}</DataPair>
+                    <DataPair label="Adresse">{ouVide(d.contactUrgence.adresse)}</DataPair>
+                  </dl>
+                </Panel>
+              )}
               <Panel titre="Signalement" variante="eleve">
+                {(d.photoFaceUrl || d.photoProfilUrl) && (
+                  <div className="mb-4 grid grid-cols-2 gap-3">
+                    {(
+                      [
+                        [d.photoFaceUrl, "De face"],
+                        [d.photoProfilUrl, "De profil"],
+                      ] as const
+                    ).map(([src, legende]) => (
+                      <figure key={legende} className="flex flex-col gap-1.5">
+                        <span className="relative aspect-[3/4] overflow-hidden rounded-md border border-hairline bg-sunken">
+                          {src ? (
+                            <Image src={src} alt={`${d.nom}, ${legende.toLowerCase()}`} fill unoptimized sizes="160px" className="object-cover" />
+                          ) : (
+                            <span className="grid h-full place-items-center text-xs text-faint">Non fournie</span>
+                          )}
+                        </span>
+                        <figcaption className="text-2xs text-muted">{legende}</figcaption>
+                      </figure>
+                    ))}
+                  </div>
+                )}
                 <dl className="grid gap-4">
                   <DataPair label="Anthropométrie et signes particuliers">
                     {ouVide(d.anthropometrie)}
@@ -245,6 +331,41 @@ export default async function DossierDetenuPage(props: PageProps<"/detenus/[id]"
                 </dl>
               </Panel>
             </div>
+
+            {/* Action administrative, volontairement à l'écart des actions courantes */}
+            {present && (
+              <section
+                aria-labelledby="correction-admin"
+                className="flex flex-col gap-3 rounded-lg border border-dashed border-rule px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between xl:col-span-3"
+              >
+                <div>
+                  <h2 id="correction-admin" className="text-sm font-medium text-ink">
+                    Correction administrative
+                  </h2>
+                  <p className="mt-0.5 max-w-[70ch] text-xs text-muted">
+                    Pour un dossier créé par erreur ou en double uniquement. Une libération, un transfert,
+                    une évasion ou un décès se consignent depuis « Consigner une sortie ».
+                  </p>
+                </div>
+                <BoutonConfirmation
+                  libelle="Désactiver le dossier"
+                  icone="trash"
+                  titre="Désactiver ce dossier ?"
+                  description={
+                    <>
+                      <p>
+                        {d.nom} (écrou n° {d.numeroEcrou}) disparaîtra du registre et ses mandats seront
+                        désactivés. <strong className="font-medium text-ink">Aucune sortie n’est enregistrée</strong>{" "}
+                        : n’utilisez pas cette action pour une vraie levée d’écrou.
+                      </p>
+                      <p className="mt-2">Le dossier reste consultable et peut être restauré.</p>
+                    </>
+                  }
+                  confirmer="Désactiver"
+                  action={desactiverDossier.bind(null, d.id)}
+                />
+              </section>
+            )}
           </div>
         )}
 
@@ -265,7 +386,7 @@ export default async function DossierDetenuPage(props: PageProps<"/detenus/[id]"
               <ol className="stagger flex flex-col gap-4">
                 {dossier.mandats.map((m, i) => (
                   <li key={m.id} style={{ ["--i" as string]: i }}>
-                    <CarteMandat mandat={m} />
+                    <CarteMandat mandat={m} modifiable={present} />
                   </li>
                 ))}
               </ol>
@@ -274,16 +395,47 @@ export default async function DossierDetenuPage(props: PageProps<"/detenus/[id]"
 
         {onglet === "detention" && (
           <div className="grid gap-4 xl:grid-cols-2">
-            <Panel titre="Affectations en cellule" variante="eleve" flush>
+            <Panel
+              titre="Affectations en cellule"
+              sousTitre={d.cellule ? `Actuellement en ${d.cellule.bloc ? `${d.cellule.bloc} · ` : ""}${d.cellule.numero}` : undefined}
+              actions={
+                present &&
+                dossier.affectations.length > 0 && (
+                  <ButtonLink href={`/discipline/affectations?detenu=${d.id}`} taille="sm" icone="arrowRight">
+                    Réaffecter
+                  </ButtonLink>
+                )
+              }
+              variante="eleve"
+              flush
+            >
               <DataTable
                 dense
                 legende="Historique des affectations"
                 lignes={dossier.affectations}
                 cleLigne={(a) => a.id}
                 colonnes={[
-                  { cle: "cellule", titre: "Cellule", rendu: (a) => <span className="font-medium">{a.celluleLibelle}</span> },
-                  { cle: "date", titre: "Depuis le", rendu: (a) => formatDate(a.dateAffectation) },
-                  { cle: "motif", titre: "Motif", rendu: (a) => <span className="text-muted">{ouVide(a.motifAffectation)}</span> },
+                  {
+                    cle: "cellule",
+                    titre: "Cellule",
+                    rendu: (a) => (
+                      <span className="flex items-center gap-2 font-medium">
+                        {a.celluleLibelle}
+                        {!a.dateFin && <Badge ton="succes">Actuelle</Badge>}
+                      </span>
+                    ),
+                  },
+                  {
+                    cle: "date",
+                    titre: "Période",
+                    rendu: (a) => (
+                      <span className="tnum">
+                        {formatDate(a.dateAffectation)}
+                        {a.dateFin ? ` → ${formatDate(a.dateFin)}` : ""}
+                      </span>
+                    ),
+                  },
+                  { cle: "motif", titre: "Motif", masquerSous: "md", rendu: (a) => <span className="text-muted">{ouVide(a.motifAffectation)}</span> },
                 ]}
                 vide={
                   <EmptyState
@@ -291,9 +443,11 @@ export default async function DossierDetenuPage(props: PageProps<"/detenus/[id]"
                     icone="cell"
                     titre="Détenu non logé"
                     action={
-                      <ButtonLink href="/discipline/affectations" taille="sm" icone="arrowRight">
-                        Affecter une cellule
-                      </ButtonLink>
+                      present && (
+                        <ButtonLink href={`/discipline/affectations?detenu=${d.id}`} taille="sm" icone="arrowRight">
+                          Affecter une cellule
+                        </ButtonLink>
+                      )
                     }
                   />
                 }
@@ -316,7 +470,18 @@ export default async function DossierDetenuPage(props: PageProps<"/detenus/[id]"
                     ),
                   },
                   { cle: "date", titre: "Date", rendu: (s) => formatDate(s.dateSortie) },
-                  { cle: "motif", titre: "Motif", rendu: (s) => <span className="text-muted">{ouVide(s.destination ?? s.motif)}</span> },
+                  {
+                    cle: "motif",
+                    titre: "Détail",
+                    rendu: (s) => (
+                      <span className="text-muted">
+                        {ouVide(s.destination ?? s.cause ?? s.motif)}
+                        {s.definitive === false && (
+                          <span className="mt-0.5 block text-2xs">Mandat levé — d’autres mandats restaient actifs</span>
+                        )}
+                      </span>
+                    ),
+                  },
                 ]}
                 vide={<EmptyState compact icone="door" titre="Aucune sortie enregistrée" />}
               />
@@ -324,7 +489,40 @@ export default async function DossierDetenuPage(props: PageProps<"/detenus/[id]"
           </div>
         )}
 
-        {onglet === "discipline" && (
+        {onglet === "discipline" && indisponible("sanctions") && (
+          <Panel
+            titre="Sanctions disciplinaires"
+            variante="eleve"
+            actions={
+              present && (
+                <ButtonLink href={`/discipline/sanctions?detenu=${d.id}`} taille="sm" icone="plus">
+                  Prononcer une sanction
+                </ButtonLink>
+              )
+            }
+          >
+            <EnAttenteApi
+              compact
+              icone="scale"
+              route="GET /detenus/{id}/sanctions"
+              texte="Les sanctions peuvent être prononcées, mais l’API ne sait pas encore les lister."
+            />
+          </Panel>
+        )}
+
+        {onglet === "sante" && indisponible("suivisMedicaux") && (
+          <Panel titre="Consultations médicales" variante="eleve">
+            <EnAttenteApi compact icone="sante" route="GET /detenus/{id}/suivis-medicaux" />
+          </Panel>
+        )}
+
+        {onglet === "visites" && indisponible("visites") && (
+          <Panel titre="Visites reçues" variante="eleve">
+            <EnAttenteApi compact icone="user" route="GET /detenus/{id}/visites" />
+          </Panel>
+        )}
+
+        {onglet === "discipline" && !indisponible("sanctions") && (
           <Panel titre="Sanctions disciplinaires" variante="eleve" flush>
             <DataTable
               legende="Sanctions du détenu"
@@ -345,7 +543,7 @@ export default async function DossierDetenuPage(props: PageProps<"/detenus/[id]"
           </Panel>
         )}
 
-        {onglet === "sante" && (
+        {onglet === "sante" && !indisponible("suivisMedicaux") && (
           <Panel titre="Consultations médicales" variante="eleve" flush>
             <DataTable
               legende="Suivi médical du détenu"
@@ -367,7 +565,7 @@ export default async function DossierDetenuPage(props: PageProps<"/detenus/[id]"
           </Panel>
         )}
 
-        {onglet === "visites" && (
+        {onglet === "visites" && !indisponible("visites") && (
           <Panel titre="Visites reçues" variante="eleve" flush>
             <DataTable
               legende="Visites du détenu"
@@ -389,7 +587,10 @@ export default async function DossierDetenuPage(props: PageProps<"/detenus/[id]"
 }
 
 /** Un mandat présenté comme une pièce du dossier, avec l'avancement de la procédure. */
-function CarteMandat({ mandat: m }: { mandat: MandatDetaille }) {
+function CarteMandat({ mandat: m, modifiable }: { mandat: MandatDetaille; modifiable: boolean }) {
+  // Un mandat inactif l'est soit par échéance, soit parce qu'il a été désactivé ou levé
+  const echu = Boolean(m.dateSortieMandat && new Date(m.dateSortieMandat) <= new Date());
+  const etat = !m.ouvert ? "Levé ou désactivé" : echu ? "Expiré" : "Actif";
   const etapes = [
     { label: "Incarcération", date: m.dateIncarceration, detail: m.autoriteSignataire },
     { label: "Jugement", date: m.dateJugement, detail: m.peinePrononcee ?? m.tribunalJugement },
@@ -416,15 +617,39 @@ function CarteMandat({ mandat: m }: { mandat: MandatDetaille }) {
               {m.typeStatutPenal}
             </Badge>
           )}
-          <Badge ton={m.actif ? "succes" : "danger"}>{m.actif ? "Actif" : "Expiré"}</Badge>
-          <ButtonLink
-            href={`/detenus/${m.detenuId}/mandats/${m.id}`}
-            taille="sm"
-            icone="edit"
-            transitionTypes={["nav-forward"]}
-          >
-            Faire évoluer
-          </ButtonLink>
+          <Badge ton={!m.ouvert ? "neutre" : echu ? "danger" : "succes"}>{etat}</Badge>
+          {modifiable && (
+            <ButtonLink
+              href={`/detenus/${m.detenuId}/mandats/${m.id}`}
+              taille="sm"
+              icone="edit"
+              transitionTypes={["nav-forward"]}
+            >
+              Faire évoluer
+            </ButtonLink>
+          )}
+          {modifiable && m.ouvert && (
+            <BoutonConfirmation
+              libelle="Désactiver"
+              taille="sm"
+              icone="trash"
+              titre="Désactiver ce mandat ?"
+              description={
+                <>
+                  <p>
+                    Le mandat {m.referenceMandat ?? ""} cessera de compter dans la situation pénale du
+                    détenu.
+                  </p>
+                  <p className="mt-2">
+                    À réserver à un mandat saisi par erreur. Pour une levée d’écrou, consignez une
+                    libération : elle sera archivée.
+                  </p>
+                </>
+              }
+              confirmer="Désactiver le mandat"
+              action={desactiverMandat.bind(null, m.detenuId, m.id)}
+            />
+          )}
         </>
       }
     >

@@ -23,6 +23,7 @@ import type {
   SortieDetenu,
   SuiviMedical,
   TableauDeBord,
+  TypeSanction,
   TypeSortie,
   TypeStatutPenal,
   Utilisateur,
@@ -32,7 +33,13 @@ import type {
 export interface MandatDetaille extends Mandas {
   detenuNom: string;
   numeroEcrou: string;
+  /** En vigueur : ni désactivé ni échu. */
   actif: boolean;
+  /**
+   * Non désactivé ni levé, qu'il soit échu ou non. Un mandat échu mais ouvert est
+   * précisément celui qu'une libération doit lever.
+   */
+  ouvert: boolean;
 }
 
 export interface DossierDetenu {
@@ -43,6 +50,11 @@ export interface DossierDetenu {
   visites: Visite[];
   suivisMedicaux: SuiviMedical[];
   sorties: SortieDetenu[];
+  /**
+   * Rubriques que la source ne sait pas encore fournir. Une liste vide ne dit pas
+   * « aucune sanction » : l'écran doit pouvoir distinguer les deux cas.
+   */
+  indisponibles?: Array<"sanctions" | "visites" | "suivisMedicaux">;
 }
 
 /** Ce que le front conserve de l'utilisateur connecté. */
@@ -138,6 +150,38 @@ export interface EntreeMandat {
   observationsCassation?: string | null;
 }
 
+/** Cellule à créer. */
+export interface EntreeCellule {
+  numero: string;
+  bloc?: string | null;
+  typeCellule?: string | null;
+  capaciteMax: number;
+}
+
+/** Affectation (ou réaffectation) d'un détenu : l'API clôt l'affectation en cours. */
+export interface EntreeAffectation {
+  celluleId: number;
+  dateAffectation?: string | null;
+  motif?: string | null;
+}
+
+/** Sanction à prononcer. Une cellule disciplinaire déplace réellement le détenu. */
+export interface EntreeSanction {
+  typeSanctionId: number;
+  motif: string;
+  dateFaute: string;
+  dateDebut: string;
+  dateFin?: string | null;
+  celluleDisciplinaireId?: number | null;
+}
+
+/** Sortie à consigner : chaque type a ses propres champs obligatoires. */
+export type EntreeSortie =
+  | { type: "LiberationNormale"; mandatId: number; dateSortie: string; motif: string; observation?: string | null }
+  | { type: "Transfert"; dateSortie: string; destination: string; motif?: string | null; observation?: string | null }
+  | { type: "Evasion"; dateSortie: string; cause?: string | null; observation?: string | null }
+  | { type: "Deces"; dateSortie: string; cause: string; observation?: string | null };
+
 /** Conflit renvoyé par l'API (409) : un dossier désactivé existe déjà. */
 export interface ConflitApi {
   field?: string;
@@ -187,6 +231,13 @@ export interface ApiClient {
   listParCategorie(categorie: CategoriePenale): Promise<DetenuResume[]>;
   /** POST /detenus — 409 si un dossier désactivé porte la même CNI */
   creerDetenu(entree: EntreeDetenu): Promise<{ id: number }>;
+  /** PUT /detenus/{id} — 409 si le dossier est désactivé */
+  majDetenu(id: number, entree: EntreeDetenu): Promise<void>;
+  /**
+   * DELETE /detenus/{id} — correction administrative (doublon, erreur de saisie).
+   * N'enregistre aucune sortie : une vraie sortie passe par `enregistrerSortie`.
+   */
+  desactiverDetenu(id: number): Promise<void>;
   /** POST /detenus/{id}/restore — réactive le dossier et ses mandats */
   restaurerDetenu(id: number): Promise<void>;
   /** POST /detenus/photos — seul appel multipart de l'API */
@@ -201,6 +252,8 @@ export interface ApiClient {
   getMandat(mandatId: number): Promise<MandatDetaille | null>;
   /** PUT /mandas/{id} — fait évoluer le statut pénal, reclasse le détenu */
   majMandat(mandatId: number, entree: EntreeMandat): Promise<void>;
+  /** DELETE /mandas/{id} — mandat saisi par erreur ; une levée d'écrou passe par une sortie */
+  desactiverMandat(mandatId: number): Promise<void>;
 
   /** GET /detenus/non-loges (à livrer) */
   listDetenusNonLoges(): Promise<DetenuResume[]>;
@@ -209,20 +262,30 @@ export interface ApiClient {
   /** GET /mandats/expires (à livrer) */
   listMandatsExpires(): Promise<MandatDetaille[]>;
 
-  /** GET /cellules (à livrer) */
+  /** GET /cellules — occupation calculée par le serveur */
   listCellules(): Promise<Cellule[]>;
-  /** GET /affectations (à livrer) */
+  /** POST /cellules */
+  creerCellule(entree: EntreeCellule): Promise<{ id: number }>;
+  /** GET /affectations (à livrer : l'API n'expose que l'historique d'un détenu) */
   listAffectations(): Promise<Affectation[]>;
-  /** GET /sanctions (à livrer) */
+  /** POST /detenus/{id}/affectations — 422 si la cellule est pleine */
+  affecterDetenu(detenuId: number, entree: EntreeAffectation): Promise<void>;
+  /** GET /sanctions (à livrer : l'API ne sait pas encore lister les sanctions) */
   listSanctions(): Promise<Sanction[]>;
+  /** GET /types-sanction — actifs et désactivés ; filtrer sur `estActif` pour saisir */
+  listTypesSanction(): Promise<TypeSanction[]>;
+  /** POST /detenus/{id}/sanctions */
+  creerSanction(detenuId: number, entree: EntreeSanction): Promise<{ id: number }>;
 
   /** GET /suivis-medicaux (à livrer) */
   listSuivisMedicaux(): Promise<SuiviMedical[]>;
   /** GET /visites (à livrer) */
   listVisites(): Promise<Visite[]>;
 
-  /** GET /sorties?type= (à livrer — retour A4) */
+  /** GET /sorties?type_sortie= — archive de toutes les sorties */
   listSorties(type?: TypeSortie): Promise<SortieDetenu[]>;
+  /** POST /detenus/{id}/sorties/{type} */
+  enregistrerSortie(detenuId: number, entree: EntreeSortie): Promise<{ id: number; definitive: boolean }>;
 
   /** GET /utilisateurs (à livrer) */
   listUtilisateurs(): Promise<Utilisateur[]>;

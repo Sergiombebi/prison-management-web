@@ -42,6 +42,8 @@ const DOMAINE_DE: Record<keyof ApiClient, DomaineApi> = {
   // basculer « detenus » en réel ne casse pas un module que l'API n'expose pas.
   listDetenusNonLoges: "discipline",
   creerDetenu: "detenus",
+  majDetenu: "detenus",
+  desactiverDetenu: "detenus",
   restaurerDetenu: "detenus",
   televerserPhotos: "detenus",
   // Les écritures de mandats vivent sous /detenus/{id}/mandas : elles suivent le
@@ -49,17 +51,23 @@ const DOMAINE_DE: Record<keyof ApiClient, DomaineApi> = {
   creerMandat: "detenus",
   getMandat: "detenus",
   majMandat: "detenus",
+  desactiverMandat: "detenus",
   listMandats: "mandats",
   listMandatsExpires: "mandats",
   // Même point d'entrée que le registre (`GET /detenus?categorie_penale=`) :
   // il suit donc le domaine « detenus », pas « mandats ».
   listParCategorie: "detenus",
   listCellules: "discipline",
+  creerCellule: "discipline",
   listAffectations: "discipline",
+  affecterDetenu: "discipline",
   listSanctions: "discipline",
+  listTypesSanction: "discipline",
+  creerSanction: "discipline",
   listSuivisMedicaux: "sante",
   listVisites: "sante",
   listSorties: "sorties",
+  enregistrerSortie: "sorties",
   listUtilisateurs: "administration",
   getParametres: "administration",
 };
@@ -112,8 +120,12 @@ export { ApiErreur } from "./contract";
 export type {
   ConflitApi,
   DossierDetenu,
+  EntreeAffectation,
+  EntreeCellule,
   EntreeDetenu,
   EntreeMandat,
+  EntreeSanction,
+  EntreeSortie,
   EtatApi,
   MandatDetaille,
   PhotoTeleversee,
