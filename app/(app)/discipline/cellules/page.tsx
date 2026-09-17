@@ -4,7 +4,7 @@ import { api } from "@/lib/api";
 import type { Cellule } from "@/lib/domain/types";
 import { TYPES_CELLULE } from "@/lib/domain/referentiels";
 import { formatNombre, ouVide, pluriel } from "@/lib/format";
-import { filtresActifs, param } from "@/lib/url";
+import { filtresActifs, hrefAvec, param } from "@/lib/url";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n/fr";
 import { Page, PageHeader } from "@/components/layout/page";
@@ -14,8 +14,10 @@ import { Stat, StatGrid } from "@/components/data/stat";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
 import { SearchInput, Select } from "@/components/ui/field";
+import { Icon } from "@/components/ui/icon";
 import { EmptyState, Panel } from "@/components/ui/surface";
 import { FormulaireCellule } from "@/components/discipline/formulaires";
+import { modifierCellule } from "../actions";
 
 export const metadata: Metadata = { title: "Logement & cellules" };
 
@@ -31,6 +33,7 @@ function etatCellule(c: Cellule) {
 export default async function CellulesPage(props: PageProps<"/discipline/cellules">) {
   const sp = await props.searchParams;
   const cellules = await api.listCellules();
+  const celluleModifiee = cellules.find((c) => String(c.id) === param(sp, "modifier"));
 
   const recherche = (param(sp, "recherche") ?? "").toLowerCase();
   const bloc = param(sp, "bloc") ?? "tous";
@@ -162,18 +165,24 @@ export default async function CellulesPage(props: PageProps<"/discipline/cellule
                 <ul className="stagger grid gap-3 sm:grid-cols-2 2xl:grid-cols-3">
                   {liste.map((c, i) => {
                     const e = etatCellule(c);
+                    const enModification = celluleModifiee?.id === c.id;
                     return (
-                      <li key={c.id} style={{ ["--i" as string]: Math.min(i, 12) }}>
+                      // Deux liens distincts, jamais imbriqués : la carte entière mène à
+                      // l'affectation, le bouton « Modifier » est posé par-dessus.
+                      <li key={c.id} style={{ ["--i" as string]: Math.min(i, 12) }} className="relative">
                         <Link
                           href={`/discipline/affectations?cellule=${c.id}`}
                           transitionTypes={["nav-forward"]}
+                          aria-label={`Affecter un détenu en ${c.bloc ? `${c.bloc} · ` : ""}${c.numero}`}
                           className={cn(
-                            "lift flex h-full items-center gap-4 rounded-lg border bg-surface p-4 shadow-e1",
-                            e.ton === "danger"
-                              ? "border-danger/25"
-                              : e.ton === "alerte"
-                                ? "border-warning/25"
-                                : "border-hairline hover:border-accent/30",
+                            "lift flex h-full items-center gap-4 rounded-lg border bg-surface p-4 pr-12 shadow-e1",
+                            enModification
+                              ? "border-accent ring-2 ring-accent/20"
+                              : e.ton === "danger"
+                                ? "border-danger/25"
+                                : e.ton === "alerte"
+                                  ? "border-warning/25"
+                                  : "border-hairline hover:border-accent/30",
                           )}
                         >
                           <JaugeRadiale valeur={c.effectifReel} max={c.capaciteMax} />
@@ -189,6 +198,15 @@ export default async function CellulesPage(props: PageProps<"/discipline/cellule
                             </div>
                           </div>
                         </Link>
+                        <Link
+                          // L'ancre ramène au formulaire quand il est sous la grille (écrans étroits)
+                          href={`${hrefAvec(CHEMIN, sp, { modifier: String(c.id) })}#edition-cellule`}
+                          aria-label={`Modifier la cellule ${c.bloc ? `${c.bloc} · ` : ""}${c.numero}`}
+                          aria-current={enModification ? "true" : undefined}
+                          className="absolute right-2.5 top-2.5 grid size-8 place-items-center rounded-md text-faint transition-colors hover:bg-sunken hover:text-ink focus-visible:bg-sunken focus-visible:text-ink"
+                        >
+                          <Icon name="edit" size={14} />
+                        </Link>
                       </li>
                     );
                   })}
@@ -198,9 +216,28 @@ export default async function CellulesPage(props: PageProps<"/discipline/cellule
           )}
         </div>
 
-        <Panel titre="Nouvelle cellule" variante="eleve" className="xl:sticky xl:top-20">
-          <FormulaireCellule quartiers={blocs} types={types} />
-        </Panel>
+        <div id="edition-cellule" className="scroll-mt-24 xl:sticky xl:top-20">
+        {celluleModifiee ? (
+          <Panel
+            titre={`Modifier la cellule ${celluleModifiee.bloc ? `${celluleModifiee.bloc} · ` : ""}${celluleModifiee.numero}`}
+            sousTitre={`${pluriel(celluleModifiee.effectifReel, "occupant")} actuellement`}
+            variante="eleve"
+            accent
+          >
+            <FormulaireCellule
+              key={celluleModifiee.id}
+              quartiers={blocs}
+              types={types}
+              cellule={celluleModifiee}
+              action={modifierCellule.bind(null, celluleModifiee.id)}
+            />
+          </Panel>
+        ) : (
+          <Panel titre="Nouvelle cellule" variante="eleve">
+            <FormulaireCellule key="creation" quartiers={blocs} types={types} />
+          </Panel>
+        )}
+        </div>
       </div>
     </Page>
   );

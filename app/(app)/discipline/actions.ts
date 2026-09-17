@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { api, modeDe } from "@/lib/api";
 import { entier, etatDepuisErreur, optionnel, texte, type EtatAction } from "@/lib/api/actions";
 import { valeursSaisies } from "@/lib/api/formulaires";
+import { getProfil, peutAdministrer } from "@/lib/session";
 
 /** En démonstration rien n'est persisté : le message le dit. */
 const suffixe = () =>
@@ -36,6 +37,87 @@ export async function creerCellule(_precedent: EtatAction, formulaire: FormData)
 
   rafraichir();
   return { ok: true, message: `Cellule ${numero} créée${suffixe()}.` };
+}
+
+/** Liée à l'identifiant par `.bind(null, id)` : il ne transite pas par un champ modifiable. */
+export async function modifierCellule(
+  celluleId: number,
+  _precedent: EtatAction,
+  formulaire: FormData,
+): Promise<EtatAction> {
+  const numero = texte(formulaire, "numero");
+
+  try {
+    await api.majCellule(celluleId, {
+      numero,
+      bloc: optionnel(formulaire, "bloc"),
+      typeCellule: optionnel(formulaire, "type_cellule"),
+      capaciteMax: entier(formulaire, "capacite_max") ?? 0,
+    });
+  } catch (e) {
+    return etatDepuisErreur(e, formulaire);
+  }
+
+  rafraichir();
+  return { ok: true, message: `Cellule ${numero} mise à jour${suffixe()}.` };
+}
+
+// ---------------------------------------------------------------------------
+// Types de sanction — réservés à l'administration
+// ---------------------------------------------------------------------------
+
+/**
+ * L'API ne contrôle pas encore les rôles : l'interface le fait, y compris ici,
+ * car une Server Action reste appelable même si le bouton n'est pas affiché.
+ */
+async function refuserSiNonAdministrateur(): Promise<EtatAction | null> {
+  const profil = await getProfil();
+  if (profil && peutAdministrer(profil.role)) return null;
+  return { message: "Seul un administrateur peut gérer les types de sanction." };
+}
+
+export async function creerTypeSanction(_precedent: EtatAction, formulaire: FormData): Promise<EtatAction> {
+  const refus = await refuserSiNonAdministrateur();
+  if (refus) return refus;
+
+  const libelle = texte(formulaire, "libelle");
+  if (!libelle) return manquant(formulaire, "libelle", "Le libellé est obligatoire.");
+
+  try {
+    await api.creerTypeSanction(libelle);
+  } catch (e) {
+    return etatDepuisErreur(e, formulaire);
+  }
+
+  rafraichir();
+  return { ok: true, message: `Type « ${libelle} » ajouté${suffixe()}.` };
+}
+
+/**
+ * Renomme ou (dés)active un type. Liée au seul identifiant, pour que l'action
+ * reste la même d'un rendu à l'autre ; l'état visé arrive par le champ
+ * `est_actif` du formulaire utilisé (renommer : inchangé, basculer : inversé).
+ */
+export async function majTypeSanction(
+  typeId: number,
+  _precedent: EtatAction,
+  formulaire: FormData,
+): Promise<EtatAction> {
+  const refus = await refuserSiNonAdministrateur();
+  if (refus) return refus;
+
+  const libelle = texte(formulaire, "libelle");
+  if (!libelle) return manquant(formulaire, "libelle", "Le libellé est obligatoire.");
+  const estActif = texte(formulaire, "est_actif") === "1";
+
+  try {
+    await api.majTypeSanction(typeId, { libelle, estActif });
+  } catch (e) {
+    return etatDepuisErreur(e, formulaire);
+  }
+
+  rafraichir();
+  return { ok: true, message: `Type « ${libelle} » enregistré${suffixe()}.` };
 }
 
 export async function affecterDetenu(_precedent: EtatAction, formulaire: FormData): Promise<EtatAction> {

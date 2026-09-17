@@ -266,6 +266,8 @@ export interface ApiClient {
   listCellules(): Promise<Cellule[]>;
   /** POST /cellules */
   creerCellule(entree: EntreeCellule): Promise<{ id: number }>;
+  /** PUT /cellules/{id} — 422 si la capacité passe sous l'effectif présent */
+  majCellule(id: number, entree: EntreeCellule): Promise<void>;
   /** GET /affectations (à livrer : l'API n'expose que l'historique d'un détenu) */
   listAffectations(): Promise<Affectation[]>;
   /** POST /detenus/{id}/affectations — 422 si la cellule est pleine */
@@ -274,6 +276,13 @@ export interface ApiClient {
   listSanctions(): Promise<Sanction[]>;
   /** GET /types-sanction — actifs et désactivés ; filtrer sur `estActif` pour saisir */
   listTypesSanction(): Promise<TypeSanction[]>;
+  /** POST /types-sanction — 422 si le libellé existe déjà */
+  creerTypeSanction(libelle: string): Promise<{ id: number }>;
+  /**
+   * PUT /types-sanction/{id} — renommer ou (dés)activer. Un type n'est jamais
+   * supprimé : les sanctions déjà prononcées le conservent.
+   */
+  majTypeSanction(id: number, entree: { libelle: string; estActif: boolean }): Promise<void>;
   /** POST /detenus/{id}/sanctions */
   creerSanction(detenuId: number, entree: EntreeSanction): Promise<{ id: number }>;
 

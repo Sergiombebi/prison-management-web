@@ -5,11 +5,13 @@ import type { Sanction } from "@/lib/domain/types";
 import { formatDate, formatNombre, pluriel, tronquer } from "@/lib/format";
 import { filtresActifs, param } from "@/lib/url";
 import { t } from "@/lib/i18n/fr";
+import { getProfil, peutAdministrer } from "@/lib/session";
 import { Page, PageHeader } from "@/components/layout/page";
 import { DataTable } from "@/components/data/data-table";
 import { FilterBar } from "@/components/data/filter-bar";
 import { Stat, StatGrid } from "@/components/data/stat";
 import { Badge } from "@/components/ui/badge";
+import { ButtonLink } from "@/components/ui/button";
 import { EnAttenteApi } from "@/components/ui/en-attente-api";
 import { SearchInput, Select } from "@/components/ui/field";
 import { EmptyState, Ecrou, Panel } from "@/components/ui/surface";
@@ -21,12 +23,13 @@ const CHEMIN = "/discipline/sanctions";
 
 export default async function SanctionsPage(props: PageProps<"/discipline/sanctions">) {
   const sp = await props.searchParams;
-  const [chargement, types, cellules, detenus] = await Promise.all([
+  const [chargement, types, cellules, detenus, profil] = await Promise.all([
     // La liste n'est pas encore exposée par l'API : elle ne doit pas bloquer la saisie
     tenter(() => api.listSanctions()),
     api.listTypesSanction(),
     api.listCellules(),
     api.listDetenus({ parPage: 1000, tri: "nom" }),
+    getProfil(),
   ]);
 
   const recherche = (param(sp, "recherche") ?? "").toLowerCase();
@@ -53,6 +56,13 @@ export default async function SanctionsPage(props: PageProps<"/discipline/sancti
         surtitre={t.modules.discipline}
         titre="Sanctions disciplinaires"
         description="Registre des fautes constatées et des sanctions prononcées à l’encontre des détenus."
+        actions={
+          profil && peutAdministrer(profil.role) && (
+            <ButtonLink href="/discipline/sanctions/types" icone="edit" transitionTypes={["nav-forward"]}>
+              Types de sanction
+            </ButtonLink>
+          )
+        }
       />
 
       {chargement.ok && (

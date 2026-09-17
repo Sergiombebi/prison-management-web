@@ -862,6 +862,19 @@ export const liveApi: ApiClient = {
     return { id: corps.data.id };
   },
 
+  async majCellule(id, entree) {
+    await requete(`/cellules/${id}`, {
+      method: "PUT",
+      // Mise à jour complète : un quartier ou un type vidé doit partir à null
+      body: JSON.stringify({
+        numero: entree.numero,
+        bloc: entree.bloc || null,
+        type_cellule: entree.typeCellule || null,
+        capacite_max: entree.capaciteMax,
+      }),
+    });
+  },
+
   async affecterDetenu(detenuId, entree) {
     await requete(`/detenus/${detenuId}/affectations`, {
       method: "POST",
@@ -880,6 +893,21 @@ export const liveApi: ApiClient = {
       "/types-sanction",
     );
     return (corps?.data ?? []).map((t) => ({ id: t.id, libelle: t.libelle, estActif: t.est_actif }));
+  },
+
+  async creerTypeSanction(libelle) {
+    const corps = await requete<{ data: { id: number } }>("/types-sanction", {
+      method: "POST",
+      body: JSON.stringify({ libelle }),
+    });
+    return { id: corps.data.id };
+  },
+
+  async majTypeSanction(id, entree) {
+    await requete(`/types-sanction/${id}`, {
+      method: "PUT",
+      body: JSON.stringify({ libelle: entree.libelle, est_actif: entree.estActif }),
+    });
   },
 
   async creerSanction(detenuId, entree) {

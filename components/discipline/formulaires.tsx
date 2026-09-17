@@ -5,7 +5,7 @@ import type { EtatAction } from "@/lib/api/actions";
 import type { Cellule, DetenuResume, TypeSanction } from "@/lib/domain/types";
 import { pluriel } from "@/lib/format";
 import { affecterDetenu, creerCellule, prononcerSanction } from "@/app/(app)/discipline/actions";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { RetourAction } from "@/components/ui/retour-action";
 
@@ -31,8 +31,32 @@ const libelleCellule = (c: Pick<Cellule, "bloc" | "numero">) =>
 
 // ---------------------------------------------------------------------------
 
-export function FormulaireCellule({ quartiers, types }: { quartiers: string[]; types: string[] }) {
-  const { etat, envoyer, enCours, v, err } = useFormulaire(creerCellule);
+/**
+ * Création, ou modification quand `cellule` est fourni. La page remonte le
+ * composant (`key`) en changeant de cellule, pour repartir d'un état propre.
+ */
+export function FormulaireCellule({
+  quartiers,
+  types,
+  cellule,
+  action = creerCellule,
+}: {
+  quartiers: string[];
+  types: string[];
+  cellule?: Cellule;
+  action?: (p: EtatAction, f: FormData) => Promise<EtatAction>;
+}) {
+  const { etat, envoyer, enCours, v: saisie, err } = useFormulaire(action);
+  const actuelles: Record<string, string | undefined> = cellule
+    ? {
+        numero: cellule.numero,
+        bloc: cellule.bloc ?? undefined,
+        type_cellule: cellule.typeCellule ?? undefined,
+        capacite_max: String(cellule.capaciteMax),
+      }
+    : {};
+  // Après une erreur, les saisies ; sinon, en modification, les valeurs enregistrées
+  const v = (champ: string) => (etat.valeurs ? saisie(champ) : actuelles[champ]);
 
   return (
     <form action={envoyer} className="flex flex-col gap-4">
@@ -56,14 +80,37 @@ export function FormulaireCellule({ quartiers, types }: { quartiers: string[]; t
           <option key={t} value={t} />
         ))}
       </datalist>
-      <Field label="Capacité maximale" requis aide="Nombre de places réglementaires" erreur={err("capacite_max")}>
+      <Field
+        label="Capacité maximale"
+        requis
+        aide={
+          cellule && cellule.effectifReel > 0
+            ? `Au moins ${pluriel(cellule.effectifReel, "place")} : ${pluriel(cellule.effectifReel, "détenu occupe", "détenus occupent")} la cellule`
+            : "Nombre de places réglementaires"
+        }
+        erreur={err("capacite_max")}
+      >
         {(p) => (
-          <Input {...p} name="capacite_max" type="number" min={1} max={200} inputMode="numeric" required defaultValue={v("capacite_max")} />
+          <Input
+            {...p}
+            name="capacite_max"
+            type="number"
+            min={Math.max(1, cellule?.effectifReel ?? 1)}
+            max={200}
+            inputMode="numeric"
+            required
+            defaultValue={v("capacite_max")}
+          />
         )}
       </Field>
-      <div className="flex justify-end border-t border-hairline pt-4">
-        <Button type="submit" variante="primaire" icone="plus" chargement={enCours}>
-          Créer la cellule
+      <div className="flex items-center justify-end gap-2 border-t border-hairline pt-4">
+        {cellule && (
+          <ButtonLink href="/discipline/cellules" variante="discret" transitionTypes={["nav-back"]}>
+            Terminer
+          </ButtonLink>
+        )}
+        <Button type="submit" variante="primaire" icone={cellule ? "check" : "plus"} chargement={enCours}>
+          {cellule ? "Enregistrer" : "Créer la cellule"}
         </Button>
       </div>
     </form>

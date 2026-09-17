@@ -348,6 +348,15 @@ export const mockApi: ApiClient = {
     return { id: fx.cellules[0].id };
   },
 
+  async majCellule(id, entree) {
+    await attendre();
+    const cellule = fx.cellules.find((c) => c.id === id);
+    if (cellule && entree.capaciteMax < cellule.effectifReel) {
+      const message = `Impossible de fixer la capacité à ${entree.capaciteMax} : ${cellule.effectifReel} détenu(s) occupent déjà cette cellule.`;
+      throw new ApiErreur(message, 422, "VALIDATION", { capacite_max: [message] });
+    }
+  },
+
   async affecterDetenu(_detenuId, entree) {
     await attendre();
     const cellule = fx.cellules.find((c) => c.id === entree.celluleId);
@@ -360,6 +369,19 @@ export const mockApi: ApiClient = {
   async listTypesSanction() {
     await attendre();
     return TYPES_SANCTION.map((libelle, i) => ({ id: i + 1, libelle, estActif: true }));
+  },
+
+  async creerTypeSanction(libelle) {
+    await attendre();
+    if ((TYPES_SANCTION as readonly string[]).some((t) => t.toLowerCase() === libelle.trim().toLowerCase())) {
+      const message = "Ce type de sanction existe déjà.";
+      throw new ApiErreur(message, 422, "VALIDATION", { libelle: [message] });
+    }
+    return { id: TYPES_SANCTION.length + 1 };
+  },
+
+  async majTypeSanction() {
+    await attendre();
   },
 
   async creerSanction() {

@@ -52,6 +52,22 @@ npx tsc --noEmit
 npm run build
 ```
 
+Arrêter `npm run dev` avant `npm run build` : les deux écrivent dans `.next/`, et un build
+lancé pendant que le serveur de dev tourne peut corrompre son cache.
+
+### Une page qui existe répond « 404 » en développement
+
+Symptôme typique d'un cache `.next/` corrompu (après un build concurrent, ou un arrêt brutal
+du serveur). Arrêter `npm run dev`, supprimer le cache, relancer :
+
+```bash
+rm -rf .next
+```
+
+```bash
+npm run dev
+```
+
 ---
 
 ## Données de démonstration, API réelle, ou les deux
@@ -121,6 +137,8 @@ sur une vraie base, cas d'échec compris, puis contrôlée directement en base.
 | Évolution d'un mandat | `/detenus/{id}/mandats/{mandatId}` | `PUT /mandas/{id}` | Rubriques Jugement / Appel / Cassation selon le statut pénal. |
 | Désactivation d'un mandat | fiche, onglet Mandats | `DELETE /mandas/{id}` | Avec confirmation. |
 | Création d'une cellule | `/discipline/cellules` | `POST /cellules` | Doublon dans le même quartier → 422 sous le champ. |
+| Modification d'une cellule | `/discipline/cellules` → crayon d'une carte | `PUT /cellules/{id}` | Capacité inférieure au nombre d'occupants → 422. |
+| Types de sanction | `/discipline/sanctions/types` (administrateur) | `POST` / `PUT /types-sanction` | Ajouter, renommer, désactiver ou réactiver. Un type désactivé n'est plus proposé à la saisie. |
 | Affectation | `/discipline/affectations` | `POST /detenus/{id}/affectations` | Clôt l'affectation en cours ; cellule pleine → 422. |
 | Sanction | `/discipline/sanctions` | `POST /detenus/{id}/sanctions` | Types lus depuis `GET /types-sanction` ; une cellule disciplinaire déplace réellement le détenu. |
 | Libération normale | `/detenus/liberation/normale` | `POST /detenus/{id}/sorties/liberation-normale` | Porte sur **un mandat** : un DPAC reste écroué tant qu'un autre mandat est ouvert. |
