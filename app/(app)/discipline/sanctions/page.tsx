@@ -16,6 +16,7 @@ import { EnAttenteApi } from "@/components/ui/en-attente-api";
 import { SearchInput, Select } from "@/components/ui/field";
 import { EmptyState, Ecrou, Panel } from "@/components/ui/surface";
 import { FormulaireSanction } from "@/components/discipline/formulaires";
+import { ActionsSanction } from "@/components/discipline/actions-sanction";
 
 export const metadata: Metadata = { title: "Sanctions" };
 
@@ -102,6 +103,8 @@ export default async function SanctionsPage(props: PageProps<"/discipline/sancti
                 legende="Historique des sanctions"
                 lignes={filtrees}
                 cleLigne={(s) => s.id}
+                // Le lien ne couvre que la première cellule : les boutons de la
+                // dernière colonne restent cliquables
                 lienLigne={(s) => `/detenus/${s.detenuId}?onglet=discipline`}
                 colonnes={[
                   {
@@ -118,7 +121,24 @@ export default async function SanctionsPage(props: PageProps<"/discipline/sancti
                   { cle: "motif", titre: "Faute commise", masquerSous: "lg", rendu: (s) => <span className="text-muted" title={s.motif ?? undefined}>{tronquer(s.motif, 36)}</span> },
                   { cle: "faute", titre: "Faute le", masquerSous: "md", rendu: (s) => formatDate(s.dateFaute) },
                   { cle: "periode", titre: "Période", masquerSous: "xl", rendu: (s) => <span className="text-muted">{formatDate(s.dateDebut)} → {formatDate(s.dateFin)}</span> },
-                  { cle: "statut", titre: "Statut", rendu: (s) => <Badge ton={s.statut === "En cours" ? "alerte" : "neutre"}>{s.statut ?? "—"}</Badge> },
+                  {
+                    cle: "statut",
+                    titre: "Statut",
+                    rendu: (s) => (
+                      <span className="flex flex-col items-start gap-1">
+                        <Badge ton={s.statut === "En cours" ? "alerte" : "neutre"}>{s.statut ?? "—"}</Badge>
+                        {s.isolementEnCours && (
+                          <span className="text-2xs text-warning">En cellule disciplinaire</span>
+                        )}
+                      </span>
+                    ),
+                  },
+                  {
+                    cle: "actions",
+                    titre: "",
+                    align: "droite",
+                    rendu: (s) => <ActionsSanction sanction={s} />,
+                  },
                 ]}
                 vide={<EmptyState icone="scale" titre={t.etats.aucunResultatTitre} texte={t.etats.aucunResultatTexte} />}
               />

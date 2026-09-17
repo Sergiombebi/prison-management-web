@@ -371,6 +371,42 @@ export const mockApi: ApiClient = {
     return TYPES_SANCTION.map((libelle, i) => ({ id: i + 1, libelle, estActif: true }));
   },
 
+  async getCellule(id) {
+    await attendre();
+    const cellule = fx.cellules.find((c) => c.id === id);
+    if (!cellule) return null;
+    return {
+      ...cellule,
+      occupants: fx.affectations
+        .filter((a) => a.celluleId === id)
+        .map((a) => ({
+          detenuId: a.detenuId,
+          nom: a.detenuNom,
+          numeroEcrou: a.numeroEcrou,
+          dateAffectation: a.dateAffectation,
+        })),
+    };
+  },
+
+  async terminerSanction() {
+    await attendre();
+    return { message: "Sanction terminée." };
+  },
+
+  async desactiverSanction() {
+    await attendre();
+  },
+
+  async creerSuiviMedical() {
+    await attendre();
+    return { id: fx.suivisMedicaux[0]?.id ?? 1 };
+  },
+
+  async creerVisite() {
+    await attendre();
+    return { id: fx.visites[0]?.id ?? 1 };
+  },
+
   async creerTypeSanction(libelle) {
     await attendre();
     if ((TYPES_SANCTION as readonly string[]).some((t) => t.toLowerCase() === libelle.trim().toLowerCase())) {

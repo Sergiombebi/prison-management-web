@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { api } from "@/lib/api";
 import type { Visite } from "@/lib/domain/types";
-import { DUREES_VISITE, LIENS_PARENTE, PIECES_IDENTITE, SEXES, TYPES_VISITE } from "@/lib/domain/referentiels";
+import { TYPES_VISITE } from "@/lib/domain/referentiels";
 import { formatDate, formatNombre, pluriel } from "@/lib/format";
 import { filtresActifs, param } from "@/lib/url";
 import { t } from "@/lib/i18n/fr";
@@ -10,9 +10,9 @@ import { DataTable } from "@/components/data/data-table";
 import { FilterBar } from "@/components/data/filter-bar";
 import { Stat, StatGrid } from "@/components/data/stat";
 import { Badge } from "@/components/ui/badge";
-import { DemoSubmit } from "@/components/ui/client-actions";
-import { Field, Input, SearchInput, Select, Textarea } from "@/components/ui/field";
+import { SearchInput, Select } from "@/components/ui/field";
 import { EmptyState, Ecrou, Panel } from "@/components/ui/surface";
+import { FormulaireVisite } from "@/components/sante/formulaires";
 
 export const metadata: Metadata = { title: "Gestion des visites" };
 
@@ -29,6 +29,8 @@ export default async function VisitesPage(props: PageProps<"/sante/visites">) {
   const recherche = (param(sp, "recherche") ?? "").toLowerCase();
   const periode = param(sp, "periode") ?? "tous";
   const type = param(sp, "type") ?? "tous";
+  const detenuBrut = Number.parseInt(param(sp, "detenu") ?? "", 10);
+  const detenuInitial = Number.isFinite(detenuBrut) ? detenuBrut : undefined;
 
   const filtrees = visites.filter((v) => {
     const d = new Date(v.dateVisite);
@@ -128,126 +130,7 @@ export default async function VisitesPage(props: PageProps<"/sante/visites">) {
         </Panel>
 
         <Panel variante="eleve" titre="Enregistrer une visite" className="xl:sticky xl:top-20">
-          <form className="flex flex-col gap-5">
-            <fieldset className="flex flex-col gap-3">
-              <legend className="mb-1 text-2xs font-semibold uppercase tracking-[0.1em] text-faint">Visite</legend>
-              <Field label="Détenu visité" requis>
-                {(p) => (
-                  <Select {...p} name="detenuId" defaultValue="" placeholder="Sélectionner un détenu…">
-                    {detenus.items.map((d) => (
-                      <option key={d.id} value={d.id}>
-                        {d.nom} — {d.numeroEcrou}
-                      </option>
-                    ))}
-                  </Select>
-                )}
-              </Field>
-              <div className="grid grid-cols-3 gap-3">
-                <Field label="Date" requis className="col-span-3 sm:col-span-1">
-                  {(p) => <Input {...p} type="date" name="dateVisite" defaultValue={maintenant.toISOString().slice(0, 10)} />}
-                </Field>
-                <Field label="Arrivée" requis>
-                  {(p) => <Input {...p} type="time" name="heureArrivee" />}
-                </Field>
-                <Field label="Durée" requis>
-                  {(p) => (
-                    <Select {...p} name="dureePrevueMinutes" defaultValue="30">
-                      {DUREES_VISITE.map((d) => (
-                        <option key={d} value={d}>
-                          {d} min
-                        </option>
-                      ))}
-                    </Select>
-                  )}
-                </Field>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Type" requis>
-                  {(p) => (
-                    <Select {...p} name="typeVisite" defaultValue="" placeholder="Choisir…">
-                      {TYPES_VISITE.map((ty) => (
-                        <option key={ty}>{ty}</option>
-                      ))}
-                    </Select>
-                  )}
-                </Field>
-                <Field label="Autorisation préalable" requis>
-                  {(p) => (
-                    <Select {...p} name="autorisationPrealable" defaultValue="oui">
-                      <option value="oui">Oui</option>
-                      <option value="non">Non</option>
-                    </Select>
-                  )}
-                </Field>
-              </div>
-            </fieldset>
-
-            <fieldset className="flex flex-col gap-3 border-t border-hairline pt-4">
-              <legend className="mb-1 text-2xs font-semibold uppercase tracking-[0.1em] text-faint">Visiteur</legend>
-              <Field label="Nom complet" requis>
-                {(p) => <Input {...p} name="nomVisiteur" />}
-              </Field>
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Sexe" requis>
-                  {(p) => (
-                    <Select {...p} name="sexeVisiteur" defaultValue="" placeholder="Choisir…">
-                      {SEXES.map((s) => (
-                        <option key={s}>{s}</option>
-                      ))}
-                    </Select>
-                  )}
-                </Field>
-                <Field label="Lien de parenté" requis>
-                  {(p) => (
-                    <Select {...p} name="lienParente" defaultValue="" placeholder="Choisir…">
-                      {LIENS_PARENTE.map((l) => (
-                        <option key={l}>{l}</option>
-                      ))}
-                    </Select>
-                  )}
-                </Field>
-                <Field label="Pièce d’identité" requis>
-                  {(p) => (
-                    <Select {...p} name="typePieceIdentite" defaultValue="" placeholder="Choisir…">
-                      {PIECES_IDENTITE.map((l) => (
-                        <option key={l}>{l}</option>
-                      ))}
-                    </Select>
-                  )}
-                </Field>
-                <Field label="N° de la pièce" requis>
-                  {(p) => <Input {...p} name="numeroPieceIdentite" className="font-mono" />}
-                </Field>
-              </div>
-              <Field label="Téléphone">
-                {(p) => <Input {...p} name="telephoneVisiteur" type="tel" inputMode="tel" />}
-              </Field>
-            </fieldset>
-
-            <fieldset className="flex flex-col gap-3 border-t border-hairline pt-4">
-              <legend className="mb-1 text-2xs font-semibold uppercase tracking-[0.1em] text-faint">Sécurité</legend>
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Agent de contrôle" requis>
-                  {(p) => <Input {...p} name="agentControle" />}
-                </Field>
-                <Field label="Fouille corporelle">
-                  {(p) => (
-                    <Select {...p} name="fouilleCorporelle" defaultValue="oui">
-                      <option value="oui">Effectuée</option>
-                      <option value="non">Non effectuée</option>
-                    </Select>
-                  )}
-                </Field>
-              </div>
-              <Field label="Objets déposés">
-                {(p) => <Textarea {...p} name="objetsDeposes" rows={2} />}
-              </Field>
-            </fieldset>
-
-            <div className="border-t border-hairline pt-4">
-              <DemoSubmit icone="check" endpoint="POST /visites">Enregistrer la visite</DemoSubmit>
-            </div>
-          </form>
+          <FormulaireVisite detenus={detenus.items} detenuInitial={detenuInitial} />
         </Panel>
       </div>
     </Page>

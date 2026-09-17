@@ -182,6 +182,46 @@ export type EntreeSortie =
   | { type: "Evasion"; dateSortie: string; cause?: string | null; observation?: string | null }
   | { type: "Deces"; dateSortie: string; cause: string; observation?: string | null };
 
+/** Consultation médicale à enregistrer. */
+export interface EntreeSuiviMedical {
+  dateConsultation: string;
+  typeConsultation: string;
+  nomMedecin: string;
+  symptomes: string;
+  diagnostic: string;
+  temperature?: string | null;
+  tensionArterielle?: string | null;
+  poids?: string | null;
+  medicamentsPrescrits?: string | null;
+  dureeTraitement?: string | null;
+  dateSuivi?: string | null;
+  observations?: string | null;
+}
+
+/** Visite au parloir à enregistrer. */
+export interface EntreeVisite {
+  dateVisite: string;
+  heureArrivee: string;
+  dureePrevueMinutes: number;
+  typeVisite: string;
+  autorisationPrealable: boolean;
+  nomVisiteur: string;
+  sexeVisiteur: Sexe;
+  typePieceIdentite: string;
+  numeroPieceIdentite: string;
+  lienParente: string;
+  agentControle: string;
+  lieuVisite?: string | null;
+  telephoneVisiteur?: string | null;
+  adresseVisiteur?: string | null;
+  objetsDeposes?: string | null;
+  fouilleCorporelle?: boolean | null;
+  observationsSecurite?: string | null;
+  heureDebut?: string | null;
+  heureFin?: string | null;
+  observationsVisite?: string | null;
+}
+
 /** Conflit renvoyé par l'API (409) : un dossier désactivé existe déjà. */
 export interface ConflitApi {
   field?: string;
@@ -220,7 +260,7 @@ export interface ApiClient {
   /** GET /auth/me — 401 si le jeton est invalide ou expiré */
   getUtilisateurCourant(): Promise<ProfilUtilisateur>;
 
-  /** GET /tableau-de-bord (à livrer) */
+  /** GET /tableau-de-bord */
   getTableauDeBord(): Promise<TableauDeBord>;
 
   /** GET /detenus?page=&search=&categorie_penale= */
@@ -255,7 +295,7 @@ export interface ApiClient {
   /** DELETE /mandas/{id} — mandat saisi par erreur ; une levée d'écrou passe par une sortie */
   desactiverMandat(mandatId: number): Promise<void>;
 
-  /** GET /detenus/non-loges (à livrer) */
+  /** GET /detenus?sans_cellule=1 — détenus présents sans cellule */
   listDetenusNonLoges(): Promise<DetenuResume[]>;
   /** GET /mandats (à livrer) */
   listMandats(): Promise<MandatDetaille[]>;
@@ -264,15 +304,17 @@ export interface ApiClient {
 
   /** GET /cellules — occupation calculée par le serveur */
   listCellules(): Promise<Cellule[]>;
+  /** GET /cellules/{id} — avec la liste de ses occupants */
+  getCellule(id: number): Promise<Cellule | null>;
   /** POST /cellules */
   creerCellule(entree: EntreeCellule): Promise<{ id: number }>;
   /** PUT /cellules/{id} — 422 si la capacité passe sous l'effectif présent */
   majCellule(id: number, entree: EntreeCellule): Promise<void>;
-  /** GET /affectations (à livrer : l'API n'expose que l'historique d'un détenu) */
+  /** GET /affectations — fil global des mouvements, le plus récent d'abord */
   listAffectations(): Promise<Affectation[]>;
   /** POST /detenus/{id}/affectations — 422 si la cellule est pleine */
   affecterDetenu(detenuId: number, entree: EntreeAffectation): Promise<void>;
-  /** GET /sanctions (à livrer : l'API ne sait pas encore lister les sanctions) */
+  /** GET /sanctions — toutes les sanctions, la plus récente d'abord */
   listSanctions(): Promise<Sanction[]>;
   /** GET /types-sanction — actifs et désactivés ; filtrer sur `estActif` pour saisir */
   listTypesSanction(): Promise<TypeSanction[]>;
@@ -285,11 +327,23 @@ export interface ApiClient {
   majTypeSanction(id: number, entree: { libelle: string; estActif: boolean }): Promise<void>;
   /** POST /detenus/{id}/sanctions */
   creerSanction(detenuId: number, entree: EntreeSanction): Promise<{ id: number }>;
+  /**
+   * POST /sanctions/{id}/terminer — met fin à la sanction et libère la cellule
+   * disciplinaire. Le détenu se retrouve alors sans cellule : le message renvoyé
+   * rappelle laquelle était la sienne, l'écran invite à le réaffecter.
+   */
+  terminerSanction(sanctionId: number): Promise<{ message: string }>;
+  /** DELETE /sanctions/{id} — saisie par erreur ; ne touche pas à la cellule */
+  desactiverSanction(sanctionId: number): Promise<void>;
 
-  /** GET /suivis-medicaux (à livrer) */
+  /** GET /suivis-medicaux — toutes les consultations, la plus récente d'abord */
   listSuivisMedicaux(): Promise<SuiviMedical[]>;
-  /** GET /visites (à livrer) */
+  /** POST /detenus/{id}/suivis-medicaux */
+  creerSuiviMedical(detenuId: number, entree: EntreeSuiviMedical): Promise<{ id: number }>;
+  /** GET /visites — toutes les visites, la plus récente d'abord */
   listVisites(): Promise<Visite[]>;
+  /** POST /detenus/{id}/visites */
+  creerVisite(detenuId: number, entree: EntreeVisite): Promise<{ id: number }>;
 
   /** GET /sorties?type_sortie= — archive de toutes les sorties */
   listSorties(type?: TypeSortie): Promise<SortieDetenu[]>;

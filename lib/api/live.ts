@@ -21,10 +21,14 @@ import type {
   FiltreDetenus,
   Mandas,
   RoleUtilisateur,
+  Sanction,
   Sexe,
   SortieDetenu,
+  SuiviMedical,
+  TableauDeBord,
   TypeSortie,
   TypeStatutPenal,
+  Visite,
 } from "@/lib/domain/types";
 import { CATEGORIE_SLUG, ROLES_UTILISATEUR } from "@/lib/domain/referentiels";
 import { getJeton } from "@/lib/session";
@@ -228,6 +232,8 @@ interface DetenuListeApi {
   date_incarceration: string | null;
   motif_detention: string | null;
   type_mandat: string | null;
+  categorie_penale?: string | null;
+  cellule_actuelle?: { id: number; numero: string; bloc: string | null } | null;
   est_present: boolean;
 }
 
@@ -262,7 +268,13 @@ interface MandasApi {
   est_actif: boolean;
 }
 
-interface DetenuDetailApi extends Omit<DetenuListeApi, "contact" | "statut_penal" | "date_incarceration" | "motif_detention" | "type_mandat"> {
+// La fiche détaillée renvoie l'affectation complète là où la liste n'en donne que
+// la cellule, et calcule la catégorie depuis les mandats déjà chargés.
+interface DetenuDetailApi
+  extends Omit<
+    DetenuListeApi,
+    "contact" | "statut_penal" | "date_incarceration" | "motif_detention" | "type_mandat" | "categorie_penale" | "cellule_actuelle"
+  > {
   age: number | null;
   langue: string | null;
   ethnie: string | null;
@@ -287,6 +299,7 @@ interface DetenuDetailApi extends Omit<DetenuListeApi, "contact" | "statut_penal
   photo_profil_url: string | null;
   anthropometrie: string | null;
   mandas?: MandasApi[];
+  sanctions?: SanctionApi[];
   cellule_actuelle?: AffectationApi | null;
   created_at: string | null;
   updated_at: string | null;
@@ -310,6 +323,103 @@ interface AffectationApi {
   date_fin: string | null;
   est_active: boolean;
   motif_affectation: string | null;
+}
+
+interface TableauDeBordApi {
+  genere_le: string;
+  effectif: number;
+  capacite_totale: number;
+  taux_occupation: number;
+  effectif_mois_precedent: number;
+  visites_aujourdhui: number;
+  sorties_prevues_mois_prochain: number;
+  mandats_expires: number;
+  sanctions_en_cours: number;
+  mouvements: {
+    incarcerations: number;
+    liberations: number;
+    transferements: number;
+    evasions: number;
+    deces: number;
+  };
+  /** Clés déjà dans la casse du front : Prevenu, Condamne, Appellant… */
+  effectifs_par_categorie: Record<string, number>;
+  population_derniers_mois: Array<{ label: string; population: number }>;
+  liberables_ce_mois: Array<{
+    numero_ecrou: string;
+    nom: string;
+    date_incarceration: string | null;
+    date_expiration: string | null;
+    statut: string | null;
+  }>;
+}
+
+interface OccupantApi {
+  detenu_id: number;
+  numero_ecrou: string;
+  nom: string;
+  date_affectation: string | null;
+}
+
+interface SanctionApi {
+  id: number;
+  detenu_id: number;
+  detenu?: { id: number; numero_ecrou: string; nom: string };
+  type_sanction?: { id: number; libelle: string };
+  motif: string | null;
+  date_faute: string | null;
+  date_debut: string | null;
+  date_fin: string | null;
+  statut: string | null;
+  est_actif: boolean;
+  cellule_disciplinaire?: { id: number; numero: string; bloc: string | null } | null;
+  cellule_origine?: { id: number; numero: string; bloc: string | null } | null;
+  affectation_disciplinaire_active?: boolean;
+  created_at: string | null;
+}
+
+interface SuiviMedicalApi {
+  id: number;
+  detenu_id: number;
+  detenu?: { id: number; numero_ecrou: string; nom: string };
+  date_consultation: string | null;
+  type_consultation: string;
+  nom_medecin: string;
+  temperature: string | null;
+  tension_arterielle: string | null;
+  poids: string | null;
+  symptomes: string | null;
+  diagnostic: string | null;
+  medicaments_prescrits: string | null;
+  duree_traitement: string | null;
+  date_suivi: string | null;
+  observations: string | null;
+}
+
+interface VisiteApi {
+  id: number;
+  detenu_id: number;
+  detenu?: { id: number; numero_ecrou: string; nom: string };
+  date_visite: string | null;
+  heure_arrivee: string;
+  duree_prevue_minutes: number;
+  type_visite: string;
+  lieu_visite: string | null;
+  autorisation_prealable: boolean;
+  nom_visiteur: string;
+  sexe_visiteur: string;
+  type_piece_identite: string;
+  numero_piece_identite: string;
+  telephone_visiteur: string | null;
+  lien_parente: string;
+  adresse_visiteur: string | null;
+  agent_controle: string;
+  objets_deposes: string | null;
+  fouille_corporelle: boolean | null;
+  observations_securite: string | null;
+  heure_debut: string | null;
+  heure_fin: string | null;
+  observations_visite: string | null;
 }
 
 interface SortieApi {
@@ -371,6 +481,114 @@ function versAffectation(a: AffectationApi, detenu: { nom: string; numeroEcrou: 
     dateAffectation: a.date_affectation ?? "",
     motifAffectation: a.motif_affectation,
     dateFin: a.date_fin,
+  };
+}
+
+/** Catégorie pénale : l'API renvoie son propre code (« prevenus »), le front son nom. */
+const CATEGORIE_DEPUIS_SLUG = Object.fromEntries(
+  Object.entries(CATEGORIE_SLUG).map(([categorie, slug]) => [slug, categorie as CategoriePenale]),
+) as Record<string, CategoriePenale>;
+
+function versSanction(s: SanctionApi, detenu?: { nom: string; numeroEcrou: string }): Sanction {
+  const statut = s.statut as Sanction["statut"];
+  return {
+    id: s.id,
+    detenuId: s.detenu_id,
+    detenuNom: s.detenu?.nom ?? detenu?.nom ?? "",
+    numeroEcrou: s.detenu?.numero_ecrou ?? detenu?.numeroEcrou ?? "",
+    celluleId: s.cellule_disciplinaire?.id ?? null,
+    celluleLibelle: s.cellule_disciplinaire ? libelleCellule(s.cellule_disciplinaire) : null,
+    dateFaute: s.date_faute ?? "",
+    dateDebut: s.date_debut ?? "",
+    dateFin: s.date_fin,
+    typeSanction: s.type_sanction?.libelle ?? null,
+    motif: s.motif,
+    // Une fiche désactivée est une saisie annulée, quoi que disent ses dates
+    statut: s.est_actif === false ? "Annulée" : (statut ?? null),
+    dateCreation: s.created_at ?? "",
+    estActif: s.est_actif,
+    isolementEnCours: s.affectation_disciplinaire_active ?? false,
+    celluleOrigine: s.cellule_origine
+      ? { id: s.cellule_origine.id, libelle: libelleCellule(s.cellule_origine) }
+      : null,
+  };
+}
+
+function versSuiviMedical(s: SuiviMedicalApi, detenu?: { nom: string; numeroEcrou: string }): SuiviMedical {
+  return {
+    id: s.id,
+    detenuId: s.detenu_id,
+    detenuNom: s.detenu?.nom ?? detenu?.nom ?? "",
+    numeroEcrou: s.detenu?.numero_ecrou ?? detenu?.numeroEcrou ?? "",
+    dateConsultation: s.date_consultation ?? "",
+    typeConsultation: s.type_consultation,
+    nomMedecin: s.nom_medecin,
+    temperature: s.temperature,
+    tensionArterielle: s.tension_arterielle,
+    poids: s.poids,
+    symptomes: s.symptomes,
+    diagnostic: s.diagnostic,
+    medicamentsPrescrits: s.medicaments_prescrits,
+    dureeTraitement: s.duree_traitement,
+    dateSuivi: s.date_suivi,
+    observations: s.observations,
+  };
+}
+
+function versVisite(v: VisiteApi, detenu?: { nom: string; numeroEcrou: string }): Visite {
+  return {
+    id: v.id,
+    detenuId: v.detenu_id,
+    detenuNom: v.detenu?.nom ?? detenu?.nom ?? "",
+    numeroEcrou: v.detenu?.numero_ecrou ?? detenu?.numeroEcrou ?? "",
+    dateVisite: v.date_visite ?? "",
+    heureArrivee: v.heure_arrivee,
+    dureePrevueMinutes: v.duree_prevue_minutes,
+    typeVisite: v.type_visite,
+    lieuVisite: v.lieu_visite ?? "",
+    autorisationPrealable: v.autorisation_prealable,
+    nomVisiteur: v.nom_visiteur,
+    sexeVisiteur: versSexe(v.sexe_visiteur),
+    typePieceIdentite: v.type_piece_identite,
+    numeroPieceIdentite: v.numero_piece_identite,
+    telephoneVisiteur: v.telephone_visiteur,
+    lienParente: v.lien_parente,
+    adresseVisiteur: v.adresse_visiteur,
+    agentControle: v.agent_controle,
+    objetsDeposes: v.objets_deposes,
+    fouilleCorporelle: v.fouille_corporelle,
+    observationsSecurite: v.observations_securite,
+    heureDebut: v.heure_debut,
+    heureFin: v.heure_fin,
+    observationsVisite: v.observations_visite,
+  };
+}
+
+function versTableauDeBord(d: TableauDeBordApi): TableauDeBord {
+  const categories = Object.fromEntries(
+    (Object.keys(CATEGORIE_SLUG) as CategoriePenale[]).map((c) => [c, d.effectifs_par_categorie?.[c] ?? 0]),
+  ) as Record<CategoriePenale, number>;
+
+  return {
+    genereLe: d.genere_le,
+    effectif: d.effectif,
+    capaciteTotale: d.capacite_totale,
+    tauxOccupation: d.taux_occupation,
+    effectifMoisPrecedent: d.effectif_mois_precedent,
+    visitesAujourdhui: d.visites_aujourdhui,
+    sortiesPrevuesMoisProchain: d.sorties_prevues_mois_prochain,
+    mandatsExpires: d.mandats_expires,
+    sanctionsEnCours: d.sanctions_en_cours,
+    mouvements: d.mouvements,
+    effectifsParCategorie: categories,
+    populationDerniersMois: d.population_derniers_mois ?? [],
+    liberablesCeMois: (d.liberables_ce_mois ?? []).map((l) => ({
+      numeroEcrou: l.numero_ecrou,
+      nom: l.nom,
+      dateIncarceration: l.date_incarceration ?? "",
+      dateExpiration: l.date_expiration ?? "",
+      statut: l.statut ?? "",
+    })),
   };
 }
 
@@ -442,9 +660,8 @@ function versMandas(m: MandasApi): Mandas {
 /**
  * Ligne de liste → résumé attendu par les écrans.
  *
- * `categoriePenale` et la cellule restent nuls : l'API ne les expose pas encore
- * dans la liste (retours A2 et A3). Les écrans masquent ces colonnes en mode réel
- * plutôt que d'afficher une valeur inventée.
+ * L'échéance du mandat reste nulle : elle n'est pas dans la liste, seulement sur
+ * la fiche. L'écran masque cette colonne en mode réel plutôt que d'inventer.
  */
 function versResume(d: DetenuListeApi): DetenuResume {
   const aMandat = Boolean(d.date_incarceration || d.statut_penal);
@@ -478,7 +695,7 @@ function versResume(d: DetenuListeApi): DetenuResume {
     statut: d.est_present ? "Present" : "Sorti",
     dateCreation: "",
     dateModification: null,
-    categoriePenale: null,
+    categoriePenale: d.categorie_penale ? (CATEGORIE_DEPUIS_SLUG[d.categorie_penale] ?? null) : null,
     nombreMandatsActifs: aMandat ? 1 : 0,
     mandatCourant: aMandat
       ? {
@@ -490,7 +707,9 @@ function versResume(d: DetenuListeApi): DetenuResume {
           typeStatutPenal: (d.statut_penal as TypeStatutPenal | null) ?? null,
         }
       : null,
-    cellule: null,
+    cellule: d.cellule_actuelle
+      ? { id: d.cellule_actuelle.id, numero: d.cellule_actuelle.numero, bloc: d.cellule_actuelle.bloc }
+      : null,
   };
 }
 
@@ -714,10 +933,12 @@ export const liveApi: ApiClient = {
   },
 
   async getDossierDetenu(id): Promise<DossierDetenu | null> {
-    const [corps, affectationsApi, sortiesApi] = await Promise.all([
+    const [corps, affectationsApi, sortiesApi, suivisApi, visitesApi] = await Promise.all([
       requete<{ data: DetenuDetailApi } | null>(`/detenus/${id}`, { nullSur404: true }),
       requete<{ data: AffectationApi[] } | null>(`/detenus/${id}/affectations`, { nullSur404: true }),
       requete<{ data: SortieApi[] } | null>(`/detenus/${id}/sorties`, { nullSur404: true }),
+      requete<{ data: SuiviMedicalApi[] } | null>(`/detenus/${id}/suivis-medicaux`, { nullSur404: true }),
+      requete<{ data: VisiteApi[] } | null>(`/detenus/${id}/visites`, { nullSur404: true }),
     ]);
     if (!corps?.data) return null;
 
@@ -739,12 +960,11 @@ export const liveApi: ApiClient = {
       mandats,
       affectations: (affectationsApi?.data ?? []).map((a) => versAffectation(a, identite)),
       sorties: (sortiesApi?.data ?? []).map((x) => versSortie(x, identite)),
-      // L'API ne sait pas encore lister les sanctions, visites et consultations d'un
-      // détenu : on le signale plutôt que d'afficher « aucune sanction ».
-      sanctions: [],
-      visites: [],
-      suivisMedicaux: [],
-      indisponibles: ["sanctions", "visites", "suivisMedicaux"],
+      // Les sanctions arrivent avec la fiche ; les consultations et visites ont leur
+      // propre route, chargée en parallèle ci-dessus.
+      sanctions: (brut.sanctions ?? []).map((s) => versSanction(s, identite)),
+      suivisMedicaux: (suivisApi?.data ?? []).map((s) => versSuiviMedical(s, identite)),
+      visites: (visitesApi?.data ?? []).map((v) => versVisite(v, identite)),
     };
   },
 
@@ -847,6 +1067,23 @@ export const liveApi: ApiClient = {
     return (await toutesLesPages<CelluleApi>("/cellules")).map(versCellule);
   },
 
+  async getCellule(id) {
+    const corps = await requete<{ data: CelluleApi & { occupants?: OccupantApi[] } } | null>(
+      `/cellules/${id}`,
+      { nullSur404: true },
+    );
+    if (!corps?.data) return null;
+    return {
+      ...versCellule(corps.data),
+      occupants: (corps.data.occupants ?? []).map((o) => ({
+        detenuId: o.detenu_id,
+        nom: o.nom,
+        numeroEcrou: o.numero_ecrou,
+        dateAffectation: o.date_affectation ?? "",
+      })),
+    };
+  },
+
   async creerCellule(entree) {
     const corps = await requete<{ data: { id: number } }>("/cellules", {
       method: "POST",
@@ -927,6 +1164,119 @@ export const liveApi: ApiClient = {
     return { id: corps.data.id };
   },
 
+  async terminerSanction(sanctionId) {
+    const corps = await requete<{ message?: string }>(`/sanctions/${sanctionId}/terminer`, {
+      method: "POST",
+    });
+    // Le message de l'API rappelle la cellule d'origine : il est affiché tel quel
+    return { message: corps?.message ?? "Sanction terminée." };
+  },
+
+  async desactiverSanction(sanctionId) {
+    await requete(`/sanctions/${sanctionId}`, { method: "DELETE" });
+  },
+
+  async listSanctions() {
+    const sanctions = await toutesLesPages<SanctionApi>("/sanctions", {}, 20);
+    return sanctions.map((s) => versSanction(s));
+  },
+
+  async listAffectations() {
+    const affectations = await toutesLesPages<AffectationApi & { detenu?: { nom: string; numero_ecrou: string } }>(
+      "/affectations",
+      {},
+      20,
+    );
+    return affectations.map((a) =>
+      versAffectation(a, { nom: a.detenu?.nom ?? "", numeroEcrou: a.detenu?.numero_ecrou ?? "" }),
+    );
+  },
+
+  async listDetenusNonLoges() {
+    const tous = await toutesLesPages<DetenuListeApi>("/detenus", { sans_cellule: 1 });
+    return tous.map(versResume);
+  },
+
+  // -------------------------------------------------------------------------
+  // Santé et visites — GUIDE_FRONTEND.md §12
+  // -------------------------------------------------------------------------
+
+  async listSuivisMedicaux() {
+    const corps = await requete<{ data: SuiviMedicalApi[] }>("/suivis-medicaux");
+    return (corps?.data ?? []).map((s) => versSuiviMedical(s));
+  },
+
+  async creerSuiviMedical(detenuId, entree) {
+    const corps = await requete<{ data: { id: number } }>(`/detenus/${detenuId}/suivis-medicaux`, {
+      method: "POST",
+      body: JSON.stringify(
+        sansVides({
+          date_consultation: entree.dateConsultation,
+          type_consultation: entree.typeConsultation,
+          nom_medecin: entree.nomMedecin,
+          symptomes: entree.symptomes,
+          diagnostic: entree.diagnostic,
+          temperature: entree.temperature,
+          tension_arterielle: entree.tensionArterielle,
+          poids: entree.poids,
+          medicaments_prescrits: entree.medicamentsPrescrits,
+          duree_traitement: entree.dureeTraitement,
+          date_suivi: entree.dateSuivi,
+          observations: entree.observations,
+        }),
+      ),
+    });
+    return { id: corps.data.id };
+  },
+
+  async listVisites() {
+    const corps = await requete<{ data: VisiteApi[] }>("/visites");
+    return (corps?.data ?? []).map((v) => versVisite(v));
+  },
+
+  async creerVisite(detenuId, entree) {
+    const corps = await requete<{ data: { id: number } }>(`/detenus/${detenuId}/visites`, {
+      method: "POST",
+      body: JSON.stringify(
+        // Les booléens partent toujours : `sansVides` effacerait un `false`
+        {
+          ...sansVides({
+            date_visite: entree.dateVisite,
+            heure_arrivee: entree.heureArrivee,
+            duree_prevue_minutes: entree.dureePrevueMinutes,
+            type_visite: entree.typeVisite,
+            lieu_visite: entree.lieuVisite,
+            nom_visiteur: entree.nomVisiteur,
+            sexe_visiteur: entree.sexeVisiteur,
+            type_piece_identite: entree.typePieceIdentite,
+            numero_piece_identite: entree.numeroPieceIdentite,
+            telephone_visiteur: entree.telephoneVisiteur,
+            lien_parente: entree.lienParente,
+            adresse_visiteur: entree.adresseVisiteur,
+            agent_controle: entree.agentControle,
+            objets_deposes: entree.objetsDeposes,
+            observations_securite: entree.observationsSecurite,
+            heure_debut: entree.heureDebut,
+            heure_fin: entree.heureFin,
+            observations_visite: entree.observationsVisite,
+          }),
+          autorisation_prealable: entree.autorisationPrealable,
+          fouille_corporelle: entree.fouilleCorporelle ?? false,
+        },
+      ),
+    });
+    return { id: corps.data.id };
+  },
+
+  // -------------------------------------------------------------------------
+  // Tableau de bord — GUIDE_FRONTEND.md §13
+  // -------------------------------------------------------------------------
+
+  async getTableauDeBord() {
+    const corps = await requete<{ data: TableauDeBordApi }>("/tableau-de-bord");
+    return versTableauDeBord(corps.data);
+  },
+
   // -------------------------------------------------------------------------
   // Sorties — GUIDE_FRONTEND.md §10
   // -------------------------------------------------------------------------
@@ -966,17 +1316,8 @@ export const liveApi: ApiClient = {
   // du contrat — une exception synchrone échapperait à qui attend la promesse.
   // -------------------------------------------------------------------------
 
-  getTableauDeBord: async () => nonLivre("GET /tableau-de-bord"),
-  // La liste des détenus ne dit pas lesquels ont une cellule
-  listDetenusNonLoges: async () => nonLivre("GET /detenus?sans_cellule=1"),
   listMandats: async () => nonLivre("GET /mandats"),
   listMandatsExpires: async () => nonLivre("GET /mandats/expires"),
-  // L'API n'expose que l'historique d'UN détenu : GET /detenus/{id}/affectations
-  listAffectations: async () => nonLivre("GET /affectations"),
-  // Créer, consulter une sanction et la terminer existent ; la liste, non
-  listSanctions: async () => nonLivre("GET /sanctions"),
-  listSuivisMedicaux: async () => nonLivre("GET /suivis-medicaux"),
-  listVisites: async () => nonLivre("GET /visites"),
   listUtilisateurs: async () => nonLivre("GET /utilisateurs"),
   getParametres: async () => nonLivre("GET /parametres"),
 };

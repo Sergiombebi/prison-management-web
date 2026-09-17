@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { api, type MandatDetaille } from "@/lib/api";
+import type { Sanction } from "@/lib/domain/types";
 import { LIBELLE_TYPE_SORTIE, REGLE_CATEGORIE } from "@/lib/domain/referentiels";
 import {
   formatDate,
@@ -22,7 +23,7 @@ import { Icon, type NomIcone } from "@/components/ui/icon";
 import { Avatar, DataPair, EmptyState, Ecrou, Panel } from "@/components/ui/surface";
 import { TabsNav } from "@/components/ui/tabs";
 import { BoutonConfirmation } from "@/components/ui/bouton-confirmation";
-import { EnAttenteApi } from "@/components/ui/en-attente-api";
+import { ActionsSanction } from "@/components/discipline/actions-sanction";
 import { BoutonRestaurer } from "@/components/detenus/bouton-restaurer";
 import { restaurerDossier } from "../nouveau/actions";
 import { desactiverDossier, desactiverMandat } from "./actions";
@@ -90,8 +91,6 @@ export default async function DossierDetenuPage(props: PageProps<"/detenus/[id]"
   const joursMandat = joursRestants(d.mandatCourant?.dateSortieMandat);
   const present = d.statut === "Present";
   const confirmation = CONFIRMATIONS[param(sp, "maj") ?? ""];
-  const indisponible = (r: "sanctions" | "visites" | "suivisMedicaux") =>
-    dossier.indisponibles?.includes(r) ?? false;
 
   return (
     <Page>
@@ -248,10 +247,9 @@ export default async function DossierDetenuPage(props: PageProps<"/detenus/[id]"
               { href: lien("identite"), label: "Identité", actif: onglet === "identite" },
               { href: lien("mandats"), label: "Mandats", compte: dossier.mandats.length, actif: onglet === "mandats" },
               { href: lien("detention"), label: "Détention", compte: dossier.affectations.length + dossier.sorties.length, actif: onglet === "detention" },
-              // Pas de compteur quand la source ne sait pas lister : « 0 » serait faux
-              { href: lien("discipline"), label: "Discipline", compte: indisponible("sanctions") ? undefined : dossier.sanctions.length, actif: onglet === "discipline" },
-              { href: lien("sante"), label: "Santé", compte: indisponible("suivisMedicaux") ? undefined : dossier.suivisMedicaux.length, actif: onglet === "sante" },
-              { href: lien("visites"), label: "Visites", compte: indisponible("visites") ? undefined : dossier.visites.length, actif: onglet === "visites" },
+              { href: lien("discipline"), label: "Discipline", compte: dossier.sanctions.length, actif: onglet === "discipline" },
+              { href: lien("sante"), label: "Santé", compte: dossier.suivisMedicaux.length, actif: onglet === "sante" },
+              { href: lien("visites"), label: "Visites", compte: dossier.visites.length, actif: onglet === "visites" },
             ]}
           />
         </div>
@@ -489,10 +487,11 @@ export default async function DossierDetenuPage(props: PageProps<"/detenus/[id]"
           </div>
         )}
 
-        {onglet === "discipline" && indisponible("sanctions") && (
+        {onglet === "discipline" && (
           <Panel
             titre="Sanctions disciplinaires"
             variante="eleve"
+            flush
             actions={
               present && (
                 <ButtonLink href={`/discipline/sanctions?detenu=${d.id}`} taille="sm" icone="plus">
@@ -501,29 +500,6 @@ export default async function DossierDetenuPage(props: PageProps<"/detenus/[id]"
               )
             }
           >
-            <EnAttenteApi
-              compact
-              icone="scale"
-              route="GET /detenus/{id}/sanctions"
-              texte="Les sanctions peuvent être prononcées, mais l’API ne sait pas encore les lister."
-            />
-          </Panel>
-        )}
-
-        {onglet === "sante" && indisponible("suivisMedicaux") && (
-          <Panel titre="Consultations médicales" variante="eleve">
-            <EnAttenteApi compact icone="sante" route="GET /detenus/{id}/suivis-medicaux" />
-          </Panel>
-        )}
-
-        {onglet === "visites" && indisponible("visites") && (
-          <Panel titre="Visites reçues" variante="eleve">
-            <EnAttenteApi compact icone="user" route="GET /detenus/{id}/visites" />
-          </Panel>
-        )}
-
-        {onglet === "discipline" && !indisponible("sanctions") && (
-          <Panel titre="Sanctions disciplinaires" variante="eleve" flush>
             <DataTable
               legende="Sanctions du détenu"
               lignes={dossier.sanctions}
@@ -535,16 +511,44 @@ export default async function DossierDetenuPage(props: PageProps<"/detenus/[id]"
                 {
                   cle: "statut",
                   titre: "Statut",
-                  rendu: (s) => <Badge ton={s.statut === "En cours" ? "alerte" : "neutre"}>{s.statut ?? "—"}</Badge>,
+                  rendu: (s) => (
+                    <span className="flex flex-col items-start gap-1">
+                      <Badge ton={s.statut === "En cours" ? "alerte" : "neutre"}>{s.statut ?? "—"}</Badge>
+                      {s.isolementEnCours && s.celluleLibelle && (
+                        <span className="text-2xs text-warning">Isolé en {s.celluleLibelle}</span>
+                      )}
+                    </span>
+                  ),
                 },
+                ...(present
+                  ? [
+                      {
+                        cle: "actions",
+                        titre: "",
+                        align: "droite" as const,
+                        rendu: (s: Sanction) => <ActionsSanction sanction={s} />,
+                      },
+                    ]
+                  : []),
               ]}
               vide={<EmptyState compact icone="scale" titre="Aucune sanction" texte="Aucune faute disciplinaire n’a été relevée." />}
             />
           </Panel>
         )}
 
-        {onglet === "sante" && !indisponible("suivisMedicaux") && (
-          <Panel titre="Consultations médicales" variante="eleve" flush>
+        {onglet === "sante" && (
+          <Panel
+            titre="Consultations médicales"
+            variante="eleve"
+            flush
+            actions={
+              present && (
+                <ButtonLink href={`/sante/suivi-medical?detenu=${d.id}`} taille="sm" icone="plus">
+                  Enregistrer une consultation
+                </ButtonLink>
+              )
+            }
+          >
             <DataTable
               legende="Suivi médical du détenu"
               lignes={dossier.suivisMedicaux}
@@ -565,8 +569,19 @@ export default async function DossierDetenuPage(props: PageProps<"/detenus/[id]"
           </Panel>
         )}
 
-        {onglet === "visites" && !indisponible("visites") && (
-          <Panel titre="Visites reçues" variante="eleve" flush>
+        {onglet === "visites" && (
+          <Panel
+            titre="Visites reçues"
+            variante="eleve"
+            flush
+            actions={
+              present && (
+                <ButtonLink href={`/sante/visites?detenu=${d.id}`} taille="sm" icone="plus">
+                  Enregistrer une visite
+                </ButtonLink>
+              )
+            }
+          >
             <DataTable
               legende="Visites du détenu"
               lignes={dossier.visites}

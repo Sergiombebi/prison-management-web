@@ -79,14 +79,14 @@ Copier `.env.example` en `.env.local`, adapter, puis **redémarrer `npm run dev`
 
 ```env
 SGP_API_URL=http://127.0.0.1:8000/api/v1
-SGP_API_LIVE=auth,detenus,discipline,sorties
+SGP_API_LIVE=auth,detenus,discipline,sorties,sante,tableauDeBord
 ```
 
 | Réglage | Effet |
 |---|---|
 | rien | Tout en données de démonstration |
 | `SGP_API_LIVE=auth` | Connexion réelle, écrans en démonstration |
-| `SGP_API_LIVE=auth,detenus,discipline,sorties` | Tout ce que l'API sait faire aujourd'hui, le reste en démonstration (**réglage recommandé**) |
+| `SGP_API_LIVE=auth,detenus,discipline,sorties,sante,tableauDeBord` | Tout ce que l'API sait faire aujourd'hui, le reste en démonstration (**réglage recommandé**) |
 | `SGP_API_MODE=live` | Tout sur l'API (prioritaire sur `SGP_API_LIVE`) — les écrans sans route affichent « En attente de l'API » |
 
 Domaines : `auth`, `tableauDeBord`, `detenus`, `mandats`, `discipline`, `sante`, `sorties`,
@@ -105,22 +105,21 @@ Next qui appelle l'API, donc **l'API n'a pas besoin de configurer CORS**.
 |---|---|---|
 | `auth` | ✅ Réel | Connexion (identifiant ou email), déconnexion avec révocation du jeton, session vérifiée via `/auth/me` |
 | `detenus` | ✅ Réel | Registre paginé (10/page), recherche, filtre par catégorie pénale ; fiche avec mandats, cellule actuelle, historique des affectations et des sorties, photos ; enregistrement, **modification**, désactivation et restauration du dossier ; évolution et désactivation d'un mandat |
-| `discipline` | ✅ Réel, en partie | Cellules (liste, occupation, création), affectation d'un détenu, sanctions avec cellule disciplinaire. **En attente** : liste des sanctions, historique global des affectations, détenus non logés |
+| `discipline` | ✅ Réel | Cellules (liste, occupation, création, modification, occupants), affectation et réaffectation, fil des mouvements, détenus non logés ; sanctions : liste, prononcé avec cellule disciplinaire, fin de sanction, annulation ; types de sanction administrables |
 | `sorties` | ✅ Réel | Archive par type ; libération normale (par mandat), transfert, évasion, décès |
+| `sante` | ✅ Réel | Consultations médicales et visites au parloir : listes, enregistrement, historique par détenu |
+| `tableauDeBord` | ✅ Réel | Effectif, occupation, mandats expirés, sanctions en cours, mouvements sur 30 jours, répartition par catégorie, libérables du mois |
 | `mandats` | ⏳ Démo | L'API n'expose ni liste globale des mandats, ni mandats expirés |
-| Autres | ⛔ Démo | Tableau de bord, santé, visites, états, administration : routes absentes de l'API |
+| `administration` | ⛔ Démo | Personnel et paramètres de l'établissement : routes absentes de l'API |
 
 Quand un domaine est réel mais qu'une de ses listes n'existe pas encore, le panneau concerné
 affiche **« En attente de l'API »** avec la route attendue, au lieu d'une liste vide trompeuse ;
 le reste de l'écran (formulaires compris) fonctionne.
 
-En mode réel, le registre **masque** les colonnes que l'API ne fournit pas encore
-(catégorie pénale, cellule, échéance du mandat) et désactive le tri et le filtre par sexe,
+En mode réel, le registre affiche la catégorie pénale et la cellule, mais remplace la colonne
+« Fin du mandat » par le statut pénal : l'échéance n'est pas dans la liste de l'API, seulement
+sur la fiche. Le tri et le filtre par sexe restent désactivés, faute de paramètres côté API —
 plutôt que d'afficher des contrôles qui ne feraient rien.
-
-> ⚠️ Deux catégories renvoient une erreur 500 côté API : `condamnes` et `dpac`
-> (`HAVING clause on a non-aggregate query`). L'écran l'explique au lieu d'afficher
-> une liste vide. Les trois autres catégories fonctionnent.
 
 ### Écritures branchées
 
@@ -139,6 +138,10 @@ sur une vraie base, cas d'échec compris, puis contrôlée directement en base.
 | Création d'une cellule | `/discipline/cellules` | `POST /cellules` | Doublon dans le même quartier → 422 sous le champ. |
 | Modification d'une cellule | `/discipline/cellules` → crayon d'une carte | `PUT /cellules/{id}` | Capacité inférieure au nombre d'occupants → 422. |
 | Types de sanction | `/discipline/sanctions/types` (administrateur) | `POST` / `PUT /types-sanction` | Ajouter, renommer, désactiver ou réactiver. Un type désactivé n'est plus proposé à la saisie. |
+| Fin d'une sanction | liste des sanctions, fiche détenu | `POST /sanctions/{id}/terminer` | Libère la cellule disciplinaire ; l'écran propose alors de réaffecter le détenu. |
+| Annulation d'une sanction | idem | `DELETE /sanctions/{id}` | Saisie erronée : la fiche reste dans l'historique, marquée annulée. |
+| Consultation médicale | `/sante/suivi-medical` | `POST /detenus/{id}/suivis-medicaux` | Constantes, diagnostic, traitement et date de suivi. |
+| Visite au parloir | `/sante/visites` | `POST /detenus/{id}/visites` | Visiteur, pièce d'identité, contrôle et horaires réels. |
 | Affectation | `/discipline/affectations` | `POST /detenus/{id}/affectations` | Clôt l'affectation en cours ; cellule pleine → 422. |
 | Sanction | `/discipline/sanctions` | `POST /detenus/{id}/sanctions` | Types lus depuis `GET /types-sanction` ; une cellule disciplinaire déplace réellement le détenu. |
 | Libération normale | `/detenus/liberation/normale` | `POST /detenus/{id}/sorties/liberation-normale` | Porte sur **un mandat** : un DPAC reste écroué tant qu'un autre mandat est ouvert. |

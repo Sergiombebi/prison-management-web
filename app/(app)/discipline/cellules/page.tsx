@@ -33,7 +33,9 @@ function etatCellule(c: Cellule) {
 export default async function CellulesPage(props: PageProps<"/discipline/cellules">) {
   const sp = await props.searchParams;
   const cellules = await api.listCellules();
-  const celluleModifiee = cellules.find((c) => String(c.id) === param(sp, "modifier"));
+  const selectionnee = cellules.find((c) => String(c.id) === param(sp, "modifier"));
+  // La liste ne porte pas les occupants : ils viennent de la fiche de la cellule
+  const celluleModifiee = selectionnee ? ((await api.getCellule(selectionnee.id)) ?? selectionnee) : undefined;
 
   const recherche = (param(sp, "recherche") ?? "").toLowerCase();
   const bloc = param(sp, "bloc") ?? "tous";
@@ -231,6 +233,31 @@ export default async function CellulesPage(props: PageProps<"/discipline/cellule
               cellule={celluleModifiee}
               action={modifierCellule.bind(null, celluleModifiee.id)}
             />
+
+            {celluleModifiee.occupants && celluleModifiee.occupants.length > 0 && (
+              <section aria-labelledby="occupants" className="mt-5 border-t border-hairline pt-4">
+                <h3 id="occupants" className="text-2xs font-semibold uppercase tracking-[0.08em] text-faint">
+                  Occupants
+                </h3>
+                <ul className="mt-2 flex flex-col gap-1">
+                  {celluleModifiee.occupants.map((o) => (
+                    <li key={o.detenuId}>
+                      <Link
+                        href={`/detenus/${o.detenuId}`}
+                        transitionTypes={["nav-forward"]}
+                        className="flex items-baseline justify-between gap-3 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-sunken"
+                      >
+                        <span className="min-w-0 truncate text-ink">{o.nom}</span>
+                        <span className="shrink-0 font-mono text-2xs text-muted">{o.numeroEcrou}</span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-2 px-2 text-2xs text-muted">
+                  Pour déplacer un détenu, passer par « Affecter un détenu ».
+                </p>
+              </section>
+            )}
           </Panel>
         ) : (
           <Panel titre="Nouvelle cellule" variante="eleve">

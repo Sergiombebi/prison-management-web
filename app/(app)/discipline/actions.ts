@@ -62,6 +62,34 @@ export async function modifierCellule(
   return { ok: true, message: `Cellule ${numero} mise à jour${suffixe()}.` };
 }
 
+/**
+ * Met fin à une sanction. L'API libère la cellule disciplinaire et laisse
+ * volontairement le détenu sans cellule : son message rappelle laquelle était la
+ * sienne, on le renvoie tel quel pour que l'écran propose la réaffectation.
+ */
+export async function terminerSanction(
+  sanctionId: number,
+): Promise<{ ok: boolean; message: string }> {
+  try {
+    const { message } = await api.terminerSanction(sanctionId);
+    rafraichir();
+    return { ok: true, message };
+  } catch (e) {
+    return { ok: false, message: etatDepuisErreur(e).message ?? "La sanction n’a pas pu être terminée." };
+  }
+}
+
+/** Annule une sanction saisie par erreur : la fiche reste dans l'historique. */
+export async function annulerSanction(sanctionId: number): Promise<{ ok: boolean; message?: string }> {
+  try {
+    await api.desactiverSanction(sanctionId);
+  } catch (e) {
+    return { ok: false, message: etatDepuisErreur(e).message };
+  }
+  rafraichir();
+  return { ok: true };
+}
+
 // ---------------------------------------------------------------------------
 // Types de sanction — réservés à l'administration
 // ---------------------------------------------------------------------------

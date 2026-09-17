@@ -24,8 +24,8 @@ const CHEMIN = "/detenus";
 export default async function DetenusPage(props: PageProps<"/detenus">) {
   const sp = await props.searchParams;
 
-  // L'API impose 10 par page et n'expose ni tri, ni filtre par sexe, ni catégorie
-  // dans la liste. On adapte l'écran au lieu d'afficher des contrôles qui mentent.
+  // L'API impose 10 par page et n'expose ni tri, ni filtre par sexe, ni échéance de
+  // mandat dans la liste. On adapte l'écran au lieu d'afficher des contrôles qui mentent.
   const reel = modeDe("detenus") === "live";
   const parPage = reel ? 10 : 15;
 
@@ -99,13 +99,42 @@ export default async function DetenusPage(props: PageProps<"/detenus">) {
     rendu: (d) => <span className="text-muted">{formatDate(d.mandatCourant?.dateIncarceration)}</span>,
   };
 
-  const colonnes: Colonne<DetenuResume>[] = reel
-    ? [
-        colonneEcrou,
-        colonneNom,
-        {
+  const colonneCategorie: Colonne<DetenuResume> = {
+    cle: "categorie",
+    titre: t.champs.categoriePenale,
+    triable: !reel,
+    rendu: (d) => <BadgeCategorie categorie={d.categoriePenale} />,
+  };
+
+  const colonneCellule: Colonne<DetenuResume> = {
+    cle: "cellule",
+    titre: t.champs.cellule,
+    masquerSous: "xl",
+    rendu: (d) =>
+      d.cellule ? (
+        <span className="rounded-md bg-sunken px-2 py-1 font-mono text-xs text-muted">
+          {d.cellule.numero}
+        </span>
+      ) : (
+        <span className="text-xs text-warning">Non logé</span>
+      ),
+  };
+
+  const colonnes: Colonne<DetenuResume>[] = [
+    colonneEcrou,
+    colonneNom,
+    colonneCategorie,
+    colonneMotif,
+    colonneIncarceration,
+    colonneCellule,
+    // L'échéance du mandat n'est pas dans la liste de l'API : en mode réel, on montre
+    // le statut pénal du mandat courant, qui y est.
+    reel
+      ? {
           cle: "statutPenal",
           titre: "Statut pénal",
+          align: "droite",
+          masquerSous: "sm",
           rendu: (d) =>
             d.mandatCourant?.typeStatutPenal ? (
               <Badge ton="info" point={false}>
@@ -114,48 +143,8 @@ export default async function DetenusPage(props: PageProps<"/detenus">) {
             ) : (
               <span className="text-xs text-faint">Aucun mandat</span>
             ),
-        },
-        colonneMotif,
-        colonneIncarceration,
-        {
-          cle: "typeMandat",
-          titre: t.champs.typeMandat,
-          masquerSous: "xl",
-          rendu: (d) => <span className="text-muted">{tronquer(d.mandatCourant?.typeMandat, 26)}</span>,
-        },
-        {
-          cle: "nationalite",
-          titre: t.champs.nationalite,
-          align: "droite",
-          masquerSous: "sm",
-          rendu: (d) => <span className="text-muted">{ouVide(d.nationalite)}</span>,
-        },
-      ]
-    : [
-        colonneEcrou,
-        colonneNom,
-        {
-          cle: "categorie",
-          titre: t.champs.categoriePenale,
-          triable: true,
-          rendu: (d) => <BadgeCategorie categorie={d.categoriePenale} />,
-        },
-        colonneMotif,
-        colonneIncarceration,
-        {
-          cle: "cellule",
-          titre: t.champs.cellule,
-          masquerSous: "xl",
-          rendu: (d) =>
-            d.cellule ? (
-              <span className="rounded-md bg-sunken px-2 py-1 font-mono text-xs text-muted">
-                {d.cellule.numero}
-              </span>
-            ) : (
-              <span className="text-xs text-warning">Non logé</span>
-            ),
-        },
-        {
+        }
+      : {
           cle: "expiration",
           titre: "Fin du mandat",
           align: "droite",
@@ -175,7 +164,7 @@ export default async function DetenusPage(props: PageProps<"/detenus">) {
             );
           },
         },
-      ];
+  ];
 
   const categories: Array<{ cle: CategoriePenale | "toutes"; label: string }> = [
     { cle: "toutes", label: "Toutes" },

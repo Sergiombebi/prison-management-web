@@ -43,7 +43,13 @@ export default async function TableauDeBordPage() {
   const evolution = tb.effectifMoisPrecedent > 0 ? (ecart / tb.effectifMoisPrecedent) * 100 : 0;
   const placesLibres = tb.capaciteTotale - tb.effectif;
   const totalCategories = ORDRE_CATEGORIES.reduce((s, c) => s + tb.effectifsParCategorie[c], 0);
-  const courbe = tb.populationDerniersMois.map((p) => p.population);
+  /*
+   * Population des six derniers mois. L'API la reconstitue depuis l'effectif actuel,
+   * faute de table d'historique : quand les dossiers sont tous récents, elle ne
+   * contient que des zéros. Mieux vaut ne rien tracer que tracer une courbe fausse.
+   */
+  const points = tb.populationDerniersMois.map((p) => p.population);
+  const courbe = points.some((v) => v > 0) ? points : undefined;
 
   const mouvements = [
     { label: "Incarcérations", valeur: tb.mouvements.incarcerations, href: "/detenus/mandats" },

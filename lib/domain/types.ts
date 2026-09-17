@@ -160,6 +160,8 @@ export interface Cellule {
   effectifTheorique: number;
   /** Nombre de détenus réellement affectés — calculé côté serveur. */
   effectifReel: number;
+  /** Détenus présents dans la cellule — seulement sur la fiche d'une cellule. */
+  occupants?: Array<{ detenuId: number; nom: string; numeroEcrou: string; dateAffectation: string }>;
 }
 
 export interface Affectation {
@@ -189,6 +191,12 @@ export interface Sanction {
   motif: string | null;
   statut: "À venir" | "En cours" | "Terminée" | "Annulée" | null;
   dateCreation: string;
+  /** Fiche encore valable ; `false` = saisie annulée, conservée pour l'historique. */
+  estActif?: boolean;
+  /** Le détenu est-il encore dans la cellule disciplinaire de cette sanction ? */
+  isolementEnCours?: boolean;
+  /** Cellule d'où il a été retiré, à lui rendre quand la sanction se termine. */
+  celluleOrigine?: { id: number; libelle: string } | null;
 }
 
 /** Type de sanction : table de référence gérée côté API, désactivable mais jamais supprimée. */

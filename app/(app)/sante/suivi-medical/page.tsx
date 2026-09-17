@@ -10,9 +10,9 @@ import { DataTable } from "@/components/data/data-table";
 import { FilterBar } from "@/components/data/filter-bar";
 import { Stat, StatGrid } from "@/components/data/stat";
 import { Badge } from "@/components/ui/badge";
-import { DemoSubmit } from "@/components/ui/client-actions";
-import { Field, Input, SearchInput, Select, Textarea } from "@/components/ui/field";
+import { SearchInput, Select } from "@/components/ui/field";
 import { EmptyState, Ecrou, Panel } from "@/components/ui/surface";
+import { FormulaireConsultation } from "@/components/sante/formulaires";
 
 export const metadata: Metadata = { title: "Suivi médical" };
 
@@ -24,6 +24,8 @@ export default async function SuiviMedicalPage(props: PageProps<"/sante/suivi-me
 
   const recherche = (param(sp, "recherche") ?? "").toLowerCase();
   const type = param(sp, "type") ?? "tous";
+  const detenuBrut = Number.parseInt(param(sp, "detenu") ?? "", 10);
+  const detenuInitial = Number.isFinite(detenuBrut) ? detenuBrut : undefined;
   const filtres = suivis.filter(
     (s) =>
       (type === "tous" || s.typeConsultation === type) &&
@@ -94,68 +96,7 @@ export default async function SuiviMedicalPage(props: PageProps<"/sante/suivi-me
         </Panel>
 
         <Panel variante="eleve" titre="Nouvelle consultation" className="xl:sticky xl:top-20">
-          <form className="flex flex-col gap-4">
-            <Field label="Détenu" requis>
-              {(p) => (
-                <Select {...p} name="detenuId" defaultValue="" placeholder="Sélectionner un détenu…">
-                  {detenus.items.map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.nom} — {d.numeroEcrou}
-                    </option>
-                  ))}
-                </Select>
-              )}
-            </Field>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Date" requis>
-                {(p) => <Input {...p} type="date" name="dateConsultation" defaultValue={maintenant.toISOString().slice(0, 10)} />}
-              </Field>
-              <Field label="Type" requis>
-                {(p) => (
-                  <Select {...p} name="typeConsultation" defaultValue="" placeholder="Choisir…">
-                    {TYPES_CONSULTATION.map((ty) => (
-                      <option key={ty}>{ty}</option>
-                    ))}
-                  </Select>
-                )}
-              </Field>
-            </div>
-            <Field label="Médecin" requis>
-              {(p) => <Input {...p} name="nomMedecin" placeholder="Dr …" />}
-            </Field>
-            <fieldset className="grid grid-cols-3 gap-3">
-              <legend className="sr-only">Constantes</legend>
-              <Field label="Temp. (°C)">
-                {(p) => <Input {...p} name="temperature" inputMode="decimal" placeholder="37,0" />}
-              </Field>
-              <Field label="Tension">
-                {(p) => <Input {...p} name="tensionArterielle" placeholder="12/8" />}
-              </Field>
-              <Field label="Poids (kg)">
-                {(p) => <Input {...p} name="poids" inputMode="decimal" />}
-              </Field>
-            </fieldset>
-            <Field label="Symptômes" requis>
-              {(p) => <Textarea {...p} name="symptomes" rows={2} />}
-            </Field>
-            <Field label="Diagnostic" requis>
-              {(p) => <Input {...p} name="diagnostic" />}
-            </Field>
-            <Field label="Médicaments prescrits">
-              {(p) => <Textarea {...p} name="medicamentsPrescrits" rows={2} />}
-            </Field>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Durée du traitement">
-                {(p) => <Input {...p} name="dureeTraitement" placeholder="7 jours" />}
-              </Field>
-              <Field label="Date de suivi">
-                {(p) => <Input {...p} type="date" name="dateSuivi" />}
-              </Field>
-            </div>
-            <div className="border-t border-hairline pt-4">
-              <DemoSubmit icone="pulse" endpoint="POST /suivis-medicaux">Enregistrer la consultation</DemoSubmit>
-            </div>
-          </form>
+          <FormulaireConsultation detenus={detenus.items} detenuInitial={detenuInitial} />
         </Panel>
       </div>
     </Page>
