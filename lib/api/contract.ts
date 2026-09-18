@@ -235,6 +235,15 @@ export interface ConflitApi {
   restore_url?: string;
 }
 
+/** Résultat d'une vérification à la volée (avant de remplir le reste de la fiche). */
+export interface VerificationIdentite {
+  disponible: boolean;
+  /** `true` si un détenu présent détient déjà cette valeur : aucune restauration possible. */
+  present?: boolean;
+  message?: string;
+  conflit?: ConflitApi;
+}
+
 export class ApiErreur extends Error {
   constructor(
     message: string,
@@ -277,6 +286,14 @@ export interface ApiClient {
   getDossierDetenu(id: number): Promise<DossierDetenu | null>;
   /** GET /detenus?categorie_penale= — règle calculée côté serveur */
   listParCategorie(categorie: CategoriePenale): Promise<DetenuResume[]>;
+  /**
+   * GET /detenus/verifier-identite — vérification à la volée (au blur du champ),
+   * avant de remplir le reste de la fiche. Toujours 200, jamais d'exception.
+   */
+  verifierIdentiteDetenu(
+    champ: "numero_ecrou" | "numero_cni" | "numero_passeport",
+    valeur: string,
+  ): Promise<VerificationIdentite>;
   /** POST /detenus — 409 si un dossier désactivé porte la même CNI */
   creerDetenu(entree: EntreeDetenu): Promise<{ id: number }>;
   /** PUT /detenus/{id} — 409 si le dossier est désactivé */

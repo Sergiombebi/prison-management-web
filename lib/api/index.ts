@@ -43,6 +43,7 @@ const DOMAINE_DE: Record<keyof ApiClient, DomaineApi> = {
   // Écran d'affectation : il appartient à la discipline, pas au registre — ainsi
   // basculer « detenus » en réel ne casse pas un module que l'API n'expose pas.
   listDetenusNonLoges: "discipline",
+  verifierIdentiteDetenu: "detenus",
   creerDetenu: "detenus",
   majDetenu: "detenus",
   desactiverDetenu: "detenus",
@@ -151,4 +152,5 @@ export type {
   PhotoTeleversee,
   ProfilUtilisateur,
   SessionUtilisateur,
+  VerificationIdentite,
 } from "./contract";

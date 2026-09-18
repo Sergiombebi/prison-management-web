@@ -20,7 +20,8 @@ import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { FormSection, Pleine } from "@/components/ui/form-section";
 import { Icon } from "@/components/ui/icon";
 import { useToast } from "@/components/ui/toast";
-import { enregistrerDetenu, restaurerDossier, type EtatEnregistrement } from "./actions";
+import type { VerificationIdentite } from "@/lib/api";
+import { enregistrerDetenu, restaurerDossier, verifierIdentite, type EtatEnregistrement } from "./actions";
 
 /** Mode modification : fiche existante, sans les rubriques du mandat. */
 export interface EditionDetenu {
@@ -94,6 +95,30 @@ export function DetenuForm({ edition }: { edition?: EditionDetenu } = {}) {
   const [dateIncarceration, setDateIncarceration] = useState("");
   const [dateExpiration, setDateExpiration] = useState("");
   const [erreurExpiration, setErreurExpiration] = useState<string>();
+
+  // Vérification à la volée de l'écrou/CNI, au blur du champ — sans attendre que le
+  // reste de la fiche soit rempli. Le contrôle à la soumission reste le filet réel.
+  const [verifEcrou, setVerifEcrou] = useState<VerificationIdentite | null>(null);
+  const [verifCni, setVerifCni] = useState<VerificationIdentite | null>(null);
+  async function verifierChamp(
+    champ: "numero_ecrou" | "numero_cni",
+    valeur: string,
+    definir: (v: VerificationIdentite | null) => void,
+  ) {
+    if (!valeur.trim()) {
+      definir(null);
+      return;
+    }
+    const resultat = await verifierIdentite(champ, valeur);
+    definir(resultat.disponible ? null : resultat);
+  }
+  // Le conflit affiché en haut de page : celui renvoyé par une soumission a priorité
+  // sur une vérification en direct devenue obsolète (le champ a pu changer depuis).
+  const conflitEnDirect = verifEcrou?.conflit ?? verifCni?.conflit;
+  const conflit = etat.conflit ?? conflitEnDirect;
+  const messageConflit = etat.conflit
+    ? etat.message
+    : (verifEcrou?.conflit ? verifEcrou.message : verifCni?.message);
 
   const ageCalcule = age(dateNaissance);
   const avecJugement = ["Exécution de peine", "Appellant", "Cassationnaire"].includes(statutPenal);
@@ -209,15 +234,16 @@ export function DetenuForm({ edition }: { edition?: EditionDetenu } = {}) {
       </nav>
 
       <form action={action} onChange={() => setModifie(true)} className="flex flex-col gap-4">
-        {/* Conflit 409 : la personne a déjà un dossier, désactivé */}
-        {etat.conflit && (
+        {/* Conflit : la personne a déjà un dossier, désactivé — détecté à la soumission
+            (etat.conflit) ou dès la saisie, au blur du champ (verifEcrou/verifCni). */}
+        {conflit && (
           <div className="rounded-lg border border-warning/40 bg-warning-soft px-4 py-3.5 animate-rise">
             <div className="flex items-start gap-3">
               <Icon name="alert" size={17} className="mt-0.5 shrink-0 text-warning" />
               <div className="min-w-0">
                 <p className="text-sm font-medium text-ink">Cette personne a déjà un dossier</p>
                 <p className="mt-1 text-sm text-muted">
-                  {etat.message} Dossier n° {etat.conflit.numero_ecrou} — {etat.conflit.nom}.
+                  {messageConflit} Dossier n° {conflit.numero_ecrou} — {conflit.nom}.
                 </p>
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   <Button
@@ -226,7 +252,7 @@ export function DetenuForm({ edition }: { edition?: EditionDetenu } = {}) {
                     variante="primaire"
                     icone="arrowUp"
                     onClick={async () => {
-                      const id = etat.conflit?.detenu_id;
+                      const id = conflit?.detenu_id;
                       if (!id) return;
                       const r = await restaurerDossier(id);
                       push({ type: "success", title: r.message });
@@ -236,7 +262,7 @@ export function DetenuForm({ edition }: { edition?: EditionDetenu } = {}) {
                     Restaurer ce dossier
                   </Button>
                   <Link
-                    href={`/detenus/${etat.conflit.detenu_id}`}
+                    href={`/detenus/${conflit.detenu_id}`}
                     className="text-sm text-accent-ink underline underline-offset-2"
                   >
                     Consulter d’abord
@@ -275,9 +301,22 @@ export function DetenuForm({ edition }: { edition?: EditionDetenu } = {}) {
 
         <fieldset disabled={Boolean(etat.detenuId)} className="contents">
           <FormSection id="identite" numero="01" titre="Identité" description="Telle qu’elle figure sur le titre de détention.">
-            <Field label="Numéro d’écrou (matricule)" requis aide="Unique dans l’établissement." erreur={err("numero_ecrou")}>
+            <Field
+              label="Numéro d’écrou (matricule)"
+              requis
+              aide="Unique dans l’établissement."
+              erreur={err("numero_ecrou") ?? (verifEcrou?.present ? verifEcrou.message : undefined)}
+            >
               {(p) => (
-                <Input {...p} name="numero_ecrou" defaultValue={v("numero_ecrou")} autoComplete="off" spellCheck={false} className="font-mono uppercase" />
+                <Input
+                  {...p}
+                  name="numero_ecrou"
+                  defaultValue={v("numero_ecrou")}
+                  autoComplete="off"
+                  spellCheck={false}
+                  className="font-mono uppercase"
+                  onBlur={(e) => verifierChamp("numero_ecrou", e.target.value, setVerifEcrou)}
+                />
               )}
             </Field>
             <Field label="Nom complet" requis erreur={err("nom")}>
@@ -373,8 +412,21 @@ export function DetenuForm({ edition }: { edition?: EditionDetenu } = {}) {
                 {(p) => <Input {...p} name="residence" defaultValue={v("residence")} />}
               </Field>
             </Pleine>
-            <Field label="Numéro de CNI" aide="Sert à repérer une réincarcération." erreur={err("numero_cni")}>
-              {(p) => <Input {...p} name="numero_cni" defaultValue={v("numero_cni")} className="font-mono" spellCheck={false} />}
+            <Field
+              label="Numéro de CNI"
+              aide="Sert à repérer une réincarcération."
+              erreur={err("numero_cni") ?? (verifCni?.present ? verifCni.message : undefined)}
+            >
+              {(p) => (
+                <Input
+                  {...p}
+                  name="numero_cni"
+                  defaultValue={v("numero_cni")}
+                  className="font-mono"
+                  spellCheck={false}
+                  onBlur={(e) => verifierChamp("numero_cni", e.target.value, setVerifCni)}
+                />
+              )}
             </Field>
             <Field label="Numéro de passeport" erreur={err("numero_passeport")}>
               {(p) => <Input {...p} name="numero_passeport" defaultValue={v("numero_passeport")} className="font-mono" spellCheck={false} />}

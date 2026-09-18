@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { api, ApiErreur, type ConflitApi } from "@/lib/api";
+import { api, ApiErreur, type ConflitApi, type VerificationIdentite } from "@/lib/api";
 import { construireDetenu, construireMandat, valeursSaisies } from "@/lib/api/formulaires";
 
 export interface EtatEnregistrement {
@@ -90,6 +90,26 @@ export async function enregistrerDetenu(
       valeurs,
       photoIgnoree,
     };
+  }
+}
+
+/**
+ * Vérification à la volée d'un numéro d'écrou/CNI/passeport, appelée quand le champ
+ * perd le focus — sans attendre que le reste de la fiche soit rempli.
+ */
+export async function verifierIdentite(
+  champ: "numero_ecrou" | "numero_cni" | "numero_passeport",
+  valeur: string,
+): Promise<VerificationIdentite> {
+  if (!valeur.trim()) return { disponible: true };
+
+  try {
+    return await api.verifierIdentiteDetenu(champ, valeur.trim());
+  } catch (e) {
+    // Une vérification qui échoue (réseau, permission…) ne doit pas bloquer la
+    // saisie : le contrôle à la soumission reste le filet de sécurité réel.
+    if (e instanceof ApiErreur) return { disponible: true };
+    throw e;
   }
 }
 

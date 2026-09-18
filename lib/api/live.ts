@@ -1047,6 +1047,29 @@ export const liveApi: ApiClient = {
     return tous.map((d) => ({ ...versResume(d), categoriePenale: categorie }));
   },
 
+  async verifierIdentiteDetenu(champ, valeur) {
+    const corps = await requete<{
+      disponible: boolean;
+      present?: boolean;
+      message?: string;
+      conflict?: {
+        field?: string;
+        value?: string;
+        detenu_id?: number;
+        numero_ecrou?: string;
+        nom?: string;
+        restore_url?: string;
+      };
+    }>("/detenus/verifier-identite", { query: { champ, valeur } });
+
+    return {
+      disponible: corps.disponible,
+      present: corps.present,
+      message: corps.message,
+      conflit: corps.conflict,
+    };
+  },
+
   async creerDetenu(entree) {
     const corps = await requete<{ data: { id: number } }>("/detenus", {
       method: "POST",
