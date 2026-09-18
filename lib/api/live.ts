@@ -160,7 +160,7 @@ async function toutesLesPages<T>(
 }
 
 /** Retire les clés vides : l'API applique alors ses propres valeurs par défaut. */
-function sansVides(corps: Record<string, unknown>): Record<string, unknown> {
+export function sansVides(corps: Record<string, unknown>): Record<string, unknown> {
   for (const cle of Object.keys(corps)) {
     if (corps[cle] === undefined || corps[cle] === null || corps[cle] === "") delete corps[cle];
   }
@@ -181,7 +181,7 @@ function nonLivre(route: string): never {
 // ---------------------------------------------------------------------------
 
 /** Utilisateur tel que renvoyé par Laravel. */
-interface UtilisateurApi {
+export interface UtilisateurApi {
   id: number;
   nom: string;
   prenom: string;
@@ -198,7 +198,7 @@ function versRole(role: string): RoleUtilisateur {
   return "agent";
 }
 
-function versProfil(u: UtilisateurApi): ProfilUtilisateur {
+export function versProfil(u: UtilisateurApi): ProfilUtilisateur {
   return {
     id: u.id,
     username: u.username,
@@ -218,7 +218,7 @@ function versProfil(u: UtilisateurApi): ProfilUtilisateur {
 const PAGE_API_DETENUS = 10;
 
 /** Vue résumée renvoyée par `GET /detenus` (colonnes de l'ancienne app C#). */
-interface DetenuListeApi {
+export interface DetenuListeApi {
   id: number;
   numero_ecrou: string;
   nom: string;
@@ -237,7 +237,7 @@ interface DetenuListeApi {
   est_present: boolean;
 }
 
-interface MandasApi {
+export interface MandasApi {
   id: number;
   detenu_id: number;
   type_statut_penal: string | null;
@@ -270,7 +270,7 @@ interface MandasApi {
 
 // La fiche détaillée renvoie l'affectation complète là où la liste n'en donne que
 // la cellule, et calcule la catégorie depuis les mandats déjà chargés.
-interface DetenuDetailApi
+export interface DetenuDetailApi
   extends Omit<
     DetenuListeApi,
     "contact" | "statut_penal" | "date_incarceration" | "motif_detention" | "type_mandat" | "categorie_penale" | "cellule_actuelle"
@@ -305,7 +305,7 @@ interface DetenuDetailApi
   updated_at: string | null;
 }
 
-interface CelluleApi {
+export interface CelluleApi {
   id: number;
   numero: string;
   bloc: string | null;
@@ -315,7 +315,7 @@ interface CelluleApi {
   places_disponibles: number;
 }
 
-interface AffectationApi {
+export interface AffectationApi {
   id: number;
   detenu_id: number;
   cellule?: { id: number; numero: string; bloc: string | null };
@@ -325,7 +325,7 @@ interface AffectationApi {
   motif_affectation: string | null;
 }
 
-interface TableauDeBordApi {
+export interface TableauDeBordApi {
   genere_le: string;
   effectif: number;
   capacite_totale: number;
@@ -361,7 +361,7 @@ interface OccupantApi {
   date_affectation: string | null;
 }
 
-interface SanctionApi {
+export interface SanctionApi {
   id: number;
   detenu_id: number;
   detenu?: { id: number; numero_ecrou: string; nom: string };
@@ -378,7 +378,7 @@ interface SanctionApi {
   created_at: string | null;
 }
 
-interface SuiviMedicalApi {
+export interface SuiviMedicalApi {
   id: number;
   detenu_id: number;
   detenu?: { id: number; numero_ecrou: string; nom: string };
@@ -396,7 +396,7 @@ interface SuiviMedicalApi {
   observations: string | null;
 }
 
-interface VisiteApi {
+export interface VisiteApi {
   id: number;
   detenu_id: number;
   detenu?: { id: number; numero_ecrou: string; nom: string };
@@ -422,7 +422,7 @@ interface VisiteApi {
   observations_visite: string | null;
 }
 
-interface SortieApi {
+export interface SortieApi {
   id: number;
   detenu_id: number;
   detenu?: { id: number; numero_ecrou: string; nom: string };
@@ -457,7 +457,7 @@ const ROUTE_SORTIE: Record<TypeSortie, string> = {
 const libelleCellule = (c: { numero: string; bloc: string | null }) =>
   c.bloc ? `${c.bloc} · ${c.numero}` : c.numero;
 
-function versCellule(c: CelluleApi): Cellule {
+export function versCellule(c: CelluleApi): Cellule {
   return {
     id: c.id,
     numero: c.numero,
@@ -470,7 +470,7 @@ function versCellule(c: CelluleApi): Cellule {
   };
 }
 
-function versAffectation(a: AffectationApi, detenu: { nom: string; numeroEcrou: string }): Affectation {
+export function versAffectation(a: AffectationApi, detenu: { nom: string; numeroEcrou: string }): Affectation {
   return {
     id: a.id,
     detenuId: a.detenu_id,
@@ -489,7 +489,7 @@ const CATEGORIE_DEPUIS_SLUG = Object.fromEntries(
   Object.entries(CATEGORIE_SLUG).map(([categorie, slug]) => [slug, categorie as CategoriePenale]),
 ) as Record<string, CategoriePenale>;
 
-function versSanction(s: SanctionApi, detenu?: { nom: string; numeroEcrou: string }): Sanction {
+export function versSanction(s: SanctionApi, detenu?: { nom: string; numeroEcrou: string }): Sanction {
   const statut = s.statut as Sanction["statut"];
   return {
     id: s.id,
@@ -514,7 +514,7 @@ function versSanction(s: SanctionApi, detenu?: { nom: string; numeroEcrou: strin
   };
 }
 
-function versSuiviMedical(s: SuiviMedicalApi, detenu?: { nom: string; numeroEcrou: string }): SuiviMedical {
+export function versSuiviMedical(s: SuiviMedicalApi, detenu?: { nom: string; numeroEcrou: string }): SuiviMedical {
   return {
     id: s.id,
     detenuId: s.detenu_id,
@@ -535,7 +535,7 @@ function versSuiviMedical(s: SuiviMedicalApi, detenu?: { nom: string; numeroEcro
   };
 }
 
-function versVisite(v: VisiteApi, detenu?: { nom: string; numeroEcrou: string }): Visite {
+export function versVisite(v: VisiteApi, detenu?: { nom: string; numeroEcrou: string }): Visite {
   return {
     id: v.id,
     detenuId: v.detenu_id,
@@ -564,7 +564,7 @@ function versVisite(v: VisiteApi, detenu?: { nom: string; numeroEcrou: string })
   };
 }
 
-function versTableauDeBord(d: TableauDeBordApi): TableauDeBord {
+export function versTableauDeBord(d: TableauDeBordApi): TableauDeBord {
   const categories = Object.fromEntries(
     (Object.keys(CATEGORIE_SLUG) as CategoriePenale[]).map((c) => [c, d.effectifs_par_categorie?.[c] ?? 0]),
   ) as Record<CategoriePenale, number>;
@@ -592,7 +592,7 @@ function versTableauDeBord(d: TableauDeBordApi): TableauDeBord {
   };
 }
 
-function versSortie(x: SortieApi, detenu?: { nom: string; numeroEcrou: string }): SortieDetenu {
+export function versSortie(x: SortieApi, detenu?: { nom: string; numeroEcrou: string }): SortieDetenu {
   const type = (Object.keys(TYPE_SORTIE_API) as TypeSortie[]).find(
     (t) => TYPE_SORTIE_API[t] === x.type_sortie,
   );
@@ -619,13 +619,13 @@ const versSexe = (s: string): Sexe => (s === "Féminin" ? "Féminin" : "Masculin
  * Un mandat est actif si l'API ne l'a pas désactivé ET que sa date d'expiration
  * n'est pas passée — même règle que l'ancienne application desktop.
  */
-function mandatActif(m: MandasApi): boolean {
+export function mandatActif(m: MandasApi): boolean {
   if (!m.est_actif) return false;
   if (!m.date_expiration_mandat) return true;
   return new Date(m.date_expiration_mandat) > new Date();
 }
 
-function versMandas(m: MandasApi): Mandas {
+export function versMandas(m: MandasApi): Mandas {
   return {
     id: m.id,
     detenuId: m.detenu_id,
@@ -663,7 +663,7 @@ function versMandas(m: MandasApi): Mandas {
  * L'échéance du mandat reste nulle : elle n'est pas dans la liste, seulement sur
  * la fiche. L'écran masque cette colonne en mode réel plutôt que d'inventer.
  */
-function versResume(d: DetenuListeApi): DetenuResume {
+export function versResume(d: DetenuListeApi): DetenuResume {
   const aMandat = Boolean(d.date_incarceration || d.statut_penal);
   return {
     id: d.id,
@@ -714,7 +714,7 @@ function versResume(d: DetenuListeApi): DetenuResume {
 }
 
 /** Fiche complète → résumé, mandats compris (là, tout est disponible). */
-function versResumeDetail(d: DetenuDetailApi, mandats: MandatDetaille[]): DetenuResume {
+export function versResumeDetail(d: DetenuDetailApi, mandats: MandatDetaille[]): DetenuResume {
   // `actif` tient compte de la désactivation par l'API, pas seulement de l'échéance
   const actifs = mandats
     .filter((m) => m.actif)
@@ -787,7 +787,7 @@ function versResumeDetail(d: DetenuDetailApi, mandats: MandatDetaille[]): Detenu
  * l'ancienne valeur resterait en base. Les photos ne partent que si une nouvelle a
  * été déposée.
  */
-function versCorpsDetenu(e: EntreeDetenu, mode: "creation" | "maj" = "creation"): Record<string, unknown> {
+export function versCorpsDetenu(e: EntreeDetenu, mode: "creation" | "maj" = "creation"): Record<string, unknown> {
   const corps: Record<string, unknown> = {
     numero_ecrou: e.numeroEcrou,
     nom: e.nom,
@@ -836,7 +836,7 @@ function versCorpsDetenu(e: EntreeDetenu, mode: "creation" | "maj" = "creation")
 }
 
 /** Corps JSON attendu par l'API pour un mandat. */
-function versCorpsMandat(e: EntreeMandat): Record<string, unknown> {
+export function versCorpsMandat(e: EntreeMandat): Record<string, unknown> {
   const corps: Record<string, unknown> = {
     type_statut_penal: e.typeStatutPenal,
     date_incarceration: e.dateIncarceration,
