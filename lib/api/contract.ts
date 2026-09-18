@@ -14,6 +14,8 @@ import type {
   CategoriePenale,
   Cellule,
   DetenuResume,
+  EntreeParametres,
+  EntreeUtilisateur,
   FiltreDetenus,
   Mandas,
   PageResultat,
@@ -352,8 +354,23 @@ export interface ApiClient {
   /** POST /detenus/{id}/sorties/{type} */
   enregistrerSortie(detenuId: number, entree: EntreeSortie): Promise<{ id: number; definitive: boolean }>;
 
-  /** GET /utilisateurs (à livrer) */
+  /** GET /utilisateurs — réservé aux administrateurs (403 sinon) */
   listUtilisateurs(): Promise<Utilisateur[]>;
-  /** GET /parametres (à livrer) */
+  /** POST /utilisateurs — 422 si le nom d'utilisateur ou l'email existe déjà */
+  creerUtilisateur(entree: EntreeUtilisateur & { motDePasse: string }): Promise<{ id: number }>;
+  /** PUT /utilisateurs/{id} */
+  majUtilisateur(id: number, entree: EntreeUtilisateur): Promise<void>;
+  /** POST /utilisateurs/{id}/desactiver — 422 si c'est son propre compte */
+  desactiverUtilisateur(id: number): Promise<void>;
+  /** POST /utilisateurs/{id}/restaurer */
+  restaurerUtilisateur(id: number): Promise<void>;
+  /** POST /utilisateurs/{id}/reinitialiser-mot-de-passe — révoque aussi ses jetons actifs */
+  reinitialiserMotDePasse(id: number, motDePasse: string): Promise<void>;
+
+  /** GET /parametres — accessible à tout utilisateur connecté */
   getParametres(): Promise<Parametres>;
+  /** PUT /parametres — réservé aux administrateurs */
+  majParametres(entree: EntreeParametres): Promise<void>;
+  /** POST /parametres/logo — réservé aux administrateurs */
+  televerserLogo(fichier: File): Promise<PhotoTeleversee>;
 }

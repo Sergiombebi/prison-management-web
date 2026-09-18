@@ -20,6 +20,7 @@ import type {
   DetenuResume,
   FiltreDetenus,
   Mandas,
+  Parametres,
   RoleUtilisateur,
   Sanction,
   Sexe,
@@ -28,6 +29,7 @@ import type {
   TableauDeBord,
   TypeSortie,
   TypeStatutPenal,
+  Utilisateur,
   Visite,
 } from "@/lib/domain/types";
 import { CATEGORIE_SLUG, ROLES_UTILISATEUR } from "@/lib/domain/referentiels";
@@ -207,6 +209,56 @@ export function versProfil(u: UtilisateurApi): ProfilUtilisateur {
     email: u.email ?? null,
     role: versRole(u.role),
     estActif: u.est_actif !== false,
+  };
+}
+
+/** Fiche complète d'un compte (module Personnel) — GET/POST/PUT /utilisateurs. */
+interface UtilisateurAdminApi extends UtilisateurApi {
+  created_at: string;
+  last_login_at: string | null;
+}
+
+function versUtilisateur(u: UtilisateurAdminApi): Utilisateur {
+  return {
+    id: u.id,
+    username: u.username,
+    nom: u.nom,
+    prenom: u.prenom,
+    role: versRole(u.role),
+    email: u.email,
+    estActif: u.est_actif,
+    dateCreation: u.created_at,
+    derniereConnexion: u.last_login_at,
+  };
+}
+
+interface ParametresApi {
+  id: number;
+  nom_prison: string;
+  ville: string;
+  telephone: string | null;
+  fax: string | null;
+  entete_gauche: string;
+  entete_droite: string;
+  logo_url: string | null;
+  logo_public_id: string | null;
+  age_majorite: number;
+  autorites_ampliataires: string | null;
+}
+
+function versParametres(p: ParametresApi): Parametres {
+  return {
+    id: p.id,
+    nomPrison: p.nom_prison,
+    ville: p.ville,
+    telephone: p.telephone ?? "",
+    fax: p.fax ?? "",
+    enteteGauche: p.entete_gauche,
+    enteteDroite: p.entete_droite,
+    logoUrl: p.logo_url,
+    logoPublicId: p.logo_public_id,
+    ageMajorite: p.age_majorite,
+    autoritesAmpliataires: p.autorites_ampliataires ?? "",
   };
 }
 
@@ -998,8 +1050,8 @@ export const liveApi: ApiClient = {
     if (face) formulaire.append("photo_face", face);
     if (profil) formulaire.append("photo_profil", profil);
 
-    // Seul appel multipart de l'API : on ne pose pas de Content-Type, le
-    // navigateur (ici Node) doit écrire lui-même la frontière du formulaire.
+    // Appel multipart : on ne pose pas de Content-Type, le navigateur (ici
+    // Node) doit écrire lui-même la frontière du formulaire.
     const corps = await requete<{
       data: {
         photo_face?: { url: string; public_id: string };
@@ -1306,6 +1358,94 @@ export const liveApi: ApiClient = {
   },
 
   // -------------------------------------------------------------------------
+  // Administration — GUIDE_FRONTEND.md §15
+  // -------------------------------------------------------------------------
+
+  async listUtilisateurs() {
+    const utilisateurs = await toutesLesPages<UtilisateurAdminApi>("/utilisateurs");
+    return utilisateurs.map(versUtilisateur);
+  },
+
+  async creerUtilisateur(entree) {
+    const corps = await requete<{ data: { id: number } }>("/utilisateurs", {
+      method: "POST",
+      body: JSON.stringify({
+        nom: entree.nom,
+        prenom: entree.prenom,
+        username: entree.username,
+        email: entree.email,
+        password: entree.motDePasse,
+        role: entree.role,
+      }),
+    });
+    return { id: corps.data.id };
+  },
+
+  async majUtilisateur(id, entree) {
+    await requete(`/utilisateurs/${id}`, {
+      method: "PUT",
+      body: JSON.stringify({
+        nom: entree.nom,
+        prenom: entree.prenom,
+        username: entree.username,
+        email: entree.email,
+        role: entree.role,
+      }),
+    });
+  },
+
+  async desactiverUtilisateur(id) {
+    await requete(`/utilisateurs/${id}/desactiver`, { method: "POST" });
+  },
+
+  async restaurerUtilisateur(id) {
+    await requete(`/utilisateurs/${id}/restaurer`, { method: "POST" });
+  },
+
+  async reinitialiserMotDePasse(id, motDePasse) {
+    await requete(`/utilisateurs/${id}/reinitialiser-mot-de-passe`, {
+      method: "POST",
+      body: JSON.stringify({ password: motDePasse }),
+    });
+  },
+
+  async getParametres() {
+    const corps = await requete<{ data: ParametresApi }>("/parametres");
+    return versParametres(corps.data);
+  },
+
+  async majParametres(entree) {
+    await requete("/parametres", {
+      method: "PUT",
+      body: JSON.stringify({
+        nom_prison: entree.nomPrison,
+        ville: entree.ville,
+        telephone: entree.telephone || null,
+        fax: entree.fax || null,
+        entete_gauche: entree.enteteGauche,
+        entete_droite: entree.enteteDroite,
+        logo_url: entree.logoUrl,
+        logo_public_id: entree.logoPublicId,
+        age_majorite: entree.ageMajorite,
+        autorites_ampliataires: entree.autoritesAmpliataires || null,
+      }),
+    });
+  },
+
+  async televerserLogo(fichier) {
+    const formulaire = new FormData();
+    formulaire.append("logo", fichier);
+
+    const corps = await requete<{ data: { url: string; public_id: string } }>("/parametres/logo", {
+      method: "POST",
+      body: formulaire,
+      multipart: true,
+    });
+
+    return { url: corps.data.url, publicId: corps.data.public_id };
+  },
+
+  // -------------------------------------------------------------------------
   // Modules que l'API n'expose pas encore (cf. bloc A signalé au back).
   // `async` : l'échec doit être une promesse rejetée, comme pour toute méthode
   // du contrat — une exception synchrone échapperait à qui attend la promesse.
@@ -1313,6 +1453,4 @@ export const liveApi: ApiClient = {
 
   listMandats: async () => nonLivre("GET /mandats"),
   listMandatsExpires: async () => nonLivre("GET /mandats/expires"),
-  listUtilisateurs: async () => nonLivre("GET /utilisateurs"),
-  getParametres: async () => nonLivre("GET /parametres"),
 };

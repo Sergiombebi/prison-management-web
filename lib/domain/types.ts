@@ -291,9 +291,23 @@ export interface Parametres {
   enteteGauche: string;
   enteteDroite: string;
   logoUrl: string | null;
+  logoPublicId: string | null;
   ageMajorite: number;
   autoritesAmpliataires: string;
 }
+
+/** Création ou modification d'un compte — le mot de passe se gère à part (création /
+ * réinitialisation), jamais dans cette même entrée pour éviter de l'écraser par erreur
+ * lors d'une simple modification de rôle. */
+export interface EntreeUtilisateur {
+  nom: string;
+  prenom: string;
+  username: string;
+  email: string;
+  role: RoleUtilisateur;
+}
+
+export type EntreeParametres = Omit<Parametres, "id">;
 
 // ---------------------------------------------------------------------------
 // Tableau de bord

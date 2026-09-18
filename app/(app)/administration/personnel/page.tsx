@@ -3,6 +3,7 @@ import { api } from "@/lib/api";
 import type { RoleUtilisateur, Utilisateur } from "@/lib/domain/types";
 import { DESCRIPTION_ROLE, LIBELLE_ROLE } from "@/lib/domain/referentiels";
 import { formatNombre, formatRelatif, initiales } from "@/lib/format";
+import { hrefAvec, param } from "@/lib/url";
 import { getProfil, peutAdministrer } from "@/lib/session";
 import { t } from "@/lib/i18n/fr";
 import { Page, PageHeader } from "@/components/layout/page";
@@ -11,12 +12,18 @@ import { Stat, StatGrid } from "@/components/data/stat";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
 import { Avatar, EmptyState, Panel } from "@/components/ui/surface";
+import { BoutonConfirmation } from "@/components/ui/bouton-confirmation";
+import { FormulaireUtilisateur } from "@/components/administration/formulaire-utilisateur";
+import { BoutonReinitialiserMotDePasse } from "@/components/administration/bouton-reinitialiser-mot-de-passe";
+import { BoutonRestaurerUtilisateur } from "@/components/administration/bouton-restaurer-utilisateur";
+import { creerUtilisateur, desactiverUtilisateur, modifierUtilisateur } from "../actions";
 
 export const metadata: Metadata = { title: "Personnel" };
 
 const ROLES: RoleUtilisateur[] = ["admin", "agent", "medecin"];
+const CHEMIN = "/administration/personnel";
 
-export default async function PersonnelPage() {
+export default async function PersonnelPage(props: PageProps<"/administration/personnel">) {
   const profil = await getProfil();
 
   if (!profil || !peutAdministrer(profil.role)) {
@@ -35,8 +42,10 @@ export default async function PersonnelPage() {
     );
   }
 
+  const sp = await props.searchParams;
   const utilisateurs = await api.listUtilisateurs();
   const actifs = utilisateurs.filter((u) => u.estActif).length;
+  const enModification = utilisateurs.find((u) => String(u.id) === param(sp, "modifier"));
 
   return (
     <Page>
@@ -53,49 +62,100 @@ export default async function PersonnelPage() {
         ))}
       </StatGrid>
 
-      <Panel variante="eleve" titre="Comptes utilisateurs" flush className="overflow-hidden">
-        <DataTable<Utilisateur>
-          legende="Comptes utilisateurs"
-          lignes={utilisateurs}
-          cleLigne={(u) => u.id}
-          colonnes={[
-            {
-              cle: "nom",
-              titre: "Agent",
-              rendu: (u) => (
-                <div className="flex items-center gap-2.5">
-                  <Avatar initiales={initiales(`${u.prenom} ${u.nom}`)} taille="sm" />
-                  <div>
-                    <p className="font-medium">
-                      {u.prenom} {u.nom}
-                      {u.id === profil.id && <span className="ml-1.5 text-xs font-normal text-faint">(vous)</span>}
-                    </p>
-                    <p className="font-mono text-xs text-muted">{u.username}</p>
+      <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <Panel variante="eleve" titre="Comptes utilisateurs" flush className="overflow-hidden">
+          <DataTable<Utilisateur>
+            legende="Comptes utilisateurs"
+            lignes={utilisateurs}
+            cleLigne={(u) => u.id}
+            colonnes={[
+              {
+                cle: "nom",
+                titre: "Agent",
+                rendu: (u) => (
+                  <div className="flex items-center gap-2.5">
+                    <Avatar initiales={initiales(`${u.prenom} ${u.nom}`)} taille="sm" />
+                    <div>
+                      <p className="font-medium">
+                        {u.prenom} {u.nom}
+                        {u.id === profil.id && <span className="ml-1.5 text-xs font-normal text-faint">(vous)</span>}
+                      </p>
+                      <p className="font-mono text-xs text-muted">{u.username}</p>
+                    </div>
                   </div>
-                </div>
-              ),
-            },
-            { cle: "email", titre: "Adresse électronique", masquerSous: "lg", rendu: (u) => <span className="text-muted">{u.email ?? "—"}</span> },
-            {
-              cle: "role",
-              titre: t.champs.role,
-              rendu: (u) => (
-                <Badge ton={u.role === "admin" ? "accent" : "neutre"} title={DESCRIPTION_ROLE[u.role]}>
-                  {LIBELLE_ROLE[u.role]}
-                </Badge>
-              ),
-            },
-            { cle: "etat", titre: "Compte", rendu: (u) => <Badge ton={u.estActif ? "succes" : "neutre"}>{u.estActif ? "Actif" : "Désactivé"}</Badge> },
-            {
-              cle: "connexion",
-              titre: t.champs.derniereConnexion,
-              align: "droite",
-              masquerSous: "md",
-              rendu: (u) => <span className="text-muted">{u.derniereConnexion ? formatRelatif(u.derniereConnexion) : "Jamais connecté"}</span>,
-            },
-          ]}
-        />
-      </Panel>
+                ),
+              },
+              { cle: "email", titre: "Adresse électronique", masquerSous: "lg", rendu: (u) => <span className="text-muted">{u.email ?? "—"}</span> },
+              {
+                cle: "role",
+                titre: t.champs.role,
+                rendu: (u) => (
+                  <Badge ton={u.role === "admin" ? "accent" : "neutre"} title={DESCRIPTION_ROLE[u.role]}>
+                    {LIBELLE_ROLE[u.role]}
+                  </Badge>
+                ),
+              },
+              { cle: "etat", titre: "Compte", rendu: (u) => <Badge ton={u.estActif ? "succes" : "neutre"}>{u.estActif ? "Actif" : "Désactivé"}</Badge> },
+              {
+                cle: "connexion",
+                titre: t.champs.derniereConnexion,
+                align: "droite",
+                masquerSous: "md",
+                rendu: (u) => <span className="text-muted">{u.derniereConnexion ? formatRelatif(u.derniereConnexion) : "Jamais connecté"}</span>,
+              },
+              {
+                cle: "actions",
+                titre: "",
+                align: "droite",
+                rendu: (u) => (
+                  <ButtonLink
+                    href={hrefAvec(CHEMIN, sp, { modifier: String(u.id) })}
+                    taille="sm"
+                    icone="edit"
+                    aria-current={enModification?.id === u.id ? "true" : undefined}
+                  >
+                    Modifier
+                  </ButtonLink>
+                ),
+              },
+            ]}
+          />
+        </Panel>
+
+        <div className="xl:sticky xl:top-20">
+          {enModification ? (
+            <Panel
+              key={enModification.id}
+              titre={`Modifier ${enModification.prenom} ${enModification.nom}`}
+              variante="eleve"
+              accent
+            >
+              <FormulaireUtilisateur utilisateur={enModification} action={modifierUtilisateur.bind(null, enModification.id)} />
+
+              <div className="mt-5 flex flex-col items-start gap-2.5 border-t border-hairline pt-4">
+                <BoutonReinitialiserMotDePasse utilisateurId={enModification.id} nom={`${enModification.prenom} ${enModification.nom}`} />
+                {enModification.id !== profil.id &&
+                  (enModification.estActif ? (
+                    <BoutonConfirmation
+                      libelle="Désactiver le compte"
+                      titre="Désactiver ce compte ?"
+                      description="La personne ne pourra plus se connecter tant que le compte n’est pas réactivé."
+                      confirmer="Désactiver"
+                      icone="lock"
+                      action={desactiverUtilisateur.bind(null, enModification.id)}
+                    />
+                  ) : (
+                    <BoutonRestaurerUtilisateur utilisateurId={enModification.id} />
+                  ))}
+              </div>
+            </Panel>
+          ) : (
+            <Panel key="creation" titre="Nouveau compte" variante="eleve">
+              <FormulaireUtilisateur action={creerUtilisateur} />
+            </Panel>
+          )}
+        </div>
+      </div>
     </Page>
   );
 }

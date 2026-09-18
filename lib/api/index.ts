@@ -78,7 +78,14 @@ const DOMAINE_DE: Record<keyof ApiClient, DomaineApi> = {
   listSorties: "sorties",
   enregistrerSortie: "sorties",
   listUtilisateurs: "administration",
+  creerUtilisateur: "administration",
+  majUtilisateur: "administration",
+  desactiverUtilisateur: "administration",
+  restaurerUtilisateur: "administration",
+  reinitialiserMotDePasse: "administration",
   getParametres: "administration",
+  majParametres: "administration",
+  televerserLogo: "administration",
 };
 
 const TOUS_LES_DOMAINES = [...new Set(Object.values(DOMAINE_DE))];

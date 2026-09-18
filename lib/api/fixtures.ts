@@ -640,100 +640,23 @@ export const sorties: SortieDetenu[] = Array.from({ length: 11 }, (_, i) => {
 // Personnel et paramètres
 // ---------------------------------------------------------------------------
 
-export const utilisateurs: Utilisateur[] = [
-  {
-    id: 1,
-    username: "admin",
-    nom: "Système",
-    prenom: "Administrateur",
-    role: "admin",
-    email: "admin@sgp.local",
-    estActif: true,
-    dateCreation: jour(-720),
-    derniereConnexion: jour(0),
-  },
-  {
-    id: 2,
-    username: "p.charles",
-    nom: "Charles",
-    prenom: "Patrick",
-    role: "admin",
-    email: "p.charles@sgp.local",
-    estActif: true,
-    dateCreation: jour(-640),
-    derniereConnexion: jour(-1),
-  },
-  {
-    id: 3,
-    username: "m.nkoa",
-    nom: "Nkoa",
-    prenom: "Théophile",
-    role: "agent",
-    email: "t.nkoa@sgp.local",
-    estActif: true,
-    dateCreation: jour(-410),
-    derniereConnexion: jour(-2),
-  },
-  {
-    id: 4,
-    username: "r.mbida",
-    nom: "Mbida",
-    prenom: "Rose",
-    role: "agent",
-    email: "r.mbida@sgp.local",
-    estActif: true,
-    dateCreation: jour(-380),
-    derniereConnexion: jour(-4),
-  },
-  {
-    id: 5,
-    username: "d.ella",
-    nom: "Ella",
-    prenom: "Désiré",
-    role: "agent",
-    email: null,
-    estActif: true,
-    dateCreation: jour(-220),
-    derniereConnexion: jour(-17),
-  },
-  {
-    id: 6,
-    username: "e.tamo",
-    nom: "Tamo",
-    prenom: "Eric",
-    role: "agent",
-    email: "e.tamo@sgp.local",
-    estActif: false,
-    dateCreation: jour(-190),
-    derniereConnexion: jour(-95),
-  },
-  {
-    id: 7,
-    username: "a.mbassi",
-    nom: "Mbassi",
-    prenom: "Adèle",
-    role: "medecin",
-    email: "a.mbassi@sgp.local",
-    estActif: true,
-    dateCreation: jour(-60),
-    derniereConnexion: null,
-  },
-];
+// Le module Administration (Personnel + Paramètres) est passé en API réelle : ces deux
+// fixtures ne servent plus qu'à satisfaire le mode mock si SGP_API_LIVE en exclut
+// explicitement "administration" - donc volontairement vides, sans faux comptes/réglages.
+export const utilisateurs: Utilisateur[] = [];
 
 export const parametres: Parametres = {
   id: 1,
-  nomPrison: "Prison Principale de Yaoundé",
-  ville: "Yaoundé",
-  telephone: "222 23 45 67",
-  fax: "222 23 45 68",
-  enteteGauche:
-    "RÉPUBLIQUE DU CAMEROUN\nPaix — Travail — Patrie\n----------\nMINISTÈRE DE LA JUSTICE\n----------\nDÉLÉGATION RÉGIONALE DE L'ADMINISTRATION PÉNITENTIAIRE DU CENTRE",
-  enteteDroite:
-    "REPUBLIC OF CAMEROON\nPeace — Work — Fatherland\n----------\nMINISTRY OF JUSTICE\n----------\nREGIONAL DELEGATION OF PENITENTIARY ADMINISTRATION FOR THE CENTRE",
+  nomPrison: "",
+  ville: "",
+  telephone: "",
+  fax: "",
+  enteteGauche: "",
+  enteteDroite: "",
   logoUrl: null,
+  logoPublicId: null,
   ageMajorite: 18,
-  autoritesAmpliataires:
-    "- LE PROCUREUR DE LA RÉPUBLIQUE\n- LE COMMISSAIRE CENTRAL\n- LE COMMISSAIRE SPÉCIAL\n- LE COMMANDANT DE COMPAGNIE\n- LE DRAP/CENTRE\n- DOSSIER INTÉRESSÉ\n- CHRONO/ARCHIVES",
+  autoritesAmpliataires: "",
 };
 
 export const REFERENCE_TEMPORELLE = REFERENCE;

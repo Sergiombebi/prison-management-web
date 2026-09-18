@@ -480,8 +480,47 @@ export const mockApi: ApiClient = {
     return [...fx.utilisateurs];
   },
 
+  async creerUtilisateur(entree) {
+    await attendre();
+    if (fx.utilisateurs.some((u) => u.username === entree.username)) {
+      const message = "Ce nom d'utilisateur est déjà pris.";
+      throw new ApiErreur(message, 422, "VALIDATION", { username: [message] });
+    }
+    if (fx.utilisateurs.some((u) => u.email === entree.email)) {
+      const message = "Cet email est déjà associé à un compte.";
+      throw new ApiErreur(message, 422, "VALIDATION", { email: [message] });
+    }
+    return { id: fx.utilisateurs.length + 1 };
+  },
+
+  async majUtilisateur() {
+    await attendre();
+  },
+
+  async desactiverUtilisateur() {
+    await attendre();
+  },
+
+  async restaurerUtilisateur() {
+    await attendre();
+  },
+
+  async reinitialiserMotDePasse() {
+    await attendre();
+  },
+
   async getParametres() {
     await attendre();
     return { ...fx.parametres };
+  },
+
+  async majParametres() {
+    await attendre();
+  },
+
+  async televerserLogo() {
+    await attendre();
+    // Aucun stockage en démonstration : les paramètres gardent leur logo actuel
+    return { url: "", publicId: "" };
   },
 };
