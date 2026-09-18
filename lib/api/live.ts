@@ -1249,8 +1249,9 @@ export const liveApi: ApiClient = {
   // -------------------------------------------------------------------------
 
   async listSuivisMedicaux() {
-    const suivis = await toutesLesPages<SuiviMedicalApi>("/suivis-medicaux");
-    return suivis.map((s) => versSuiviMedical(s));
+    // Non paginé côté API : un registre médical se consulte en entier.
+    const corps = await requete<{ data: SuiviMedicalApi[] }>("/suivis-medicaux");
+    return corps.data.map((s) => versSuiviMedical(s));
   },
 
   async creerSuiviMedical(detenuId, entree) {
@@ -1277,8 +1278,9 @@ export const liveApi: ApiClient = {
   },
 
   async listVisites() {
-    const visites = await toutesLesPages<VisiteApi>("/visites");
-    return visites.map((v) => versVisite(v));
+    // Non paginé côté API : un registre des visites se consulte en entier.
+    const corps = await requete<{ data: VisiteApi[] }>("/visites");
+    return corps.data.map((v) => versVisite(v));
   },
 
   async creerVisite(detenuId, entree) {

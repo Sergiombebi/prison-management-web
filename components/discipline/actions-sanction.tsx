@@ -1,25 +1,24 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Sanction } from "@/lib/domain/types";
 import { annulerSanction, terminerSanction } from "@/app/(app)/discipline/actions";
-import { Button } from "@/components/ui/button";
 import { BoutonConfirmation } from "@/components/ui/bouton-confirmation";
-import { Icon } from "@/components/ui/icon";
+import { useToast } from "@/components/ui/toast";
 
 /**
- * Terminer une sanction, ou annuler une saisie erronée.
+ * Terminer une sanction, ou annuler une saisie erronée. Les deux sont
+ * irréversibles côté registre disciplinaire : chacune passe par une
+ * confirmation.
  *
  * Terminer libère la cellule disciplinaire sans remettre le détenu ailleurs :
- * c'est voulu côté API (la cellule d'origine peut être devenue pleine). Le
- * message du serveur est donc affiché tel quel, avec un lien de réaffectation.
+ * c'est voulu côté API (la cellule d'origine peut être devenue pleine). En cas
+ * d'isolement en cours, le toast de confirmation porte un raccourci vers la
+ * réaffectation.
  */
 export function ActionsSanction({ sanction }: { sanction: Sanction }) {
   const router = useRouter();
-  const [enCours, demarrer] = useTransition();
-  const [retour, setRetour] = useState<{ ok: boolean; message: string }>();
+  const { push } = useToast();
 
   if (sanction.estActif === false) {
     return <span className="text-2xs text-faint">Annulée</span>;
@@ -31,76 +30,57 @@ export function ActionsSanction({ sanction }: { sanction: Sanction }) {
   }`;
 
   return (
-    <div className="flex flex-col items-end gap-1.5">
-      <div className="flex items-center gap-1.5">
-        {terminable && (
-          <Button
-            type="button"
-            taille="sm"
-            icone="check"
-            chargement={enCours}
-            onClick={() =>
-              demarrer(async () => {
-                const r = await terminerSanction(sanction.id);
-                // Le message de l'API s'adresse aux développeurs (« via POST /detenus/… ») :
-                // on garde le nôtre en cas de succès, le sien en cas d'échec.
-                setRetour({
-                  ok: r.ok,
-                  message: r.ok
-                    ? sanction.isolementEnCours
-                      ? "Sanction terminée. Le détenu n’a plus de cellule."
-                      : "Sanction terminée."
-                    : r.message,
-                });
-                router.refresh();
-              })
-            }
-          >
-            Terminer
-          </Button>
-        )}
+    <div className="flex items-center justify-end gap-1.5">
+      {terminable && (
         <BoutonConfirmation
-          libelle="Annuler"
+          libelle="Terminer"
           taille="sm"
-          icone="trash"
-          titre="Annuler cette sanction ?"
+          icone="check"
+          variante="secondaire"
+          titre="Terminer cette sanction ?"
           description={
-            <>
-              <p>
-                La sanction disparaîtra des sanctions en cours, mais restera dans l’historique du
-                détenu comme annulée.
-              </p>
-              <p className="mt-2">
-                À réserver à une saisie erronée. Pour mettre fin à une sanction réellement purgée,
-                utilisez « Terminer » : cela libère aussi la cellule disciplinaire.
-              </p>
-            </>
+            sanction.isolementEnCours
+              ? "Le détenu sort immédiatement de la cellule disciplinaire. À réserver à une sanction réellement purgée."
+              : "La sanction passera au statut « Terminée »."
           }
-          confirmer="Annuler la sanction"
-          action={() => annulerSanction(sanction.id)}
+          confirmer="Terminer la sanction"
+          // Le message de l'API s'adresse aux développeurs (« via POST /detenus/… ») : on
+          // affiche le nôtre au lieu du sien.
+          action={async () => {
+            const r = await terminerSanction(sanction.id);
+            return { ok: r.ok, message: r.ok ? undefined : r.message };
+          }}
+          onSuccess={() =>
+            push({
+              type: "success",
+              title: sanction.isolementEnCours ? "Sanction terminée. Le détenu n’a plus de cellule." : "Sanction terminée.",
+              actionLabel: sanction.isolementEnCours ? "Réaffecter une cellule" : undefined,
+              onAction: sanction.isolementEnCours ? () => router.push(lienReaffectation) : undefined,
+            })
+          }
         />
-      </div>
-
-      {retour && (
-        <p
-          role="status"
-          className={`max-w-[42ch] text-right text-2xs ${retour.ok ? "text-muted" : "text-danger"}`}
-        >
-          {retour.message}
-          {retour.ok && sanction.isolementEnCours && (
-            <>
-              {" "}
-              <Link
-                href={lienReaffectation}
-                className="inline-flex items-center gap-1 font-medium text-accent-ink underline underline-offset-2"
-              >
-                <Icon name="arrowRight" size={11} />
-                Réaffecter une cellule
-              </Link>
-            </>
-          )}
-        </p>
       )}
+      <BoutonConfirmation
+        libelle="Annuler"
+        taille="sm"
+        icone="trash"
+        titre="Annuler cette sanction ?"
+        description={
+          <>
+            <p>
+              La sanction disparaîtra des sanctions en cours, mais restera dans l’historique du
+              détenu comme annulée.
+            </p>
+            <p className="mt-2">
+              À réserver à une saisie erronée. Pour mettre fin à une sanction réellement purgée,
+              utilisez « Terminer » : cela libère aussi la cellule disciplinaire.
+            </p>
+          </>
+        }
+        confirmer="Annuler la sanction"
+        action={() => annulerSanction(sanction.id)}
+        onSuccess={() => push({ type: "success", title: "Sanction annulée." })}
+      />
     </div>
   );
 }

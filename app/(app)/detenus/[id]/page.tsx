@@ -23,6 +23,7 @@ import { Icon, type NomIcone } from "@/components/ui/icon";
 import { Avatar, DataPair, EmptyState, Ecrou, Panel } from "@/components/ui/surface";
 import { TabsNav } from "@/components/ui/tabs";
 import { BoutonConfirmation } from "@/components/ui/bouton-confirmation";
+import { ConfirmationToast } from "@/components/ui/confirmation-toast";
 import { ActionsSanction } from "@/components/discipline/actions-sanction";
 import { BoutonRestaurer } from "@/components/detenus/bouton-restaurer";
 import { restaurerDossier } from "../nouveau/actions";
@@ -105,15 +106,7 @@ export default async function DossierDetenuPage(props: PageProps<"/detenus/[id]"
         Registre d’écrou
       </ButtonLink>
 
-      {confirmation && (
-        <p
-          role="status"
-          className="flex items-center gap-2.5 rounded-lg border border-success/30 bg-success-soft px-4 py-3 text-sm text-success animate-rise"
-        >
-          <Icon name="check" size={15} className="shrink-0" />
-          {confirmation}
-        </p>
-      )}
+      <ConfirmationToast message={confirmation} />
 
       {/* Dossier désactivé : aucune modification n'est possible tant qu'il n'est pas restauré */}
       {!present && (

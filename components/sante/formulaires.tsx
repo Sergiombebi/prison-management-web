@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useRef, useState } from "react";
 import type { EtatAction } from "@/lib/api/actions";
 import type { DetenuResume } from "@/lib/domain/types";
 import {
@@ -68,6 +68,31 @@ function ChampDetenu({
 }
 
 const aujourdhui = () => new Date().toISOString().slice(0, 10);
+
+/** Champs du premier écran de `FormulaireVisite` : y renvoyer si une erreur les concerne. */
+const CHAMPS_ETAPE_VISITE = new Set([
+  "detenu_id",
+  "date_visite",
+  "heure_arrivee",
+  "duree_prevue_minutes",
+  "type_visite",
+  "lieu_visite",
+  "nom_visiteur",
+  "sexe_visiteur",
+  "lien_parente",
+  "type_piece_identite",
+  "numero_piece_identite",
+  "telephone_visiteur",
+  "adresse_visiteur",
+]);
+
+function Etapes({ actuelle, total }: { actuelle: number; total: number }) {
+  return (
+    <p className="text-2xs font-medium uppercase tracking-[0.08em] text-muted">
+      Étape {actuelle} sur {total}
+    </p>
+  );
+}
 
 // ---------------------------------------------------------------------------
 
@@ -161,10 +186,27 @@ export function FormulaireVisite({
   detenuInitial?: number;
 }) {
   const { etat, envoyer, enCours, v, err } = useFormulaire(enregistrerVisite);
+  const forme = useRef<HTMLFormElement>(null);
+  const [etape, setEtape] = useState<1 | 2>(1);
+
+  // Une erreur sur un champ de l'étape 1 (ex. numéro de pièce déjà pris) doit
+  // ramener dessus, sinon le message apparaît sans que le champ soit visible.
+  // Ajustée pendant le rendu plutôt que dans un effet : `etat` ne change qu'au
+  // retour d'une soumission, jamais en continu.
+  const [dernierEtat, setDernierEtat] = useState(etat);
+  if (etat !== dernierEtat) {
+    setDernierEtat(etat);
+    if (etat.erreurs && Object.keys(etat.erreurs).some((champ) => CHAMPS_ETAPE_VISITE.has(champ))) {
+      setEtape(1);
+    }
+  }
 
   return (
-    <form action={envoyer} className="flex flex-col gap-4">
+    <form ref={forme} action={envoyer} className="flex flex-col gap-4">
       <RetourAction etat={etat} />
+      <Etapes actuelle={etape} total={2} />
+
+      <div className={etape === 1 ? "flex flex-col gap-4" : "hidden"}>
       <ChampDetenu label="Détenu visité" detenus={detenus} valeur={v("detenu_id")} erreur={err("detenu_id")} initial={detenuInitial} />
 
       <div className="grid grid-cols-3 gap-3">
@@ -252,7 +294,22 @@ export function FormulaireVisite({
           </Field>
         </div>
       </fieldset>
+      </div>
 
+      <div className={etape === 1 ? "flex justify-end border-t border-hairline pt-4" : "hidden"}>
+        <Button
+          type="button"
+          variante="primaire"
+          icone="arrowRight"
+          onClick={() => {
+            if (forme.current?.reportValidity()) setEtape(2);
+          }}
+        >
+          Continuer
+        </Button>
+      </div>
+
+      <div className={etape === 2 ? "flex flex-col gap-4" : "hidden"}>
       <fieldset className="grid gap-3 rounded-lg border border-hairline bg-raised p-3">
         <legend className="px-1.5 text-2xs font-semibold uppercase tracking-[0.1em] text-accent">Contrôle</legend>
         <Field label="Agent de contrôle" requis erreur={err("agent_controle")}>
@@ -299,10 +356,14 @@ export function FormulaireVisite({
         {(p) => <Textarea {...p} name="observations_visite" rows={2} defaultValue={v("observations_visite")} />}
       </Field>
 
-      <div className="flex justify-end border-t border-hairline pt-4">
+      <div className="flex justify-between border-t border-hairline pt-4">
+        <Button type="button" icone="arrowLeft" onClick={() => setEtape(1)}>
+          Retour
+        </Button>
         <Button type="submit" variante="primaire" icone="user" chargement={enCours}>
           Enregistrer la visite
         </Button>
+      </div>
       </div>
     </form>
   );

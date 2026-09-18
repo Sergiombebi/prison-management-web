@@ -21,6 +21,7 @@ export function BoutonConfirmation({
   variante = "danger",
   taille = "md",
   action,
+  onSuccess,
 }: {
   libelle: string;
   titre: string;
@@ -31,6 +32,8 @@ export function BoutonConfirmation({
   taille?: "sm" | "md";
   /** Server Action : `ok: false` garde la boîte ouverte et affiche le message. */
   action: () => Promise<{ ok: boolean; message?: string }>;
+  /** Appelé après la fermeture, une fois l'action confirmée réussie (ex. toast). */
+  onSuccess?: () => void;
 }) {
   const dialogue = useRef<HTMLDialogElement>(null);
   const idTitre = useId();
@@ -101,6 +104,7 @@ export function BoutonConfirmation({
                   }
                   dialogue.current?.close();
                   router.refresh();
+                  onSuccess?.();
                 })
               }
             >

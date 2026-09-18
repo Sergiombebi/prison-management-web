@@ -72,9 +72,15 @@ export function ThemeToggle({ className }: { className?: string }) {
     abonnes.forEach((rappel) => rappel());
 
     // Bascule en fondu via l'API View Transitions quand elle existe
-    const doc = document as Document & { startViewTransition?: (cb: () => void) => void };
+    const doc = document as Document & {
+      startViewTransition?: (cb: () => void) => { ready: Promise<void>; finished: Promise<void> };
+    };
     if (doc.startViewTransition && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      doc.startViewTransition(() => appliquer(valeur));
+      const transition = doc.startViewTransition(() => appliquer(valeur));
+      // Onglet en arrière-plan, navigateur qui l'annule… l'échec est sans conséquence,
+      // le thème est déjà appliqué : on évite juste le rejet de promesse non intercepté.
+      transition.ready.catch(() => {});
+      transition.finished.catch(() => {});
     } else {
       appliquer(valeur);
     }
