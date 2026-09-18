@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { FormSection, Pleine } from "@/components/ui/form-section";
 import { Icon } from "@/components/ui/icon";
+import { useToast } from "@/components/ui/toast";
 import { enregistrerDetenu, restaurerDossier, type EtatEnregistrement } from "./actions";
 
 /** Mode modification : fiche existante, sans les rubriques du mandat. */
@@ -75,6 +76,7 @@ function age(dateIso: string): number | null {
  */
 export function DetenuForm({ edition }: { edition?: EditionDetenu } = {}) {
   const router = useRouter();
+  const { push } = useToast();
   const [etat, action, enCours] = useActionState<EtatEnregistrement, FormData>(
     edition?.action ?? enregistrerDetenu,
     {},
@@ -226,7 +228,8 @@ export function DetenuForm({ edition }: { edition?: EditionDetenu } = {}) {
                     onClick={async () => {
                       const id = etat.conflit?.detenu_id;
                       if (!id) return;
-                      await restaurerDossier(id);
+                      const r = await restaurerDossier(id);
+                      push({ type: "success", title: r.message });
                       router.push(`/detenus/${id}`);
                     }}
                   >
