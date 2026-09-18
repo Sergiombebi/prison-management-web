@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
-import { api, ApiErreur, ETAT_API } from "@/lib/api";
+import { api, ApiErreur } from "@/lib/api";
 import { getProfil, type ProfilSession } from "@/lib/session";
 import { seDeconnecter } from "./actions";
 
@@ -37,7 +37,7 @@ export default async function ApplicationLayout({ children }: LayoutProps<"/">) 
   if (sessionExpiree) redirect("/deconnexion?raison=expiree");
 
   return (
-    <AppShell profil={profil} modeApi={ETAT_API} seDeconnecter={seDeconnecter}>
+    <AppShell profil={profil} seDeconnecter={seDeconnecter}>
       {children}
     </AppShell>
   );

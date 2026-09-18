@@ -17,19 +17,16 @@ import {
   type ModuleNav,
 } from "@/lib/navigation";
 import type { ProfilSession } from "@/lib/session";
-import type { EtatApi } from "@/lib/api/contract";
 import { Icon } from "@/components/ui/icon";
 import { ThemeToggle } from "./theme-toggle";
 import { CommandPalette } from "./command-palette";
 
 export function AppShell({
   profil,
-  modeApi,
   seDeconnecter,
   children,
 }: {
   profil: ProfilSession;
-  modeApi: EtatApi;
   seDeconnecter: () => Promise<void>;
   children: ReactNode;
 }) {
@@ -72,7 +69,6 @@ export function AppShell({
       <Sidebar
         pathname={pathname}
         profil={profil}
-        modeApi={modeApi}
         ouvert={ouvert}
         onFermer={() => setOuvertSur(null)}
         seDeconnecter={seDeconnecter}
@@ -93,14 +89,12 @@ export function AppShell({
 function Sidebar({
   pathname,
   profil,
-  modeApi,
   ouvert,
   onFermer,
   seDeconnecter,
 }: {
   pathname: string;
   profil: ProfilSession;
-  modeApi: EtatApi;
   ouvert: boolean;
   onFermer: () => void;
   seDeconnecter: () => Promise<void>;
@@ -128,7 +122,7 @@ function Sidebar({
           className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent to-transparent"
         />
         <div className="flex items-start justify-between gap-2">
-          <Link href="/tableau-de-bord" className="group flex items-center gap-3 rounded-md">
+          <Link href="/tableau-de-bord" className="group flex min-w-0 items-center gap-3 rounded-md">
             <span
               aria-hidden
               className="grid size-9 place-items-center rounded-md bg-gradient-to-br from-accent to-accent-hover font-mono text-2xs font-bold tracking-tight text-ink-inverse shadow-e2 transition-transform duration-[var(--dur-base)] ease-[var(--ease-spring)] group-hover:scale-105"
@@ -184,26 +178,6 @@ function Sidebar({
       </nav>
 
       <div className="border-t border-hairline p-3">
-        {modeApi !== "live" && (
-          <div
-            className="mb-3 flex items-start gap-2 rounded-md border border-dashed border-rule bg-raised px-2.5 py-2"
-            title={modeApi === "mock" ? t.mockBanner.texte : t.mockBanner.texteHybride}
-          >
-            <span
-              aria-hidden
-              className="mt-1.5 size-1.5 shrink-0 rounded-full bg-warning"
-              style={{ animation: "sgp-halo 2.6s ease-in-out infinite" }}
-            />
-            <p className="text-2xs leading-4 text-muted">
-              <span className="font-semibold text-ink">
-                {modeApi === "mock" ? t.mockBanner.titre : t.mockBanner.titreHybride}
-              </span>
-              <br />
-              {modeApi === "mock" ? "API non branchée" : "API branchée en partie"}
-            </p>
-          </div>
-        )}
-
         <div className="flex items-center gap-2.5 rounded-lg border border-hairline bg-surface px-2 py-2 shadow-e1">
           <Link
             href="/profil"
