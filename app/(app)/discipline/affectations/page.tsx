@@ -1,15 +1,14 @@
 import type { Metadata } from "next";
 import { api } from "@/lib/api";
 import { tenter } from "@/lib/api/disponibilite";
-import type { Affectation } from "@/lib/domain/types";
-import { formatDate, initiales, ouVide, pluriel } from "@/lib/format";
+import { formatDate, initiales, pluriel } from "@/lib/format";
 import { param } from "@/lib/url";
 import { t } from "@/lib/i18n/fr";
 import { Page, PageHeader } from "@/components/layout/page";
-import { DataTable } from "@/components/data/data-table";
 import { Badge } from "@/components/ui/badge";
 import { EnAttenteApi } from "@/components/ui/en-attente-api";
 import { Avatar, EmptyState, Ecrou, Panel } from "@/components/ui/surface";
+import { AffectationsRecentes } from "@/components/discipline/affectations-recentes";
 import { FormulaireAffectation } from "@/components/discipline/formulaires";
 
 export const metadata: Metadata = { title: "Affectations" };
@@ -86,28 +85,7 @@ export default async function AffectationsPage(props: PageProps<"/discipline/aff
                 texte="L’historique global n’existe pas encore ; celui de chaque détenu est dans l’onglet Détention de sa fiche."
               />
             ) : (
-              <DataTable<Affectation>
-                legende="Historique des affectations"
-                lignes={affectations.donnees.slice(0, 25)}
-                cleLigne={(a) => a.id}
-                lienLigne={(a) => `/detenus/${a.detenuId}?onglet=detention`}
-                colonnes={[
-                  {
-                    cle: "detenu",
-                    titre: "Détenu",
-                    rendu: (a) => (
-                      <div>
-                        <p className="font-medium">{a.detenuNom}</p>
-                        <Ecrou className="text-xs text-muted">{a.numeroEcrou}</Ecrou>
-                      </div>
-                    ),
-                  },
-                  { cle: "cellule", titre: "Cellule", rendu: (a) => a.celluleLibelle },
-                  { cle: "motif", titre: "Motif", masquerSous: "md", rendu: (a) => <span className="text-muted">{ouVide(a.motifAffectation)}</span> },
-                  { cle: "date", titre: "Date", align: "droite", rendu: (a) => formatDate(a.dateAffectation) },
-                ]}
-                vide={<EmptyState icone="cell" titre="Aucune affectation enregistrée" />}
-              />
+              <AffectationsRecentes affectations={affectations.donnees} cellules={cellules} />
             )}
           </Panel>
         </div>
