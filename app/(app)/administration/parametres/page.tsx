@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { api } from "@/lib/api";
-import { getProfil, peutAdministrer } from "@/lib/session";
+import { getProfil, peut } from "@/lib/session";
 import { t } from "@/lib/i18n/fr";
 import { Page, PageHeader } from "@/components/layout/page";
 import { ButtonLink } from "@/components/ui/button";
@@ -12,7 +12,7 @@ export const metadata: Metadata = { title: "Paramètres" };
 export default async function ParametresPage() {
   const profil = await getProfil();
 
-  if (!profil || !peutAdministrer(profil.role)) {
+  if (!profil || !peut(profil.permissions, "administration.parametres.gerer")) {
     return (
       <Page>
         <PageHeader surtitre={t.modules.administration} titre="Paramètres" />

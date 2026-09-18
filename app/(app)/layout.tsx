@@ -24,6 +24,7 @@ export default async function ApplicationLayout({ children }: LayoutProps<"/">) 
       nom: utilisateur.nom,
       prenom: utilisateur.prenom,
       role: utilisateur.role,
+      permissions: utilisateur.permissions,
     };
   } catch (e) {
     if (!(e instanceof ApiErreur)) throw e;

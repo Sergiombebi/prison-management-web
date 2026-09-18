@@ -3,6 +3,7 @@
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { restaurerUtilisateur } from "@/app/(app)/administration/actions";
+import { cn } from "@/lib/cn";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 
@@ -10,16 +11,28 @@ import { useToast } from "@/components/ui/toast";
  * Réactivation d'un compte désactivé. Action réversible et sans perte : une
  * simple confirmation suffit, pas de saisie du nom.
  */
-export function BoutonRestaurerUtilisateur({ utilisateurId }: { utilisateurId: number }) {
+export function BoutonRestaurerUtilisateur({
+  utilisateurId,
+  iconeSeule = false,
+}: {
+  utilisateurId: number;
+  /** Déclencheur réduit à l'icône — pour une rangée d'actions compacte. */
+  iconeSeule?: boolean;
+}) {
   const router = useRouter();
   const { push } = useToast();
   const [enCours, demarrer] = useTransition();
+  const libelle = "Réactiver le compte";
 
   return (
     <Button
       type="button"
       variante="primaire"
+      taille={iconeSeule ? "sm" : "md"}
       icone="arrowUp"
+      title={iconeSeule ? libelle : undefined}
+      aria-label={iconeSeule ? libelle : undefined}
+      className={cn(iconeSeule && "w-8 px-0")}
       chargement={enCours}
       onClick={() =>
         demarrer(async () => {
@@ -29,7 +42,7 @@ export function BoutonRestaurerUtilisateur({ utilisateurId }: { utilisateurId: n
         })
       }
     >
-      Réactiver le compte
+      {!iconeSeule && libelle}
     </Button>
   );
 }

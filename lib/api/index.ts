@@ -35,6 +35,8 @@ const DOMAINE_DE: Record<keyof ApiClient, DomaineApi> = {
   connexion: "auth",
   deconnexion: "auth",
   getUtilisateurCourant: "auth",
+  majProfil: "auth",
+  changerMonMotDePasse: "auth",
   getTableauDeBord: "tableauDeBord",
   listDetenus: "detenus",
   getDossierDetenu: "detenus",

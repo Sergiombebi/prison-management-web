@@ -13,6 +13,7 @@ import {
   filAriane,
   lienActif,
   moduleDe,
+  peutVoirModule,
   type ModuleNav,
 } from "@/lib/navigation";
 import type { ProfilSession } from "@/lib/session";
@@ -106,6 +107,8 @@ function Sidebar({
 }) {
   const moduleCourant = moduleDe(pathname);
   const lien = lienActif(pathname);
+  const modulesPrincipaux = MODULES_PRINCIPAUX.filter((m) => peutVoirModule(profil.permissions, m));
+  const modulesAdmin = MODULES_ADMIN.filter((m) => peutVoirModule(profil.permissions, m));
 
   return (
     <aside
@@ -153,27 +156,31 @@ function Sidebar({
       </div>
 
       <nav className="flex-1 overflow-y-auto px-3 py-2">
-        <SectionNav titre={t.nav.menuPrincipal}>
-          {MODULES_PRINCIPAUX.map((m) => (
-            <EntreeModule
-              key={m.id}
-              module={m}
-              actif={moduleCourant?.id === m.id}
-              hrefActif={lien?.href}
-            />
-          ))}
-        </SectionNav>
+        {modulesPrincipaux.length > 0 && (
+          <SectionNav titre={t.nav.menuPrincipal}>
+            {modulesPrincipaux.map((m) => (
+              <EntreeModule
+                key={m.id}
+                module={m}
+                actif={moduleCourant?.id === m.id}
+                hrefActif={lien?.href}
+              />
+            ))}
+          </SectionNav>
+        )}
 
-        <SectionNav titre={t.nav.administration} className="mt-6">
-          {MODULES_ADMIN.map((m) => (
-            <EntreeModule
-              key={m.id}
-              module={m}
-              actif={moduleCourant?.id === m.id}
-              hrefActif={lien?.href}
-            />
-          ))}
-        </SectionNav>
+        {modulesAdmin.length > 0 && (
+          <SectionNav titre={t.nav.administration} className="mt-6">
+            {modulesAdmin.map((m) => (
+              <EntreeModule
+                key={m.id}
+                module={m}
+                actif={moduleCourant?.id === m.id}
+                hrefActif={lien?.href}
+              />
+            ))}
+          </SectionNav>
+        )}
       </nav>
 
       <div className="border-t border-hairline p-3">
@@ -198,18 +205,23 @@ function Sidebar({
         )}
 
         <div className="flex items-center gap-2.5 rounded-lg border border-hairline bg-surface px-2 py-2 shadow-e1">
-          <span
-            aria-hidden
-            className="grid size-8 shrink-0 place-items-center rounded-md bg-gradient-to-br from-raised to-sunken text-2xs font-semibold text-muted shadow-e1"
+          <Link
+            href="/profil"
+            className="flex min-w-0 flex-1 items-center gap-2.5 rounded-md transition-colors hover:bg-sunken"
           >
-            {initiales(`${profil.prenom} ${profil.nom}`)}
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-ink">
-              {profil.prenom} {profil.nom}
-            </p>
-            <p className="truncate text-2xs text-muted">{LIBELLE_ROLE[profil.role]}</p>
-          </div>
+            <span
+              aria-hidden
+              className="grid size-8 shrink-0 place-items-center rounded-md bg-gradient-to-br from-raised to-sunken text-2xs font-semibold text-muted shadow-e1"
+            >
+              {initiales(`${profil.prenom} ${profil.nom}`)}
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium text-ink">
+                {profil.prenom} {profil.nom}
+              </p>
+              <p className="truncate text-2xs text-muted">{LIBELLE_ROLE[profil.role]}</p>
+            </div>
+          </Link>
           <form action={seDeconnecter}>
             <button
               type="submit"

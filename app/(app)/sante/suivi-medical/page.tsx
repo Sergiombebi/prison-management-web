@@ -5,6 +5,7 @@ import { TYPES_CONSULTATION } from "@/lib/domain/referentiels";
 import { formatDate, formatNombre, ouVide, pluriel, tronquer } from "@/lib/format";
 import { filtresActifs, param } from "@/lib/url";
 import { t } from "@/lib/i18n/fr";
+import { getProfil, peut } from "@/lib/session";
 import { Page, PageHeader } from "@/components/layout/page";
 import { DataTable } from "@/components/data/data-table";
 import { FilterBar } from "@/components/data/filter-bar";
@@ -20,7 +21,11 @@ const CHEMIN = "/sante/suivi-medical";
 
 export default async function SuiviMedicalPage(props: PageProps<"/sante/suivi-medical">) {
   const sp = await props.searchParams;
-  const [suivis, detenus] = await Promise.all([api.listSuivisMedicaux(), api.listDetenus({ parPage: 1000, tri: "nom" })]);
+  const [suivis, detenus, profil] = await Promise.all([
+    api.listSuivisMedicaux(),
+    api.listDetenus({ parPage: 1000, tri: "nom" }),
+    getProfil(),
+  ]);
 
   const recherche = (param(sp, "recherche") ?? "").toLowerCase();
   const type = param(sp, "type") ?? "tous";
@@ -94,9 +99,11 @@ export default async function SuiviMedicalPage(props: PageProps<"/sante/suivi-me
           />
         </Panel>
 
-        <Panel variante="eleve" titre="Nouvelle consultation" className="xl:sticky xl:top-20">
-          <FormulaireConsultation detenus={detenus.items} detenuInitial={detenuInitial} />
-        </Panel>
+        {profil && peut(profil.permissions, "sante.consultations.creer") && (
+          <Panel variante="eleve" titre="Nouvelle consultation" className="xl:sticky xl:top-20">
+            <FormulaireConsultation detenus={detenus.items} detenuInitial={detenuInitial} />
+          </Panel>
+        )}
       </div>
     </Page>
   );

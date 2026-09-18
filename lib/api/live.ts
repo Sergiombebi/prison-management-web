@@ -190,7 +190,9 @@ export interface UtilisateurApi {
   username: string;
   email: string | null;
   role: string;
+  permissions: string[];
   est_actif: boolean;
+  derniere_connexion?: string | null;
 }
 
 function versRole(role: string): RoleUtilisateur {
@@ -208,7 +210,9 @@ export function versProfil(u: UtilisateurApi): ProfilUtilisateur {
     prenom: u.prenom,
     email: u.email ?? null,
     role: versRole(u.role),
+    permissions: u.permissions ?? [],
     estActif: u.est_actif !== false,
+    derniereConnexion: u.derniere_connexion ?? null,
   };
 }
 
@@ -225,6 +229,7 @@ function versUtilisateur(u: UtilisateurAdminApi): Utilisateur {
     nom: u.nom,
     prenom: u.prenom,
     role: versRole(u.role),
+    permissions: u.permissions ?? [],
     email: u.email,
     estActif: u.est_actif,
     dateCreation: u.created_at,
@@ -942,6 +947,28 @@ export const liveApi: ApiClient = {
     return versProfil(brut);
   },
 
+  async majProfil(entree) {
+    await requete("/profil", {
+      method: "PUT",
+      body: JSON.stringify({
+        nom: entree.nom,
+        prenom: entree.prenom,
+        username: entree.username,
+        email: entree.email,
+      }),
+    });
+  },
+
+  async changerMonMotDePasse(motDePasseActuel, nouveauMotDePasse) {
+    await requete("/profil/mot-de-passe", {
+      method: "PUT",
+      body: JSON.stringify({
+        mot_de_passe_actuel: motDePasseActuel,
+        password: nouveauMotDePasse,
+      }),
+    });
+  },
+
   async listDetenus(filtre: FiltreDetenus = {}) {
     const categorie =
       filtre.categorie && filtre.categorie !== "toutes"
@@ -1378,6 +1405,7 @@ export const liveApi: ApiClient = {
         email: entree.email,
         password: entree.motDePasse,
         role: entree.role,
+        permissions: entree.permissions,
       }),
     });
     return { id: corps.data.id };
@@ -1392,6 +1420,7 @@ export const liveApi: ApiClient = {
         username: entree.username,
         email: entree.email,
         role: entree.role,
+        permissions: entree.permissions,
       }),
     });
   },

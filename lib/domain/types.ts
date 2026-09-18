@@ -276,6 +276,8 @@ export interface Utilisateur {
   nom: string;
   prenom: string;
   role: RoleUtilisateur;
+  /** Clés du catalogue de permissions (`lib/domain/referentiels.ts`) accordées à ce compte. */
+  permissions: string[];
   email: string | null;
   estActif: boolean;
   dateCreation: string;
@@ -305,6 +307,15 @@ export interface EntreeUtilisateur {
   username: string;
   email: string;
   role: RoleUtilisateur;
+  permissions: string[];
+}
+
+/** Modification de son propre profil (`/profil`) — jamais de rôle ni de permissions ici. */
+export interface EntreeProfil {
+  nom: string;
+  prenom: string;
+  username: string;
+  email: string;
 }
 
 export type EntreeParametres = Omit<Parametres, "id">;

@@ -173,12 +173,75 @@ export const LIBELLE_ROLE: Record<RoleUtilisateur, string> = {
   medecin: "Médecin",
 };
 
-/** Descriptions provisoires : la matrice des droits doit être confirmée avec l'API. */
+/** Le rôle n'est qu'une étiquette de poste : les droits viennent des permissions. */
 export const DESCRIPTION_ROLE: Record<RoleUtilisateur, string> = {
-  admin: "Accès total, y compris au personnel et aux paramètres.",
+  admin: "Poste d'administration — les droits réels dépendent des permissions accordées.",
   agent: "Gestion courante : écrou, mandats, discipline, visites.",
   medecin: "Suivi médical des détenus.",
 };
+
+/**
+ * Catalogue des permissions, groupées par module — même découpage que côté API
+ * (`App\Enums\Permission`). Source unique pour les cases à cocher du formulaire
+ * Personnel et pour filtrer la navigation par ce que l'utilisateur connecté peut faire.
+ */
+export const PERMISSIONS: { module: string; permissions: { cle: string; label: string }[] }[] = [
+  {
+    module: "Tableau de bord",
+    permissions: [{ cle: "tableau_bord.consulter", label: "Consulter" }],
+  },
+  {
+    module: "Détenus",
+    permissions: [
+      { cle: "detenus.consulter", label: "Consulter" },
+      { cle: "detenus.creer", label: "Écrouer un détenu" },
+      { cle: "detenus.modifier", label: "Modifier une fiche" },
+      { cle: "detenus.desactiver", label: "Désactiver un dossier" },
+      { cle: "detenus.restaurer", label: "Restaurer un dossier" },
+      { cle: "detenus.mandats.gerer", label: "Gérer les mandats" },
+      { cle: "detenus.sorties.enregistrer", label: "Enregistrer une sortie (libération, décès, transfert, évasion)" },
+    ],
+  },
+  {
+    module: "Discipline",
+    permissions: [
+      { cle: "discipline.cellules.consulter", label: "Consulter les cellules" },
+      { cle: "discipline.cellules.gerer", label: "Créer/modifier une cellule" },
+      { cle: "discipline.affectations.gerer", label: "Affecter un détenu à une cellule" },
+      { cle: "discipline.sanctions.consulter", label: "Consulter les sanctions" },
+      { cle: "discipline.sanctions.creer", label: "Prononcer une sanction" },
+      { cle: "discipline.sanctions.modifier", label: "Modifier une sanction" },
+      { cle: "discipline.sanctions.terminer", label: "Terminer une sanction" },
+      { cle: "discipline.sanctions.annuler", label: "Annuler une sanction" },
+      { cle: "discipline.types_sanction.gerer", label: "Gérer les types de sanction" },
+    ],
+  },
+  {
+    module: "Suivi médical",
+    permissions: [
+      { cle: "sante.consultations.consulter", label: "Consulter" },
+      { cle: "sante.consultations.creer", label: "Saisir une consultation" },
+    ],
+  },
+  {
+    module: "Visites",
+    permissions: [
+      { cle: "visites.consulter", label: "Consulter" },
+      { cle: "visites.creer", label: "Enregistrer une visite" },
+    ],
+  },
+  {
+    module: "Édition d'états",
+    permissions: [{ cle: "etats.consulter", label: "Générer les fiches et états" }],
+  },
+  {
+    module: "Administration",
+    permissions: [
+      { cle: "administration.personnel.gerer", label: "Gérer les comptes du personnel" },
+      { cle: "administration.parametres.gerer", label: "Gérer les paramètres de l'établissement" },
+    ],
+  },
+];
 
 /** Correspondance segment d'URL ↔ catégorie pénale. */
 export const SLUG_CATEGORIE: Record<string, CategoriePenale> = {

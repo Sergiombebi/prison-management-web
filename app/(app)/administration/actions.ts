@@ -33,6 +33,7 @@ export async function creerUtilisateur(_precedent: EtatAction, formulaire: FormD
       username,
       email: texte(formulaire, "email"),
       role: texte(formulaire, "role") as RoleUtilisateur,
+      permissions: formulaire.getAll("permissions[]").map(String),
       motDePasse,
     });
   } catch (e) {
@@ -58,6 +59,7 @@ export async function modifierUtilisateur(
       username,
       email: texte(formulaire, "email"),
       role: texte(formulaire, "role") as RoleUtilisateur,
+      permissions: formulaire.getAll("permissions[]").map(String),
     });
   } catch (e) {
     return etatDepuisErreur(e, formulaire);

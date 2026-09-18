@@ -3,31 +3,21 @@
 import { useActionState, useEffect, useId, useRef } from "react";
 import { useRouter } from "next/navigation";
 import type { EtatAction } from "@/lib/api/actions";
-import { reinitialiserMotDePasse } from "@/app/(app)/administration/actions";
-import { cn } from "@/lib/cn";
+import { changerMonMotDePasse } from "@/app/(app)/profil/actions";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
 import { RetourAction } from "@/components/ui/retour-action";
 
 /**
- * Réinitialisation du mot de passe d'un compte, dans une boîte de dialogue native.
- * Un succès referme la boîte après un court délai, le temps que le message soit lu.
+ * Changement de son propre mot de passe, dans une boîte de dialogue native.
+ * Contrairement à une réinitialisation par un administrateur, celle-ci exige le mot de
+ * passe actuel et ne déconnecte pas la session en cours.
  */
-export function BoutonReinitialiserMotDePasse({
-  utilisateurId,
-  nom,
-  iconeSeule = false,
-}: {
-  utilisateurId: number;
-  nom: string;
-  /** Déclencheur réduit à l'icône — pour une rangée d'actions compacte. */
-  iconeSeule?: boolean;
-}) {
+export function BoutonChangerMotDePasse() {
   const dialogue = useRef<HTMLDialogElement>(null);
   const idTitre = useId();
   const router = useRouter();
-  const action = reinitialiserMotDePasse.bind(null, utilisateurId);
-  const [etat, envoyer, enCours] = useActionState<EtatAction, FormData>(action, {});
+  const [etat, envoyer, enCours] = useActionState<EtatAction, FormData>(changerMonMotDePasse, {});
 
   useEffect(() => {
     if (!etat.ok) return;
@@ -38,21 +28,10 @@ export function BoutonReinitialiserMotDePasse({
     return () => clearTimeout(delai);
   }, [etat.ok, router]);
 
-  const libelle = "Réinitialiser le mot de passe";
-
   return (
     <>
-      <Button
-        type="button"
-        variante="secondaire"
-        taille="sm"
-        icone="shield"
-        title={iconeSeule ? libelle : undefined}
-        aria-label={iconeSeule ? libelle : undefined}
-        className={cn(iconeSeule && "w-8 px-0")}
-        onClick={() => dialogue.current?.showModal()}
-      >
-        {!iconeSeule && libelle}
+      <Button type="button" variante="secondaire" icone="lock" onClick={() => dialogue.current?.showModal()}>
+        Changer le mot de passe
       </Button>
 
       <dialog
@@ -62,19 +41,25 @@ export function BoutonReinitialiserMotDePasse({
       >
         <form action={envoyer} className="flex flex-col gap-4 p-5">
           <h2 id={idTitre} className="text-md font-semibold">
-            Réinitialiser le mot de passe de {nom}
+            Changer mon mot de passe
           </h2>
           <RetourAction etat={etat} />
-          <Field label="Nouveau mot de passe" requis aide="8 caractères minimum" erreur={etat.erreurs?.password?.[0]}>
-            {(p) => <Input {...p} type="password" name="password" required minLength={8} autoFocus />}
+          <Field
+            label="Mot de passe actuel"
+            requis
+            erreur={etat.erreurs?.mot_de_passe_actuel?.[0]}
+          >
+            {(p) => <Input {...p} type="password" name="mot_de_passe_actuel" required autoFocus />}
           </Field>
-          <p className="text-xs text-muted">Les sessions actives de ce compte seront déconnectées.</p>
+          <Field label="Nouveau mot de passe" requis aide="8 caractères minimum" erreur={etat.erreurs?.password?.[0]}>
+            {(p) => <Input {...p} type="password" name="password" required minLength={8} />}
+          </Field>
           <div className="flex justify-end gap-2 border-t border-hairline pt-4">
             <Button type="button" onClick={() => dialogue.current?.close()} disabled={enCours}>
               Annuler
             </Button>
             <Button type="submit" variante="primaire" chargement={enCours}>
-              Réinitialiser
+              Changer
             </Button>
           </div>
         </form>

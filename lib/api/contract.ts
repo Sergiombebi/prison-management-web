@@ -15,6 +15,7 @@ import type {
   Cellule,
   DetenuResume,
   EntreeParametres,
+  EntreeProfil,
   EntreeUtilisateur,
   FiltreDetenus,
   Mandas,
@@ -62,7 +63,7 @@ export interface DossierDetenu {
 /** Ce que le front conserve de l'utilisateur connecté. */
 export type ProfilUtilisateur = Pick<
   Utilisateur,
-  "id" | "username" | "nom" | "prenom" | "email" | "role" | "estActif"
+  "id" | "username" | "nom" | "prenom" | "email" | "role" | "permissions" | "estActif" | "derniereConnexion"
 >;
 
 export interface SessionUtilisateur {
@@ -261,6 +262,11 @@ export interface ApiClient {
   deconnexion(): Promise<void>;
   /** GET /auth/me — 401 si le jeton est invalide ou expiré */
   getUtilisateurCourant(): Promise<ProfilUtilisateur>;
+  /** PUT /profil — modifie son propre compte (jamais le rôle ni les permissions) */
+  majProfil(entree: EntreeProfil): Promise<void>;
+  /** PUT /profil/mot-de-passe — exige le mot de passe actuel, contrairement à la
+   * réinitialisation par un administrateur */
+  changerMonMotDePasse(motDePasseActuel: string, nouveauMotDePasse: string): Promise<void>;
 
   /** GET /tableau-de-bord */
   getTableauDeBord(): Promise<TableauDeBord>;

@@ -20,6 +20,7 @@ export interface ProfilSession {
   nom: string;
   prenom: string;
   role: RoleUtilisateur;
+  permissions: string[];
 }
 
 export async function getJeton(): Promise<string | undefined> {
@@ -33,8 +34,14 @@ export async function getProfil(): Promise<ProfilSession | null> {
   if (!brut) return null;
   try {
     const profil = JSON.parse(brut) as Partial<ProfilSession>;
-    // Un cookie posé avant le passage aux rôles de l'API (« Administrateur »…) n'est plus valide
-    if (typeof profil.id !== "number" || !ROLES_UTILISATEUR.includes(profil.role as RoleUtilisateur)) {
+    // Un cookie posé avant le passage aux rôles de l'API (« Administrateur »…), ou avant
+    // l'ajout des permissions individuelles, n'est plus valide - on force une reconnexion
+    // plutôt que de traiter des permissions manquantes comme une liste vide légitime.
+    if (
+      typeof profil.id !== "number" ||
+      !ROLES_UTILISATEUR.includes(profil.role as RoleUtilisateur) ||
+      !Array.isArray(profil.permissions)
+    ) {
       return null;
     }
     return profil as ProfilSession;
@@ -62,7 +69,12 @@ export async function fermerSession() {
   store.delete(COOKIE_PROFIL);
 }
 
-/** Droits d'administration (personnel, paramètres) — matrice complète à confirmer avec l'API. */
-export function peutAdministrer(role: RoleUtilisateur) {
-  return role === "admin";
+/** Un utilisateur ne peut agir que sur ce que l'administrateur lui a explicitement accordé. */
+export function peut(permissions: string[], cle: string): boolean {
+  return permissions.includes(cle);
+}
+
+/** Accès à la section Administration (personnel ou paramètres). */
+export function peutAdministrer(permissions: string[]) {
+  return peut(permissions, "administration.personnel.gerer") || peut(permissions, "administration.parametres.gerer");
 }

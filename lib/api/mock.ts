@@ -101,6 +101,14 @@ export const mockApi: ApiClient = {
     return u;
   },
 
+  async majProfil() {
+    await attendre();
+  },
+
+  async changerMonMotDePasse() {
+    await attendre();
+  },
+
   async creerDetenu(entree) {
     await attendre();
     // On rejoue le seul contrôle que l'API ferait à coup sûr : l'unicité de l'écrou

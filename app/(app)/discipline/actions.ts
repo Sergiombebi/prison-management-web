@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { api, modeDe } from "@/lib/api";
 import { entier, etatDepuisErreur, optionnel, texte, type EtatAction } from "@/lib/api/actions";
 import { valeursSaisies } from "@/lib/api/formulaires";
-import { getProfil, peutAdministrer } from "@/lib/session";
+import { getProfil, peut } from "@/lib/session";
 
 /** En démonstration rien n'est persisté : le message le dit. */
 const suffixe = () =>
@@ -95,17 +95,18 @@ export async function annulerSanction(sanctionId: number): Promise<{ ok: boolean
 // ---------------------------------------------------------------------------
 
 /**
- * L'API ne contrôle pas encore les rôles : l'interface le fait, y compris ici,
- * car une Server Action reste appelable même si le bouton n'est pas affiché.
+ * Un bouton caché n'empêche pas d'appeler la Server Action directement : ce contrôle
+ * évite un aller-retour inutile vers l'API (qui refuse de toute façon, elle est seule
+ * juge des droits) pour rendre le message d'erreur immédiat.
  */
-async function refuserSiNonAdministrateur(): Promise<EtatAction | null> {
+async function refuserSansPermission(): Promise<EtatAction | null> {
   const profil = await getProfil();
-  if (profil && peutAdministrer(profil.role)) return null;
-  return { message: "Seul un administrateur peut gérer les types de sanction." };
+  if (profil && peut(profil.permissions, "discipline.types_sanction.gerer")) return null;
+  return { message: "Cette action nécessite la permission de gérer les types de sanction." };
 }
 
 export async function creerTypeSanction(_precedent: EtatAction, formulaire: FormData): Promise<EtatAction> {
-  const refus = await refuserSiNonAdministrateur();
+  const refus = await refuserSansPermission();
   if (refus) return refus;
 
   const libelle = texte(formulaire, "libelle");
@@ -131,7 +132,7 @@ export async function majTypeSanction(
   _precedent: EtatAction,
   formulaire: FormData,
 ): Promise<EtatAction> {
-  const refus = await refuserSiNonAdministrateur();
+  const refus = await refuserSansPermission();
   if (refus) return refus;
 
   const libelle = texte(formulaire, "libelle");

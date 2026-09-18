@@ -5,6 +5,7 @@ import { TYPES_VISITE } from "@/lib/domain/referentiels";
 import { formatDate, formatNombre, pluriel } from "@/lib/format";
 import { filtresActifs, param } from "@/lib/url";
 import { t } from "@/lib/i18n/fr";
+import { getProfil, peut } from "@/lib/session";
 import { Page, PageHeader } from "@/components/layout/page";
 import { DataTable } from "@/components/data/data-table";
 import { FilterBar } from "@/components/data/filter-bar";
@@ -20,7 +21,11 @@ const CHEMIN = "/sante/visites";
 
 export default async function VisitesPage(props: PageProps<"/sante/visites">) {
   const sp = await props.searchParams;
-  const [visites, detenus] = await Promise.all([api.listVisites(), api.listDetenus({ parPage: 1000, tri: "nom" })]);
+  const [visites, detenus, profil] = await Promise.all([
+    api.listVisites(),
+    api.listDetenus({ parPage: 1000, tri: "nom" }),
+    getProfil(),
+  ]);
 
   const maintenant = new Date();
   const aujourdhui = maintenant.toDateString();
@@ -128,9 +133,11 @@ export default async function VisitesPage(props: PageProps<"/sante/visites">) {
           />
         </Panel>
 
-        <Panel variante="eleve" titre="Enregistrer une visite" className="xl:sticky xl:top-20">
-          <FormulaireVisite detenus={detenus.items} detenuInitial={detenuInitial} />
-        </Panel>
+        {profil && peut(profil.permissions, "visites.creer") && (
+          <Panel variante="eleve" titre="Enregistrer une visite" className="xl:sticky xl:top-20">
+            <FormulaireVisite detenus={detenus.items} detenuInitial={detenuInitial} />
+          </Panel>
+        )}
       </div>
     </Page>
   );

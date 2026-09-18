@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { api } from "@/lib/api";
-import { getProfil, peutAdministrer } from "@/lib/session";
+import { getProfil, peut } from "@/lib/session";
 import { pluriel } from "@/lib/format";
 import { t } from "@/lib/i18n/fr";
 import { Page, PageHeader } from "@/components/layout/page";
@@ -19,8 +19,7 @@ export default async function TypesSanctionPage() {
     </ButtonLink>
   );
 
-  // Contrôle d'interface seulement : l'API ne vérifie pas encore les rôles
-  if (!profil || !peutAdministrer(profil.role)) {
+  if (!profil || !peut(profil.permissions, "discipline.types_sanction.gerer")) {
     return (
       <Page>
         <PageHeader surtitre={t.modules.discipline} titre="Types de sanction" actions={retour} />
@@ -28,7 +27,7 @@ export default async function TypesSanctionPage() {
           <EmptyState
             icone="lock"
             titre={t.etats.horsPerimetre}
-            texte="La liste des types de sanction n’est modifiable que par un administrateur."
+            texte="La liste des types de sanction n’est modifiable qu’avec la permission dédiée."
           />
         </Panel>
       </Page>

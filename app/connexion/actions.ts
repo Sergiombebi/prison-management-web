@@ -36,6 +36,7 @@ export async function connecter(
       nom: utilisateur.nom,
       prenom: utilisateur.prenom,
       role: utilisateur.role,
+      permissions: utilisateur.permissions,
     });
   } catch (e) {
     // On garde l'identifiant saisi : l'utilisateur ne retape que le mot de passe

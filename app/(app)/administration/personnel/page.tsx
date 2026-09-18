@@ -4,7 +4,7 @@ import type { RoleUtilisateur, Utilisateur } from "@/lib/domain/types";
 import { DESCRIPTION_ROLE, LIBELLE_ROLE } from "@/lib/domain/referentiels";
 import { formatNombre, formatRelatif, initiales } from "@/lib/format";
 import { hrefAvec, param } from "@/lib/url";
-import { getProfil, peutAdministrer } from "@/lib/session";
+import { getProfil, peut } from "@/lib/session";
 import { t } from "@/lib/i18n/fr";
 import { Page, PageHeader } from "@/components/layout/page";
 import { DataTable } from "@/components/data/data-table";
@@ -26,7 +26,7 @@ const CHEMIN = "/administration/personnel";
 export default async function PersonnelPage(props: PageProps<"/administration/personnel">) {
   const profil = await getProfil();
 
-  if (!profil || !peutAdministrer(profil.role)) {
+  if (!profil || !peut(profil.permissions, "administration.personnel.gerer")) {
     return (
       <Page>
         <PageHeader surtitre={t.modules.administration} titre="Personnel" />
@@ -108,14 +108,39 @@ export default async function PersonnelPage(props: PageProps<"/administration/pe
                 titre: "",
                 align: "droite",
                 rendu: (u) => (
-                  <ButtonLink
-                    href={hrefAvec(CHEMIN, sp, { modifier: String(u.id) })}
-                    taille="sm"
-                    icone="edit"
-                    aria-current={enModification?.id === u.id ? "true" : undefined}
-                  >
-                    Modifier
-                  </ButtonLink>
+                  <div className="flex items-center justify-end gap-1.5">
+                    <ButtonLink
+                      href={hrefAvec(CHEMIN, sp, { modifier: String(u.id) })}
+                      taille="sm"
+                      icone="edit"
+                      title="Modifier"
+                      aria-label="Modifier"
+                      className="w-8 px-0"
+                      aria-current={enModification?.id === u.id ? "true" : undefined}
+                    />
+                    {u.id !== profil.id && (
+                      <BoutonReinitialiserMotDePasse
+                        utilisateurId={u.id}
+                        nom={`${u.prenom} ${u.nom}`}
+                        iconeSeule
+                      />
+                    )}
+                    {u.id !== profil.id &&
+                      (u.estActif ? (
+                        <BoutonConfirmation
+                          libelle="Désactiver le compte"
+                          titre="Désactiver ce compte ?"
+                          description="La personne ne pourra plus se connecter tant que le compte n’est pas réactivé."
+                          confirmer="Désactiver"
+                          icone="lock"
+                          taille="sm"
+                          iconeSeule
+                          action={desactiverUtilisateur.bind(null, u.id)}
+                        />
+                      ) : (
+                        <BoutonRestaurerUtilisateur utilisateurId={u.id} iconeSeule />
+                      ))}
+                  </div>
                 ),
               },
             ]}
@@ -130,28 +155,15 @@ export default async function PersonnelPage(props: PageProps<"/administration/pe
               variante="eleve"
               accent
             >
-              <FormulaireUtilisateur utilisateur={enModification} action={modifierUtilisateur.bind(null, enModification.id)} />
-
-              <div className="mt-5 flex flex-col items-start gap-2.5 border-t border-hairline pt-4">
-                <BoutonReinitialiserMotDePasse utilisateurId={enModification.id} nom={`${enModification.prenom} ${enModification.nom}`} />
-                {enModification.id !== profil.id &&
-                  (enModification.estActif ? (
-                    <BoutonConfirmation
-                      libelle="Désactiver le compte"
-                      titre="Désactiver ce compte ?"
-                      description="La personne ne pourra plus se connecter tant que le compte n’est pas réactivé."
-                      confirmer="Désactiver"
-                      icone="lock"
-                      action={desactiverUtilisateur.bind(null, enModification.id)}
-                    />
-                  ) : (
-                    <BoutonRestaurerUtilisateur utilisateurId={enModification.id} />
-                  ))}
-              </div>
+              <FormulaireUtilisateur
+                utilisateur={enModification}
+                action={modifierUtilisateur.bind(null, enModification.id)}
+                permissionsAccordables={profil.permissions}
+              />
             </Panel>
           ) : (
             <Panel key="creation" titre="Nouveau compte" variante="eleve">
-              <FormulaireUtilisateur action={creerUtilisateur} />
+              <FormulaireUtilisateur action={creerUtilisateur} permissionsAccordables={profil.permissions} />
             </Panel>
           )}
         </div>

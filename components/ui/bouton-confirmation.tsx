@@ -2,6 +2,7 @@
 
 import { useId, useRef, useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import { cn } from "@/lib/cn";
 import { Button } from "./button";
 import { Icon, type NomIcone } from "./icon";
 
@@ -20,6 +21,7 @@ export function BoutonConfirmation({
   icone = "alert",
   variante = "danger",
   taille = "md",
+  iconeSeule = false,
   action,
   onSuccess,
 }: {
@@ -30,6 +32,8 @@ export function BoutonConfirmation({
   icone?: NomIcone;
   variante?: "danger" | "secondaire";
   taille?: "sm" | "md";
+  /** Déclencheur réduit à l'icône (`libelle` sert alors de bulle d'aide) — pour une rangée d'actions compacte. */
+  iconeSeule?: boolean;
   /** Server Action : `ok: false` garde la boîte ouverte et affiche le message. */
   action: () => Promise<{ ok: boolean; message?: string }>;
   /** Appelé après la fermeture, une fois l'action confirmée réussie (ex. toast). */
@@ -48,13 +52,18 @@ export function BoutonConfirmation({
         variante={variante === "danger" ? "discret" : "secondaire"}
         taille={taille}
         icone={icone}
-        className={variante === "danger" ? "text-danger hover:bg-danger-soft" : undefined}
+        title={iconeSeule ? libelle : undefined}
+        aria-label={iconeSeule ? libelle : undefined}
+        className={cn(
+          variante === "danger" && "text-danger hover:bg-danger-soft",
+          iconeSeule && "w-8 px-0",
+        )}
         onClick={() => {
           setErreur(undefined);
           dialogue.current?.showModal();
         }}
       >
-        {libelle}
+        {!iconeSeule && libelle}
       </Button>
 
       <dialog

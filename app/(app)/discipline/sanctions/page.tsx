@@ -5,7 +5,7 @@ import type { Sanction } from "@/lib/domain/types";
 import { formatDate, formatNombre, pluriel, tronquer } from "@/lib/format";
 import { filtresActifs, param } from "@/lib/url";
 import { t } from "@/lib/i18n/fr";
-import { getProfil, peutAdministrer } from "@/lib/session";
+import { getProfil, peut } from "@/lib/session";
 import { Page, PageHeader } from "@/components/layout/page";
 import { DataTable } from "@/components/data/data-table";
 import { FilterBar } from "@/components/data/filter-bar";
@@ -58,7 +58,7 @@ export default async function SanctionsPage(props: PageProps<"/discipline/sancti
         titre="Sanctions disciplinaires"
         description="Registre des fautes constatées et des sanctions prononcées à l’encontre des détenus."
         actions={
-          profil && peutAdministrer(profil.role) && (
+          profil && peut(profil.permissions, "discipline.types_sanction.gerer") && (
             <ButtonLink href="/discipline/sanctions/types" icone="edit" transitionTypes={["nav-forward"]}>
               Types de sanction
             </ButtonLink>
@@ -146,14 +146,16 @@ export default async function SanctionsPage(props: PageProps<"/discipline/sancti
           )}
         </Panel>
 
-        <Panel variante="eleve" titre="Nouvelle sanction" className="xl:sticky xl:top-20">
-          <FormulaireSanction
-            detenus={detenus.items}
-            types={types}
-            cellules={cellules}
-            detenuInitial={Number.isFinite(detenuInitial) ? detenuInitial : undefined}
-          />
-        </Panel>
+        {profil && peut(profil.permissions, "discipline.sanctions.creer") && (
+          <Panel variante="eleve" titre="Nouvelle sanction" className="xl:sticky xl:top-20">
+            <FormulaireSanction
+              detenus={detenus.items}
+              types={types}
+              cellules={cellules}
+              detenuInitial={Number.isFinite(detenuInitial) ? detenuInitial : undefined}
+            />
+          </Panel>
+        )}
       </div>
     </Page>
   );

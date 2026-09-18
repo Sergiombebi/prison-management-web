@@ -39,6 +39,11 @@ export interface ModuleNav {
   groupes?: GroupeNav[];
   /** `true` pour la section « Administration » de la sidebar. */
   administratif?: boolean;
+  /**
+   * Permission(s) requises pour voir ce module dans la navigation - un tableau se lit
+   * comme un « ou » (ex. Administration : personnel ou paramètres).
+   */
+  permissionRequise: string | string[];
 }
 
 export const MODULES: ModuleNav[] = [
@@ -48,6 +53,7 @@ export const MODULES: ModuleNav[] = [
     label: t.modules.tableauDeBord,
     icone: "dashboard",
     description: "Situation de l'établissement au jour d'aujourd'hui",
+    permissionRequise: "tableau_bord.consulter",
   },
   {
     id: "detenus",
@@ -55,6 +61,7 @@ export const MODULES: ModuleNav[] = [
     label: t.modules.detenus,
     icone: "detenus",
     description: "Écrou, mandats et procédures de sortie",
+    permissionRequise: "detenus.consulter",
     groupes: [
       {
         label: "Fichiers des détenus",
@@ -140,6 +147,7 @@ export const MODULES: ModuleNav[] = [
     label: t.modules.discipline,
     icone: "discipline",
     description: "Logement, affectations et sanctions disciplinaires",
+    permissionRequise: ["discipline.cellules.consulter", "discipline.sanctions.consulter"],
     groupes: [
       {
         label: "Discipline",
@@ -169,6 +177,7 @@ export const MODULES: ModuleNav[] = [
     label: t.modules.suiviMedical,
     icone: "sante",
     description: "Consultations, diagnostics et traitements prescrits",
+    permissionRequise: "sante.consultations.consulter",
   },
   {
     id: "visites",
@@ -176,6 +185,7 @@ export const MODULES: ModuleNav[] = [
     label: t.modules.visites,
     icone: "door",
     description: "Parloirs, visiteurs et contrôles de sécurité",
+    permissionRequise: "visites.consulter",
   },
   {
     id: "etats",
@@ -183,6 +193,7 @@ export const MODULES: ModuleNav[] = [
     label: t.modules.etats,
     icone: "etats",
     description: "Fiches, extraits de registre et états statistiques",
+    permissionRequise: "etats.consulter",
     groupes: [
       {
         label: "Édition d'états",
@@ -218,6 +229,7 @@ export const MODULES: ModuleNav[] = [
     icone: "administration",
     administratif: true,
     description: "Comptes du personnel et paramètres de l'établissement",
+    permissionRequise: ["administration.personnel.gerer", "administration.parametres.gerer"],
     groupes: [
       {
         label: "Administration",
@@ -241,6 +253,12 @@ export const MODULES: ModuleNav[] = [
 
 export const MODULES_PRINCIPAUX = MODULES.filter((m) => !m.administratif);
 export const MODULES_ADMIN = MODULES.filter((m) => m.administratif);
+
+/** Un module s'affiche dès que l'une de ses permissions requises est accordée. */
+export function peutVoirModule(permissions: string[], module: ModuleNav): boolean {
+  const requises = Array.isArray(module.permissionRequise) ? module.permissionRequise : [module.permissionRequise];
+  return requises.some((cle) => permissions.includes(cle));
+}
 
 /** Tous les liens à plat — utilisé pour retrouver le titre d'une route. */
 const TOUS_LES_LIENS: LienNav[] = MODULES.flatMap((m) =>
