@@ -41,6 +41,14 @@ identifiant (ex. `medecin@sgp.local`).
 ### Vérifier le code
 
 ```bash
+npm test
+```
+
+Tests unitaires (Vitest) de la couche données : traduction API → domaine, construction
+des corps de requête, lecture des formulaires, mise en forme, cohérence des référentiels
+partagés avec l'API. Ils tournent sans serveur ni base.
+
+```bash
 npm run lint
 ```
 
@@ -178,6 +186,26 @@ Le seeder de démonstration remplit aussi la base : 19 détenus (dont 4 sortis),
 Après chaque `git pull` de l'API, relancer `php artisan migrate` (nouvelles tables). La commande
 `migrate:fresh --seed` remet la base de démonstration à zéro — elle **efface** tout ce qui a été saisi.
 
+### Vérifier les écritures de bout en bout
+
+`scripts/e2e-ecritures.mjs` rejoue les vrais formulaires de l'application contre l'API,
+par le chemin « sans JavaScript » des Server Actions, et vérifie les messages rendus :
+enregistrement d'un écrou, modification, affectation, sanction, consultation, visite,
+libération partielle, transfert — cas d'erreur compris.
+
+Il faut l'API démarrée, le front démarré, et une base fraîche :
+
+```bash
+php artisan migrate:fresh --seed
+```
+
+```bash
+node scripts/e2e-ecritures.mjs
+```
+
+Le test **modifie la base** (c'est son objet) : la remettre à zéro avec la même commande
+`migrate:fresh --seed` avant de reprendre une démonstration.
+
 ### Interroger l'API en ligne de commande
 
 `scripts/api.mjs` évite d'ouvrir Postman pour une vérification rapide. Le jeton est
@@ -294,10 +322,11 @@ proxy.ts                redirige vers /connexion sans session (ex-middleware)
 
 ## Limites connues
 
-- Écritures : branchées pour le registre des détenus (fiche, mandat, restauration, photos).
-  Les autres modules valident et conservent les saisies sans rien envoyer, faute de routes côté API.
+- Écritures : branchées partout sauf administration (personnel, paramètres), qui valide et
+  conserve les saisies sans rien envoyer, faute de routes côté API.
 - Matrice des droits par rôle (`admin` / `agent` / `medecin`) à confirmer avec l'API : seul
   l'accès à l'administration dépend du rôle pour l'instant.
-- Photos, logo et génération PDF non branchés (impression par le navigateur).
+- Photos branchées (dépôt et affichage) ; génération PDF non branchée (impression par le navigateur).
+- Tri du registre et filtre par sexe indisponibles en mode réel : l'API ne les expose pas.
 - **Remises de peine** : l'écran desktop est vide ; colonnes proposées à valider.
 - Transitions entre pages via l'API View Transitions (Chrome, Edge, Safari récents).
