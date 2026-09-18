@@ -49,7 +49,7 @@ export function BoutonReinitialiserMotDePasse({
         icone="shield"
         title={iconeSeule ? libelle : undefined}
         aria-label={iconeSeule ? libelle : undefined}
-        className={cn(iconeSeule && "w-8 px-0")}
+        className={cn(iconeSeule && "w-8 rounded-full border-0 bg-info-soft px-0 text-info shadow-none hover:bg-info/20")}
         onClick={() => dialogue.current?.showModal()}
       >
         {!iconeSeule && libelle}

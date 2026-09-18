@@ -55,8 +55,11 @@ export function BoutonConfirmation({
         title={iconeSeule ? libelle : undefined}
         aria-label={iconeSeule ? libelle : undefined}
         className={cn(
-          variante === "danger" && "text-danger hover:bg-danger-soft",
-          iconeSeule && "w-8 px-0",
+          variante === "danger" && !iconeSeule && "text-danger hover:bg-danger-soft",
+          iconeSeule &&
+            (variante === "danger"
+              ? "w-8 rounded-full border-0 bg-danger-soft px-0 text-danger shadow-none hover:bg-danger/20"
+              : "w-8 rounded-full border-0 bg-accent-soft px-0 text-accent shadow-none hover:bg-accent/20"),
         )}
         onClick={() => {
           setErreur(undefined);

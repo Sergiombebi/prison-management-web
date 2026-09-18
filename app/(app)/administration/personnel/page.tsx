@@ -115,7 +115,7 @@ export default async function PersonnelPage(props: PageProps<"/administration/pe
                       icone="edit"
                       title="Modifier"
                       aria-label="Modifier"
-                      className="w-8 px-0"
+                      className="w-8 rounded-full border-0 bg-accent-soft px-0 text-accent shadow-none hover:bg-accent/20"
                       aria-current={enModification?.id === u.id ? "true" : undefined}
                     />
                     {u.id !== profil.id && (

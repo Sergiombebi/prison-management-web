@@ -32,7 +32,9 @@ export function BoutonRestaurerUtilisateur({
       icone="arrowUp"
       title={iconeSeule ? libelle : undefined}
       aria-label={iconeSeule ? libelle : undefined}
-      className={cn(iconeSeule && "w-8 px-0")}
+      className={cn(
+        iconeSeule && "w-8 rounded-full border-0 bg-success-soft px-0 text-success shadow-none hover:bg-success/20",
+      )}
       chargement={enCours}
       onClick={() =>
         demarrer(async () => {
