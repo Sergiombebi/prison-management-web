@@ -51,7 +51,6 @@ export default async function VisitesPage(props: PageProps<"/sante/visites">) {
   return (
     <Page>
       <PageHeader
-        surtitre={t.modules.sante}
         titre="Gestion des visites"
         description="Parloirs, identité des visiteurs et contrôles de sécurité effectués à l’entrée."
       />

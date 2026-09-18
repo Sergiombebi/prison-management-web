@@ -304,12 +304,14 @@ export interface ApiClient {
 
   /** GET /cellules — occupation calculée par le serveur */
   listCellules(): Promise<Cellule[]>;
-  /** GET /cellules/{id} — avec la liste de ses occupants */
+  /** GET /cellules/{id} */
   getCellule(id: number): Promise<Cellule | null>;
   /** POST /cellules */
   creerCellule(entree: EntreeCellule): Promise<{ id: number }>;
   /** PUT /cellules/{id} — 422 si la capacité passe sous l'effectif présent */
   majCellule(id: number, entree: EntreeCellule): Promise<void>;
+  /** GET /cellules/{id}/detenus — paginé, détenus actuellement logés dans cette cellule */
+  listDetenusCellule(celluleId: number, filtre?: { page?: number }): Promise<PageResultat<DetenuResume>>;
   /** GET /affectations — fil global des mouvements, le plus récent d'abord */
   listAffectations(): Promise<Affectation[]>;
   /** POST /detenus/{id}/affectations — 422 si la cellule est pleine */

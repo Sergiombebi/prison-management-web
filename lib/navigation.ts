@@ -13,6 +13,7 @@ export type IconName =
   | "detenus"
   | "discipline"
   | "sante"
+  | "door"
   | "etats"
   | "administration";
 
@@ -163,28 +164,18 @@ export const MODULES: ModuleNav[] = [
     ],
   },
   {
-    id: "sante",
+    id: "suivi-medical",
     href: "/sante/suivi-medical",
-    label: t.modules.sante,
+    label: t.modules.suiviMedical,
     icone: "sante",
-    description: "Consultations médicales et visites au parloir",
-    groupes: [
-      {
-        label: "Santé & visites",
-        liens: [
-          {
-            href: "/sante/suivi-medical",
-            label: "Suivi médical",
-            description: "Consultations, diagnostics et traitements prescrits",
-          },
-          {
-            href: "/sante/visites",
-            label: "Gestion des visites",
-            description: "Parloirs, visiteurs et contrôles de sécurité",
-          },
-        ],
-      },
-    ],
+    description: "Consultations, diagnostics et traitements prescrits",
+  },
+  {
+    id: "visites",
+    href: "/sante/visites",
+    label: t.modules.visites,
+    icone: "door",
+    description: "Parloirs, visiteurs et contrôles de sécurité",
   },
   {
     id: "etats",
@@ -259,6 +250,13 @@ const TOUS_LES_LIENS: LienNav[] = MODULES.flatMap((m) =>
 /** Le module auquel appartient un chemin. */
 export function moduleDe(pathname: string): ModuleNav | undefined {
   return MODULES.find((m) => {
+    // Un module sans sous-navigation ne couvre que sa propre route : matcher sur le
+    // seul premier segment le confondrait avec un autre module partageant le même
+    // préfixe (ex: /sante/suivi-medical et /sante/visites, deux modules distincts).
+    if (!m.groupes) {
+      return pathname === m.href || pathname.startsWith(`${m.href}/`);
+    }
+
     const racine = `/${m.href.split("/")[1]}`;
     return pathname === racine || pathname.startsWith(`${racine}/`);
   });

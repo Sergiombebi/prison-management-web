@@ -160,8 +160,6 @@ export interface Cellule {
   effectifTheorique: number;
   /** Nombre de détenus réellement affectés — calculé côté serveur. */
   effectifReel: number;
-  /** Détenus présents dans la cellule — seulement sur la fiche d'une cellule. */
-  occupants?: Array<{ detenuId: number; nom: string; numeroEcrou: string; dateAffectation: string }>;
 }
 
 export interface Affectation {

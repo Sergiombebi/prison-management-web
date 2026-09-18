@@ -45,7 +45,6 @@ export default async function SuiviMedicalPage(props: PageProps<"/sante/suivi-me
   return (
     <Page>
       <PageHeader
-        surtitre={t.modules.sante}
         titre="Suivi médical"
         description="Consultations réalisées à l’infirmerie, diagnostics posés et traitements prescrits."
       />

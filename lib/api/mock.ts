@@ -374,18 +374,26 @@ export const mockApi: ApiClient = {
   async getCellule(id) {
     await attendre();
     const cellule = fx.cellules.find((c) => c.id === id);
-    if (!cellule) return null;
-    return {
-      ...cellule,
-      occupants: fx.affectations
-        .filter((a) => a.celluleId === id)
-        .map((a) => ({
-          detenuId: a.detenuId,
-          nom: a.detenuNom,
-          numeroEcrou: a.numeroEcrou,
-          dateAffectation: a.dateAffectation,
-        })),
-    };
+    return cellule ?? null;
+  },
+
+  async listDetenusCellule(celluleId, filtre = {}) {
+    await attendre();
+    const { page = 1 } = filtre;
+    const parPage = 10;
+
+    const detenuIds = [
+      ...new Set(
+        fx.affectations
+          .filter((a) => a.celluleId === celluleId && !a.dateFin)
+          .map((a) => a.detenuId),
+      ),
+    ];
+    const items = detenuIds.map((id) => resumer(id)).sort((a, b) => a.nom.localeCompare(b.nom, "fr"));
+
+    const total = items.length;
+    const debut = (Math.max(1, page) - 1) * parPage;
+    return { items: items.slice(debut, debut + parPage), total, page, parPage };
   },
 
   async terminerSanction() {

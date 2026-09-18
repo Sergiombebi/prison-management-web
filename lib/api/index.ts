@@ -61,6 +61,7 @@ const DOMAINE_DE: Record<keyof ApiClient, DomaineApi> = {
   getCellule: "discipline",
   creerCellule: "discipline",
   majCellule: "discipline",
+  listDetenusCellule: "discipline",
   listAffectations: "discipline",
   affecterDetenu: "discipline",
   listSanctions: "discipline",

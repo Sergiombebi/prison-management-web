@@ -177,7 +177,7 @@ export default async function CellulesPage(props: PageProps<"/discipline/cellule
                           transitionTypes={["nav-forward"]}
                           aria-label={`Affecter un détenu en ${c.bloc ? `${c.bloc} · ` : ""}${c.numero}`}
                           className={cn(
-                            "lift flex h-full items-center gap-4 rounded-lg border bg-surface p-4 pr-12 shadow-e1",
+                            "lift flex h-full items-center gap-4 rounded-lg border bg-surface p-4 pr-20 shadow-e1",
                             enModification
                               ? "border-accent ring-2 ring-accent/20"
                               : e.ton === "danger"
@@ -199,6 +199,14 @@ export default async function CellulesPage(props: PageProps<"/discipline/cellule
                               <Badge ton={e.ton}>{e.label}</Badge>
                             </div>
                           </div>
+                        </Link>
+                        <Link
+                          href={`/discipline/cellules/${c.id}`}
+                          transitionTypes={["nav-forward"]}
+                          aria-label={`Voir les détenus de la cellule ${c.bloc ? `${c.bloc} · ` : ""}${c.numero}`}
+                          className="absolute right-11 top-2.5 grid size-8 place-items-center rounded-md text-faint transition-colors hover:bg-sunken hover:text-ink focus-visible:bg-sunken focus-visible:text-ink"
+                        >
+                          <Icon name="eye" size={14} />
                         </Link>
                         <Link
                           // L'ancre ramène au formulaire quand il est sous la grille (écrans étroits)
@@ -234,29 +242,17 @@ export default async function CellulesPage(props: PageProps<"/discipline/cellule
               action={modifierCellule.bind(null, celluleModifiee.id)}
             />
 
-            {celluleModifiee.occupants && celluleModifiee.occupants.length > 0 && (
-              <section aria-labelledby="occupants" className="mt-5 border-t border-hairline pt-4">
-                <h3 id="occupants" className="text-2xs font-semibold uppercase tracking-[0.08em] text-faint">
-                  Occupants
-                </h3>
-                <ul className="mt-2 flex flex-col gap-1">
-                  {celluleModifiee.occupants.map((o) => (
-                    <li key={o.detenuId}>
-                      <Link
-                        href={`/detenus/${o.detenuId}`}
-                        transitionTypes={["nav-forward"]}
-                        className="flex items-baseline justify-between gap-3 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-sunken"
-                      >
-                        <span className="min-w-0 truncate text-ink">{o.nom}</span>
-                        <span className="shrink-0 font-mono text-2xs text-muted">{o.numeroEcrou}</span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-                <p className="mt-2 px-2 text-2xs text-muted">
-                  Pour déplacer un détenu, passer par « Affecter un détenu ».
-                </p>
-              </section>
+            {celluleModifiee.effectifReel > 0 && (
+              <div className="mt-5 border-t border-hairline pt-4">
+                <Link
+                  href={`/discipline/cellules/${celluleModifiee.id}`}
+                  transitionTypes={["nav-forward"]}
+                  className="flex items-center justify-between gap-3 rounded-md px-2 py-1.5 text-sm text-accent transition-colors hover:bg-sunken"
+                >
+                  <span>Voir les {pluriel(celluleModifiee.effectifReel, "détenu")} de cette cellule</span>
+                  <Icon name="arrowRight" size={14} />
+                </Link>
+              </div>
             )}
           </Panel>
         ) : (

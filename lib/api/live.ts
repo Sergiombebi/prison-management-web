@@ -354,13 +354,6 @@ interface TableauDeBordApi {
   }>;
 }
 
-interface OccupantApi {
-  detenu_id: number;
-  numero_ecrou: string;
-  nom: string;
-  date_affectation: string | null;
-}
-
 interface SanctionApi {
   id: number;
   detenu_id: number;
@@ -1068,19 +1061,21 @@ export const liveApi: ApiClient = {
   },
 
   async getCellule(id) {
-    const corps = await requete<{ data: CelluleApi & { occupants?: OccupantApi[] } } | null>(
-      `/cellules/${id}`,
-      { nullSur404: true },
-    );
+    const corps = await requete<{ data: CelluleApi } | null>(`/cellules/${id}`, { nullSur404: true });
     if (!corps?.data) return null;
+    return versCellule(corps.data);
+  },
+
+  async listDetenusCellule(celluleId, filtre = {}) {
+    const corps = await requete<{ data: DetenuListeApi[]; meta?: MetaPagination }>(
+      `/cellules/${celluleId}/detenus`,
+      { query: { page: filtre.page } },
+    );
     return {
-      ...versCellule(corps.data),
-      occupants: (corps.data.occupants ?? []).map((o) => ({
-        detenuId: o.detenu_id,
-        nom: o.nom,
-        numeroEcrou: o.numero_ecrou,
-        dateAffectation: o.date_affectation ?? "",
-      })),
+      items: (corps?.data ?? []).map(versResume),
+      total: corps?.meta?.total ?? 0,
+      page: corps?.meta?.current_page ?? 1,
+      parPage: corps?.meta?.per_page ?? 10,
     };
   },
 
@@ -1202,8 +1197,8 @@ export const liveApi: ApiClient = {
   // -------------------------------------------------------------------------
 
   async listSuivisMedicaux() {
-    const corps = await requete<{ data: SuiviMedicalApi[] }>("/suivis-medicaux");
-    return (corps?.data ?? []).map((s) => versSuiviMedical(s));
+    const suivis = await toutesLesPages<SuiviMedicalApi>("/suivis-medicaux");
+    return suivis.map((s) => versSuiviMedical(s));
   },
 
   async creerSuiviMedical(detenuId, entree) {
@@ -1230,8 +1225,8 @@ export const liveApi: ApiClient = {
   },
 
   async listVisites() {
-    const corps = await requete<{ data: VisiteApi[] }>("/visites");
-    return (corps?.data ?? []).map((v) => versVisite(v));
+    const visites = await toutesLesPages<VisiteApi>("/visites");
+    return visites.map((v) => versVisite(v));
   },
 
   async creerVisite(detenuId, entree) {
