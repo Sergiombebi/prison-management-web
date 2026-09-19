@@ -12,15 +12,11 @@ import { ModalImpression } from "@/components/ui/modal-impression";
 export const referenceAvis = (s: SortieDetenu) =>
   `AE-${String(s.id).padStart(5, "0")}/${(s.dateSortie || s.dateEnregistrement).slice(0, 4)}`;
 
-function Photo({ url, legende }: { url: string | null | undefined; legende: string }) {
+function Photo({ url, legende }: { url: string; legende: string }) {
   return (
     <figure className="flex flex-col items-center gap-1">
       <span className="relative block h-28 w-22 overflow-hidden border border-neutral-400 bg-neutral-100">
-        {url ? (
-          <Image src={url} alt={legende} fill unoptimized sizes="90px" className="object-cover" />
-        ) : (
-          <span className="grid h-full place-items-center text-[9px] uppercase tracking-wide text-neutral-400">Non fournie</span>
-        )}
+        <Image src={url} alt={legende} fill unoptimized sizes="90px" className="object-cover" />
       </span>
       <figcaption className="text-[9px] uppercase tracking-wide text-neutral-500">{legende}</figcaption>
     </figure>
@@ -38,6 +34,11 @@ export function AvisEvasion({ sortie, parametres }: { sortie: SortieDetenu; para
     .map((l) => l.trim())
     .filter(Boolean);
 
+  // Une photo absente n'occupe aucune place : pas de cadre vide sur l'avis
+  const photos: Array<{ url: string; legende: string }> = [];
+  if (fiche?.photoFaceUrl) photos.push({ url: fiche.photoFaceUrl, legende: "De face" });
+  if (fiche?.photoProfilUrl) photos.push({ url: fiche.photoProfilUrl, legende: "De profil" });
+
   return (
     <DocumentOfficiel
       parametres={parametres}
@@ -53,7 +54,7 @@ export function AvisEvasion({ sortie, parametres }: { sortie: SortieDetenu; para
         prié(e) de bien vouloir engager toutes recherches utiles en vue de son arrestation et de sa réintégration.
       </p>
 
-      <div className="mt-4 grid gap-5 sm:grid-cols-[1fr_auto] print:grid-cols-[1fr_auto]">
+      <div className={photos.length > 0 ? "mt-4 grid gap-5 sm:grid-cols-[1fr_auto] print:grid-cols-[1fr_auto]" : "mt-4"}>
         <section className="break-inside-avoid">
           <h3 className="mb-1 text-[11px] font-bold uppercase tracking-[0.14em] text-neutral-600">Identité du fugitif</h3>
           <LigneDocument label="Numéro d’écrou" valeur={<span className="font-mono">{sortie.numeroEcrou}</span>} />
@@ -69,10 +70,13 @@ export function AvisEvasion({ sortie, parametres }: { sortie: SortieDetenu; para
             </>
           )}
         </section>
-        <div className="flex gap-3 sm:flex-col print:flex-row">
-          <Photo url={fiche?.photoFaceUrl} legende="De face" />
-          <Photo url={fiche?.photoProfilUrl} legende="De profil" />
-        </div>
+        {photos.length > 0 && (
+          <div className="flex gap-3 sm:flex-col print:flex-row">
+            {photos.map((p) => (
+              <Photo key={p.legende} url={p.url} legende={p.legende} />
+            ))}
+          </div>
+        )}
       </div>
 
       <section className="mt-4 break-inside-avoid">
@@ -90,9 +94,9 @@ export function AvisEvasion({ sortie, parametres }: { sortie: SortieDetenu; para
       {ampliations.length > 0 && (
         <section className="mt-4 break-inside-avoid text-[11px]">
           <h3 className="mb-1 font-bold uppercase tracking-[0.14em] text-neutral-600">Ampliations</h3>
-          <ul className="grid gap-x-6 sm:grid-cols-2 print:grid-cols-2">
+          <ul>
             {ampliations.map((a, i) => (
-              <li key={i} className="leading-snug">
+              <li key={i} className="leading-snug print:whitespace-nowrap">
                 — {a}
               </li>
             ))}
