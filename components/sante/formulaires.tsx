@@ -2,7 +2,7 @@
 
 import { useActionState, useRef, useState } from "react";
 import type { EtatAction } from "@/lib/api/actions";
-import type { DetenuResume } from "@/lib/domain/types";
+import type { DetenuResume, Parametres } from "@/lib/domain/types";
 import {
   DUREES_VISITE,
   LIENS_PARENTE,
@@ -11,10 +11,11 @@ import {
   TYPES_CONSULTATION,
   TYPES_VISITE,
 } from "@/lib/domain/referentiels";
-import { enregistrerConsultation, enregistrerVisite } from "@/app/(app)/sante/actions";
+import { enregistrerConsultation, enregistrerVisite, type EtatVisite } from "@/app/(app)/sante/actions";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { RetourAction } from "@/components/ui/retour-action";
+import { ConfirmationVisite } from "@/components/sante/ticket-visite";
 
 /*
  * Champs nommés comme ceux de l'API : une erreur 422 se replace directement sous
@@ -22,8 +23,8 @@ import { RetourAction } from "@/components/ui/retour-action";
  * valide strictement (`Rule::in`).
  */
 
-function useFormulaire(action: (p: EtatAction, f: FormData) => Promise<EtatAction>) {
-  const [etat, envoyer, enCours] = useActionState<EtatAction, FormData>(action, {});
+function useFormulaire<E extends EtatAction>(action: (p: Awaited<E>, f: FormData) => Promise<E>) {
+  const [etat, envoyer, enCours] = useActionState(action, {} as Awaited<E>);
   return {
     etat,
     envoyer,
@@ -181,11 +182,13 @@ export function FormulaireConsultation({
 export function FormulaireVisite({
   detenus,
   detenuInitial,
+  parametres,
 }: {
   detenus: DetenuResume[];
   detenuInitial?: number;
+  parametres: Parametres;
 }) {
-  const { etat, envoyer, enCours, v, err } = useFormulaire(enregistrerVisite);
+  const { etat, envoyer, enCours, v, err } = useFormulaire<EtatVisite>(enregistrerVisite);
   const forme = useRef<HTMLFormElement>(null);
   const [etape, setEtape] = useState<1 | 2>(1);
 
@@ -199,6 +202,32 @@ export function FormulaireVisite({
     if (etat.erreurs && Object.keys(etat.erreurs).some((champ) => CHAMPS_ETAPE_VISITE.has(champ))) {
       setEtape(1);
     }
+  }
+
+  // Visite enregistrée : place au ticket, le formulaire n'a plus lieu d'être.
+  if (etat.ok && etat.visiteId && etat.valeurs) {
+    const val = etat.valeurs;
+    const detenu = detenus.find((d) => d.id === Number(val.detenu_id));
+    return (
+      <ConfirmationVisite
+        parametres={parametres}
+        ticket={{
+          id: etat.visiteId,
+          detenuNom: detenu?.nom ?? "",
+          detenuNumeroEcrou: detenu?.numeroEcrou ?? "",
+          nomVisiteur: val.nom_visiteur ?? "",
+          lienParente: val.lien_parente ?? "",
+          typePieceIdentite: val.type_piece_identite ?? "",
+          numeroPieceIdentite: val.numero_piece_identite ?? "",
+          dateVisite: val.date_visite ?? "",
+          heureArrivee: val.heure_arrivee ?? "",
+          dureePrevueMinutes: val.duree_prevue_minutes ?? "",
+          typeVisite: val.type_visite ?? "",
+          lieuVisite: val.lieu_visite ?? "",
+          agentControle: val.agent_controle ?? "",
+        }}
+      />
+    );
   }
 
   return (

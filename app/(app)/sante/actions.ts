@@ -47,17 +47,24 @@ export async function enregistrerConsultation(
   return { ok: true, message: `Consultation enregistrée${suffixe()}.` };
 }
 
+/** Identifiant de la visite créée, pour générer son ticket sans rappeler l'API :
+ * le formulaire connaît déjà tout (détenus, valeurs saisies). */
+export interface EtatVisite extends EtatAction {
+  visiteId?: number;
+}
+
 export async function enregistrerVisite(
-  _precedent: EtatAction,
+  _precedent: EtatVisite,
   formulaire: FormData,
-): Promise<EtatAction> {
+): Promise<EtatVisite> {
   const detenuId = entier(formulaire, "detenu_id");
   if (!detenuId) return manquant(formulaire, "detenu_id", "Choisissez le détenu visité.");
   const duree = entier(formulaire, "duree_prevue_minutes");
   if (!duree) return manquant(formulaire, "duree_prevue_minutes", "Choisissez la durée prévue.");
 
+  let visiteId: number;
   try {
-    await api.creerVisite(detenuId, {
+    const cree = await api.creerVisite(detenuId, {
       dateVisite: texte(formulaire, "date_visite"),
       heureArrivee: texte(formulaire, "heure_arrivee"),
       dureePrevueMinutes: duree,
@@ -80,10 +87,16 @@ export async function enregistrerVisite(
       heureFin: optionnel(formulaire, "heure_fin"),
       observationsVisite: optionnel(formulaire, "observations_visite"),
     });
+    visiteId = cree.id;
   } catch (e) {
     return etatDepuisErreur(e, formulaire);
   }
 
   rafraichir(detenuId);
-  return { ok: true, message: `Visite enregistrée${suffixe()}.` };
+  return {
+    ok: true,
+    message: `Visite enregistrée${suffixe()}.`,
+    visiteId,
+    valeurs: valeursSaisies(formulaire),
+  };
 }

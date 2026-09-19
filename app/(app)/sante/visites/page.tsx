@@ -21,10 +21,11 @@ const CHEMIN = "/sante/visites";
 
 export default async function VisitesPage(props: PageProps<"/sante/visites">) {
   const sp = await props.searchParams;
-  const [visites, detenus, profil] = await Promise.all([
+  const [visites, detenus, profil, parametres] = await Promise.all([
     api.listVisites(),
     api.listDetenus({ parPage: 1000, tri: "nom" }),
     getProfil(),
+    api.getParametres(),
   ]);
 
   const maintenant = new Date();
@@ -55,19 +56,21 @@ export default async function VisitesPage(props: PageProps<"/sante/visites">) {
 
   return (
     <Page>
-      <PageHeader
-        titre="Gestion des visites"
-        description="Parloirs, identité des visiteurs et contrôles de sécurité effectués à l’entrée."
-      />
+      <div data-print-hide>
+        <PageHeader
+          titre="Gestion des visites"
+          description="Parloirs, identité des visiteurs et contrôles de sécurité effectués à l’entrée."
+        />
 
-      <StatGrid colonnes={3}>
-        <Stat icone="user" style={{ ["--i" as string]: 0 }} label="Visites du jour" valeur={formatNombre(duJour)} contexte="Enregistrées aujourd’hui" href="/sante/visites?periode=aujourdhui" />
-        <Stat icone="user" style={{ ["--i" as string]: 1 }} label="7 derniers jours" valeur={formatNombre(semaine)} contexte={`${formatNombre(visites.length)} au total`} href="/sante/visites?periode=semaine" />
-        <Stat icone="user" style={{ ["--i" as string]: 2 }} label="Sans autorisation préalable" valeur={formatNombre(sansAutorisation)} signal={sansAutorisation > 0 ? "attention" : "positif"} contexte="Sur les 7 derniers jours" />
-      </StatGrid>
+        <StatGrid colonnes={3}>
+          <Stat icone="user" style={{ ["--i" as string]: 0 }} label="Visites du jour" valeur={formatNombre(duJour)} contexte="Enregistrées aujourd’hui" href="/sante/visites?periode=aujourdhui" />
+          <Stat icone="user" style={{ ["--i" as string]: 1 }} label="7 derniers jours" valeur={formatNombre(semaine)} contexte={`${formatNombre(visites.length)} au total`} href="/sante/visites?periode=semaine" />
+          <Stat icone="user" style={{ ["--i" as string]: 2 }} label="Sans autorisation préalable" valeur={formatNombre(sansAutorisation)} signal={sansAutorisation > 0 ? "attention" : "positif"} contexte="Sur les 7 derniers jours" />
+        </StatGrid>
+      </div>
 
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
-        <Panel variante="eleve" flush className="overflow-hidden">
+        <Panel variante="eleve" flush className="overflow-hidden print:hidden">
           <FilterBar action={CHEMIN} actif={filtresActifs(sp, ["recherche", "periode", "type"])} reinitialiserHref={CHEMIN} resultat={pluriel(filtrees.length, "visite")}>
             <SearchInput name="recherche" defaultValue={param(sp, "recherche")} placeholder="Détenu ou visiteur…" aria-label="Rechercher une visite" className="w-full sm:w-56" />
             <Select name="periode" defaultValue={periode} aria-label="Période" className="w-40">
@@ -140,7 +143,7 @@ export default async function VisitesPage(props: PageProps<"/sante/visites">) {
             className="xl:sticky xl:top-20 xl:flex xl:max-h-[calc(100vh-7rem)] xl:flex-col"
             corpsClassName="xl:min-h-0 xl:flex-1 xl:overflow-y-auto"
           >
-            <FormulaireVisite detenus={detenus.items} detenuInitial={detenuInitial} />
+            <FormulaireVisite detenus={detenus.items} detenuInitial={detenuInitial} parametres={parametres} />
           </Panel>
         )}
       </div>
