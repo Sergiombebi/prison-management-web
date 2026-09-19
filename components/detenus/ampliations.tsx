@@ -26,15 +26,15 @@ export function AmpliationsInfo({ autorites }: { autorites: string }) {
           onClick={() => setOuvert(true)}
           aria-label="Voir les ampliations"
           title="Voir les ampliations"
-          className="grid size-8 place-items-center rounded-full bg-info-soft text-info ring-1 ring-inset ring-info/25 transition-colors hover:bg-info/20"
+          className="grid size-9 place-items-center rounded-full bg-accent text-ink-inverse shadow-e2 transition-all hover:bg-accent-hover hover:shadow-e3"
         >
-          <Icon name="info" size={16} />
+          <Icon name="send" size={16} />
         </button>
       </div>
 
       <Modale open={ouvert} onClose={() => setOuvert(false)} labelId={titleId} className="max-w-md">
         <div className="flex items-start gap-3">
-          <IconTile name="shield" ton="info" size={18} />
+          <IconTile name="send" ton="accent" size={18} />
           <div className="min-w-0 flex-1">
             <h2 id={titleId} className="text-sm font-semibold text-ink">
               Ampliations de l’avis d’évasion
@@ -62,7 +62,7 @@ export function AmpliationsInfo({ autorites }: { autorites: string }) {
           ) : (
             liste.map((a, i) => (
               <li key={i} className="flex items-start gap-2.5 rounded-md border border-hairline bg-raised px-3 py-2 text-sm text-ink">
-                <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-info-soft text-2xs font-semibold text-info">
+                <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-accent-soft text-2xs font-semibold text-accent">
                   {i + 1}
                 </span>
                 <span>{a}</span>

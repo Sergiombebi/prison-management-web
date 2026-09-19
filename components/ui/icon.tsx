@@ -55,6 +55,7 @@ const CHEMINS = {
   exit: "M11 3H4v14h7M14 13l3-3-3-3M17 10H8",
   more: "M4 10h.01M10 10h.01M16 10h.01",
   edit: "M13.5 3.5l3 3L7 16H4v-3l9.5-9.5z",
+  send: "M17.5 2.5 8.6 11.4M17.5 2.5l-5.4 15-3.5-6.2-6.2-3.5 15.1-5.3z",
   trash: "M3.5 5.5h13M8 5.5V3h4v2.5M5 5.5l.8 11.5h8.4L15 5.5",
 } as const;
 
@@ -107,6 +108,7 @@ export const TON_PAR_ICONE: Partial<Record<NomIcone, TonIcone>> = {
   shield: "success",
   alert: "danger",
   printer: "accent",
+  send: "accent",
   edit: "warning",
   eye: "info",
   trash: "danger",
