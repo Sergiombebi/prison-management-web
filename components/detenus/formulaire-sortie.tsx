@@ -9,6 +9,7 @@ import type { EtatSortie } from "@/app/(app)/detenus/liberation/actions";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { RetourAction } from "@/components/ui/retour-action";
+import { AvisEvasionModal } from "@/components/detenus/avis-evasion";
 import { BulletinModal } from "@/components/detenus/bulletin-transferement";
 
 /** Champs propres à chaque type de sortie, conformes à ce que l'API exige. */
@@ -172,7 +173,11 @@ export function FormulaireSortie({
         </Button>
       </div>
     </form>
-    <BulletinModal open={bulletinOuvert} sortie={etat.sortie ?? null} parametres={parametres} onClose={() => setBulletinOuvert(false)} />
+    {type === "Evasion" ? (
+      <AvisEvasionModal open={bulletinOuvert} sortie={etat.sortie ?? null} parametres={parametres} onClose={() => setBulletinOuvert(false)} />
+    ) : (
+      <BulletinModal open={bulletinOuvert} sortie={etat.sortie ?? null} parametres={parametres} onClose={() => setBulletinOuvert(false)} />
+    )}
     </>
   );
 }

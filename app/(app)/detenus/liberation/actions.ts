@@ -56,7 +56,7 @@ export async function consignerSortie(
   try {
     const cree = await api.enregistrerSortie(detenuId, entree);
     definitive = cree.definitive;
-    if (type === "Transfert") sortie = (await api.getSortie(cree.id)) ?? undefined;
+    if (type === "Transfert" || type === "Evasion") sortie = (await api.getSortie(cree.id)) ?? undefined;
   } catch (e) {
     return etatDepuisErreur(e, formulaire);
   }

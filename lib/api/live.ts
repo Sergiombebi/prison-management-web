@@ -483,6 +483,11 @@ export interface SortieApi {
     lieu_naissance?: string | null;
     nom_pere?: string | null;
     nom_mere?: string | null;
+    profession?: string | null;
+    nationalite?: string | null;
+    anthropometrie?: string | null;
+    photo_face_url?: string | null;
+    photo_profil_url?: string | null;
   };
   mandas_id: number | null;
   mandas?: { id: number; type_statut_penal: string | null; reference_mandat: string | null } | null;
@@ -673,6 +678,11 @@ export function versSortie(x: SortieApi, detenu?: { nom: string; numeroEcrou: st
           lieuNaissance: x.detenu.lieu_naissance ?? "",
           nomPere: x.detenu.nom_pere ?? "",
           nomMere: x.detenu.nom_mere ?? "",
+          profession: x.detenu.profession ?? "",
+          nationalite: x.detenu.nationalite ?? "",
+          anthropometrie: x.detenu.anthropometrie ?? "",
+          photoFaceUrl: x.detenu.photo_face_url ?? null,
+          photoProfilUrl: x.detenu.photo_profil_url ?? null,
         }
       : null,
     dateEnregistrement: x.created_at ?? "",

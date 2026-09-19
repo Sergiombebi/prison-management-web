@@ -13,6 +13,7 @@ import { EmptyState, Ecrou, Panel } from "@/components/ui/surface";
 import { TabsNav } from "@/components/ui/tabs";
 import { FormulaireSortie } from "@/components/detenus/formulaire-sortie";
 import { AmpliationsInfo } from "@/components/detenus/ampliations";
+import { EvasionsTable } from "@/components/detenus/evasions-table";
 import { TransfertsTable } from "@/components/detenus/transferts-table";
 import { consignerSortie } from "../actions";
 
@@ -91,6 +92,8 @@ export default async function LiberationPage(props: PageProps<"/detenus/liberati
         <Panel variante="eleve" titre="Historique" sousTitre={pluriel(sorties.length, "sortie enregistrée", "sorties enregistrées")} flush className="overflow-hidden">
           {typeSortie === "Transfert" ? (
             <TransfertsTable sorties={sorties} parametres={parametres} />
+          ) : typeSortie === "Evasion" ? (
+            <EvasionsTable sorties={sorties} parametres={parametres} />
           ) : (
           <DataTable<SortieDetenu>
             legende={`Historique : ${LIBELLE_TYPE_SORTIE[typeSortie]}`}

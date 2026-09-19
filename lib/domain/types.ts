@@ -265,7 +265,17 @@ export interface SortieDetenu {
   cause: string | null;
   observation: string | null;
   /** État civil du détenu, fourni par le détail d'une sortie (bulletin de transfèrement). */
-  detenuFiche?: { dateNaissance: string; lieuNaissance: string; nomPere: string; nomMere: string } | null;
+  detenuFiche?: {
+    dateNaissance: string;
+    lieuNaissance: string;
+    nomPere: string;
+    nomMere: string;
+    profession: string;
+    nationalite: string;
+    anthropometrie: string;
+    photoFaceUrl: string | null;
+    photoProfilUrl: string | null;
+  } | null;
   dateEnregistrement: string;
   /**
    * La sortie a-t-elle fait quitter l'établissement ? Une libération normale ne lève
