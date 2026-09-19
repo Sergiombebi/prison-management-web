@@ -12,6 +12,7 @@ import { Icon } from "@/components/ui/icon";
 import { EmptyState, Ecrou, Panel } from "@/components/ui/surface";
 import { TabsNav } from "@/components/ui/tabs";
 import { FormulaireSortie } from "@/components/detenus/formulaire-sortie";
+import { TransfertsTable } from "@/components/detenus/transferts-table";
 import { consignerSortie } from "../actions";
 
 const CONFIG: Record<TypeSortie, { description: string; detail: string; grave: boolean }> = {
@@ -70,6 +71,8 @@ export default async function LiberationPage(props: PageProps<"/detenus/liberati
   ]);
 
   return (
+    // Le bulletin s'imprime depuis une modale portée hors de cette page : tout le reste est masqué sur papier
+    <div data-print-hide>
     <Page>
       <PageHeader surtitre="Libération" titre={LIBELLE_TYPE_SORTIE[typeSortie]} description={config.description} />
 
@@ -85,6 +88,9 @@ export default async function LiberationPage(props: PageProps<"/detenus/liberati
 
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">
         <Panel variante="eleve" titre="Historique" sousTitre={pluriel(sorties.length, "sortie enregistrée", "sorties enregistrées")} flush className="overflow-hidden">
+          {typeSortie === "Transfert" ? (
+            <TransfertsTable sorties={sorties} parametres={parametres} />
+          ) : (
           <DataTable<SortieDetenu>
             legende={`Historique : ${LIBELLE_TYPE_SORTIE[typeSortie]}`}
             lignes={sorties}
@@ -125,6 +131,7 @@ export default async function LiberationPage(props: PageProps<"/detenus/liberati
               />
             }
           />
+          )}
         </Panel>
 
         <Panel variante="eleve"
@@ -151,9 +158,11 @@ export default async function LiberationPage(props: PageProps<"/detenus/liberati
             detenuId={choisi}
             mandats={dossier ? dossier.mandats.filter((m) => m.ouvert) : null}
             grave={config.grave}
+            parametres={parametres}
           />
         </Panel>
       </div>
     </Page>
+    </div>
   );
 }

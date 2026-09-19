@@ -475,7 +475,15 @@ export interface VisiteApi {
 export interface SortieApi {
   id: number;
   detenu_id: number;
-  detenu?: { id: number; numero_ecrou: string; nom: string };
+  detenu?: {
+    id: number;
+    numero_ecrou: string;
+    nom: string;
+    date_naissance?: string | null;
+    lieu_naissance?: string | null;
+    nom_pere?: string | null;
+    nom_mere?: string | null;
+  };
   mandas_id: number | null;
   mandas?: { id: number; type_statut_penal: string | null; reference_mandat: string | null } | null;
   type_sortie: string;
@@ -659,6 +667,14 @@ export function versSortie(x: SortieApi, detenu?: { nom: string; numeroEcrou: st
     destination: x.destination,
     cause: x.cause,
     observation: x.observation,
+    detenuFiche: x.detenu?.date_naissance
+      ? {
+          dateNaissance: x.detenu.date_naissance,
+          lieuNaissance: x.detenu.lieu_naissance ?? "",
+          nomPere: x.detenu.nom_pere ?? "",
+          nomMere: x.detenu.nom_mere ?? "",
+        }
+      : null,
     dateEnregistrement: x.created_at ?? "",
     definitive: x.sortie_definitive,
   };
@@ -1393,6 +1409,25 @@ export const liveApi: ApiClient = {
       10,
     );
     return sorties.map((x) => versSortie(x));
+  },
+
+  async getSortie(sortieId) {
+    const corps = await requete<{ data: SortieApi } | null>(`/sorties/${sortieId}`, { nullSur404: true });
+    return corps?.data ? versSortie(corps.data) : null;
+  },
+
+  async majSortie(sortieId, entree) {
+    await requete(`/sorties/${sortieId}`, {
+      method: "PUT",
+      body: JSON.stringify(
+        sansVides({
+          date_sortie: entree.dateSortie,
+          destination: entree.destination,
+          motif: entree.motif,
+          observation: entree.observation,
+        }),
+      ),
+    });
   },
 
   async enregistrerSortie(detenuId, entree) {

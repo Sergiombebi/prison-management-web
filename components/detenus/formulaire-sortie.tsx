@@ -1,14 +1,15 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import type { MandatDetaille } from "@/lib/api";
-import type { DetenuResume, TypeSortie } from "@/lib/domain/types";
+import type { DetenuResume, Parametres, TypeSortie } from "@/lib/domain/types";
 import { formatDate } from "@/lib/format";
 import type { EtatSortie } from "@/app/(app)/detenus/liberation/actions";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { RetourAction } from "@/components/ui/retour-action";
+import { BulletinModal } from "@/components/detenus/bulletin-transferement";
 
 /** Champs propres à chaque type de sortie, conformes à ce que l'API exige. */
 const CHAMPS: Record<TypeSortie, Array<{ nom: string; label: string; requis: boolean; aide?: string; long?: boolean }>> = {
@@ -30,6 +31,7 @@ export function FormulaireSortie({
   detenuId,
   mandats,
   grave,
+  parametres,
 }: {
   type: TypeSortie;
   action: (p: EtatSortie, f: FormData) => Promise<EtatSortie>;
@@ -39,10 +41,20 @@ export function FormulaireSortie({
   /** Mandats non levés du détenu choisi, échus compris (libération normale uniquement). */
   mandats: MandatDetaille[] | null;
   grave: boolean;
+  /** Pour le bulletin de transfèrement proposé après un transfert. */
+  parametres: Parametres;
 }) {
   const router = useRouter();
   const chemin = usePathname();
   const [etat, envoyer, enCours] = useActionState<EtatSortie, FormData>(action, {});
+  const [bulletinOuvert, setBulletinOuvert] = useState(false);
+  const [dernierEtat, setDernierEtat] = useState(etat);
+  // Un transfert consigné ouvre aussitôt son bulletin (ajusté pendant le rendu : `etat`
+  // ne change qu'au retour d'une soumission).
+  if (etat !== dernierEtat) {
+    setDernierEtat(etat);
+    if (etat.ok && etat.sortie) setBulletinOuvert(true);
+  }
   const v = (champ: string) => etat.valeurs?.[champ];
   const err = (champ: string) => etat.erreurs?.[champ]?.[0];
   const liberation = type === "LiberationNormale";
@@ -50,6 +62,7 @@ export function FormulaireSortie({
   const choisi = etat.ok ? undefined : (v("detenu_id") ?? (detenuId ? String(detenuId) : undefined));
 
   return (
+    <>
     <form action={envoyer} className="flex flex-col gap-4">
       <RetourAction etat={etat} />
 
@@ -159,5 +172,7 @@ export function FormulaireSortie({
         </Button>
       </div>
     </form>
+    <BulletinModal open={bulletinOuvert} sortie={etat.sortie ?? null} parametres={parametres} onClose={() => setBulletinOuvert(false)} />
+    </>
   );
 }

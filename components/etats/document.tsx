@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import type { Parametres } from "@/lib/domain/types";
+import { cn } from "@/lib/cn";
 import { formatDateLongue } from "@/lib/format";
 import { LogoEtablissement } from "@/components/etats/logo-etablissement";
 
@@ -14,16 +15,21 @@ export function DocumentOfficiel({
   reference,
   children,
   signataire = "Le Régisseur",
+  className,
 }: {
   parametres: Parametres;
   titre: string;
   reference?: string;
   children: ReactNode;
   signataire?: string;
+  className?: string;
 }) {
   return (
     <article
-      className="mx-auto w-full max-w-[210mm] rounded-sm bg-white px-8 py-10 text-[13px] leading-relaxed text-neutral-900 shadow-[0_1px_0_rgba(0,0,0,0.04),0_12px_32px_-12px_rgba(0,0,0,0.18)] ring-1 ring-black/5 animate-rise sm:px-14 print:max-w-none print:shadow-none print:ring-0"
+      className={cn(
+        "mx-auto w-full max-w-[210mm] rounded-sm bg-white px-8 py-10 text-[13px] leading-relaxed text-neutral-900 shadow-[0_1px_0_rgba(0,0,0,0.04),0_12px_32px_-12px_rgba(0,0,0,0.18)] ring-1 ring-black/5 animate-rise sm:px-14 print:max-w-none print:shadow-none print:ring-0",
+        className,
+      )}
       style={{ colorScheme: "light" }}
     >
       <header className="grid grid-cols-[1fr_auto_1fr] items-start gap-4 text-center text-[10px] font-semibold uppercase leading-snug tracking-wide">

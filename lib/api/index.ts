@@ -80,6 +80,8 @@ const DOMAINE_DE: Record<keyof ApiClient, DomaineApi> = {
   getVisite: "sante",
   creerVisite: "sante",
   listSorties: "sorties",
+  getSortie: "sorties",
+  majSortie: "sorties",
   enregistrerSortie: "sorties",
   listUtilisateurs: "administration",
   creerUtilisateur: "administration",

@@ -482,6 +482,15 @@ export const mockApi: ApiClient = {
       .sort((a, b) => b.dateSortie.localeCompare(a.dateSortie));
   },
 
+  async getSortie(sortieId) {
+    await attendre();
+    return fx.sorties.find((s) => s.id === sortieId) ?? null;
+  },
+
+  async majSortie() {
+    await attendre();
+  },
+
   async enregistrerSortie(detenuId, entree) {
     await attendre();
     const autresMandats = fx.mandats.filter(

@@ -185,6 +185,14 @@ export type EntreeSortie =
   | { type: "Evasion"; dateSortie: string; cause?: string | null; observation?: string | null }
   | { type: "Deces"; dateSortie: string; cause: string; observation?: string | null };
 
+/** Correction d'un transfert déjà consigné. */
+export interface EntreeTransfert {
+  dateSortie: string;
+  destination: string;
+  motif?: string | null;
+  observation?: string | null;
+}
+
 /** Consultation médicale à enregistrer. */
 export interface EntreeSuiviMedical {
   dateConsultation: string;
@@ -376,6 +384,10 @@ export interface ApiClient {
 
   /** GET /sorties?type_sortie= — archive de toutes les sorties */
   listSorties(type?: TypeSortie): Promise<SortieDetenu[]>;
+  /** GET /sorties/{id} — avec l'état civil du détenu */
+  getSortie(sortieId: number): Promise<SortieDetenu | null>;
+  /** PUT /sorties/{id} — transferts uniquement (422 sinon) */
+  majSortie(sortieId: number, entree: EntreeTransfert): Promise<void>;
   /** POST /detenus/{id}/sorties/{type} */
   enregistrerSortie(detenuId: number, entree: EntreeSortie): Promise<{ id: number; definitive: boolean }>;
 
