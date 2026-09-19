@@ -19,6 +19,7 @@ import {
   pluriel,
 } from "@/lib/format";
 import { Page, PageHeader } from "@/components/layout/page";
+import { Salutation } from "@/components/layout/salutation";
 import { Stat, StatGrid } from "@/components/data/stat";
 import { AreaChart, BarChart, BubbleChart } from "@/components/data/charts";
 import { EmptyState, Ecrou, Panel } from "@/components/ui/surface";
@@ -87,7 +88,7 @@ export default async function TableauDeBordPage() {
     <Page>
       <PageHeader
         surtitre={formatDateLongue(new Date())}
-        titre={`Bonjour${profil ? `, ${profil.prenom}` : ""} 👋`}
+        titre={<Salutation prenom={profil?.prenom} />}
         description="Situation de l’établissement et points qui demandent une action aujourd’hui."
         meta={
           <span className="inline-flex items-center gap-1.5">
