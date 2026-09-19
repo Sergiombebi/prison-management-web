@@ -449,7 +449,7 @@ export interface SuiviMedicalApi {
 export interface VisiteApi {
   id: number;
   detenu_id: number;
-  detenu?: { id: number; numero_ecrou: string; nom: string };
+  detenu?: { id: number; numero_ecrou: string; nom: string; cellule?: { numero: string; bloc: string | null } | null };
   date_visite: string | null;
   heure_arrivee: string;
   duree_prevue_minutes: number;
@@ -591,6 +591,7 @@ export function versVisite(v: VisiteApi, detenu?: { nom: string; numeroEcrou: st
     detenuId: v.detenu_id,
     detenuNom: v.detenu?.nom ?? detenu?.nom ?? "",
     numeroEcrou: v.detenu?.numero_ecrou ?? detenu?.numeroEcrou ?? "",
+    celluleLibelle: v.detenu?.cellule ? libelleCellule(v.detenu.cellule) : null,
     dateVisite: v.date_visite ?? "",
     heureArrivee: v.heure_arrivee,
     dureePrevueMinutes: v.duree_prevue_minutes,
@@ -1331,6 +1332,11 @@ export const liveApi: ApiClient = {
     // Non paginé côté API : un registre des visites se consulte en entier.
     const corps = await requete<{ data: VisiteApi[] }>("/visites");
     return corps.data.map((v) => versVisite(v));
+  },
+
+  async getVisite(visiteId) {
+    const corps = await requete<{ data: VisiteApi } | null>(`/visites/${visiteId}`, { nullSur404: true });
+    return corps?.data ? versVisite(corps.data) : null;
   },
 
   async creerVisite(detenuId, entree) {

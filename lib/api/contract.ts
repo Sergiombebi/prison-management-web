@@ -369,6 +369,8 @@ export interface ApiClient {
   creerSuiviMedical(detenuId: number, entree: EntreeSuiviMedical): Promise<{ id: number }>;
   /** GET /visites — toutes les visites, la plus récente d'abord */
   listVisites(): Promise<Visite[]>;
+  /** GET /visites/{id} */
+  getVisite(visiteId: number): Promise<Visite | null>;
   /** POST /detenus/{id}/visites */
   creerVisite(detenuId: number, entree: EntreeVisite): Promise<{ id: number }>;
 

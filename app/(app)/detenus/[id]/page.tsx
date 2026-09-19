@@ -26,6 +26,7 @@ import { BoutonConfirmation } from "@/components/ui/bouton-confirmation";
 import { ConfirmationToast } from "@/components/ui/confirmation-toast";
 import { ActionsSanction } from "@/components/discipline/actions-sanction";
 import { BoutonRestaurer } from "@/components/detenus/bouton-restaurer";
+import { BoutonVoirVisite } from "@/components/sante/bouton-voir-visite";
 import { restaurerDossier } from "../nouveau/actions";
 import { desactiverDossier, desactiverMandat } from "./actions";
 
@@ -584,6 +585,12 @@ export default async function DossierDetenuPage(props: PageProps<"/detenus/[id]"
                 { cle: "visiteur", titre: "Visiteur", rendu: (v) => <span className="font-medium">{v.nomVisiteur}</span> },
                 { cle: "lien", titre: "Lien", rendu: (v) => <span className="text-muted">{v.lienParente}</span> },
                 { cle: "type", titre: "Type", masquerSous: "md", rendu: (v) => <span className="text-muted">{v.typeVisite}</span> },
+                {
+                  cle: "actions",
+                  titre: "",
+                  align: "droite",
+                  rendu: (v) => <BoutonVoirVisite visiteId={v.id} />,
+                },
               ]}
               vide={<EmptyState compact icone="user" titre="Aucune visite enregistrée" />}
             />

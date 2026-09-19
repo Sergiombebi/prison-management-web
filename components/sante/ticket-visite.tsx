@@ -65,6 +65,7 @@ export function TicketVisite({ ticket, parametres }: { ticket: DonneesTicket; pa
       <div className="flex flex-col">
         <LigneTicket label="Détenu" valeur={ticket.detenuNom} />
         <LigneTicket label="Écrou" valeur={ticket.detenuNumeroEcrou} />
+        <LigneTicket label="Cellule" valeur={ticket.detenuCellule} />
         <LigneTicket label="Visiteur" valeur={ticket.nomVisiteur} />
         <LigneTicket label="Lien de parenté" valeur={ticket.lienParente} />
         <LigneTicket label="Pièce d’identité" valeur={`${ticket.typePieceIdentite} · ${ticket.numeroPieceIdentite}`} />

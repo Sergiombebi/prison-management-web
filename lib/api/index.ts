@@ -77,6 +77,7 @@ const DOMAINE_DE: Record<keyof ApiClient, DomaineApi> = {
   listSuivisMedicaux: "sante",
   creerSuiviMedical: "sante",
   listVisites: "sante",
+  getVisite: "sante",
   creerVisite: "sante",
   listSorties: "sorties",
   enregistrerSortie: "sorties",

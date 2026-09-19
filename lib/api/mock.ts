@@ -470,6 +470,11 @@ export const mockApi: ApiClient = {
     return [...fx.visites].sort((a, b) => b.dateVisite.localeCompare(a.dateVisite));
   },
 
+  async getVisite(visiteId) {
+    await attendre();
+    return fx.visites.find((v) => v.id === visiteId) ?? null;
+  },
+
   async listSorties(type) {
     await attendre();
     return fx.sorties

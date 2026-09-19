@@ -4,6 +4,7 @@ export interface DonneesTicket {
   id: number;
   detenuNom: string;
   detenuNumeroEcrou: string;
+  detenuCellule: string;
   nomVisiteur: string;
   lienParente: string;
   typePieceIdentite: string;
@@ -22,6 +23,7 @@ export function ticketDepuisVisite(visite: Visite): DonneesTicket {
     id: visite.id,
     detenuNom: visite.detenuNom,
     detenuNumeroEcrou: visite.numeroEcrou,
+    detenuCellule: visite.celluleLibelle ?? "",
     nomVisiteur: visite.nomVisiteur,
     lienParente: visite.lienParente,
     typePieceIdentite: visite.typePieceIdentite,

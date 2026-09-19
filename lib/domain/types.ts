@@ -228,6 +228,8 @@ export interface Visite {
   detenuId: number;
   detenuNom: string;
   numeroEcrou: string;
+  /** Cellule actuelle du détenu, « bloc · numéro », si elle est connue. */
+  celluleLibelle?: string | null;
   dateVisite: string;
   heureArrivee: string;
   dureePrevueMinutes: number;

@@ -97,6 +97,7 @@ function ticketDepuisEtat(etat: EtatVisite, detenus: DetenuResume[]): DonneesTic
     id: etat.visiteId,
     detenuNom: detenu?.nom ?? "",
     detenuNumeroEcrou: detenu?.numeroEcrou ?? "",
+    detenuCellule: detenu?.cellule ? (detenu.cellule.bloc ? `${detenu.cellule.bloc} · ${detenu.cellule.numero}` : detenu.cellule.numero) : "",
     nomVisiteur: val.nom_visiteur ?? "",
     lienParente: val.lien_parente ?? "",
     typePieceIdentite: val.type_piece_identite ?? "",

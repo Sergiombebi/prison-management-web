@@ -10,6 +10,7 @@ import { PaginationLocale } from "@/components/data/pagination-locale";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState, Ecrou } from "@/components/ui/surface";
 import { BoutonTicket } from "@/components/sante/ticket-visite";
+import { BoutonVoirVisite } from "@/components/sante/bouton-voir-visite";
 
 const PAR_PAGE = 10;
 
@@ -72,10 +73,15 @@ export function VisitesTable({ visites, parametres }: { visites: Visite[]; param
             ),
           },
           {
-            cle: "ticket",
+            cle: "actions",
             titre: "",
             align: "droite",
-            rendu: (v) => <BoutonTicket ticket={ticketDepuisVisite(v)} parametres={parametres} />,
+            rendu: (v) => (
+              <div className="flex justify-end gap-1.5">
+                <BoutonVoirVisite visiteId={v.id} />
+                <BoutonTicket ticket={ticketDepuisVisite(v)} parametres={parametres} />
+              </div>
+            ),
           },
         ]}
         vide={<EmptyState icone="user" titre={t.etats.aucunResultatTitre} texte={t.etats.aucunResultatTexte} />}
