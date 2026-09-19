@@ -85,7 +85,7 @@ export function BoutonModifierTransfert({ sortie }: { sortie: SortieDetenu }) {
         icone="edit"
         title="Modifier le transfert"
         aria-label="Modifier le transfert"
-        className="w-8 rounded-full border-0 bg-accent-soft px-0 text-accent shadow-none hover:bg-accent/20"
+        className="w-8 rounded-full border-0 !bg-warning-soft px-0 !text-warning shadow-none hover:!bg-warning/20"
         onClick={() => setOuvert(true)}
       />
       <Modale open={ouvert} onClose={() => setOuvert(false)} className="max-w-md">

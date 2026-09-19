@@ -118,7 +118,7 @@ export function BoutonTicket({ ticket, parametres }: { ticket: DonneesTicket; pa
         icone="printer"
         title="Voir le ticket"
         aria-label="Voir le ticket"
-        className="w-8 rounded-full border-0 bg-accent-soft px-0 text-accent shadow-none hover:bg-accent/20"
+        className="w-8 rounded-full border-0 !bg-accent-soft px-0 !text-accent shadow-none hover:!bg-accent/20"
         onClick={() => setOuvert(true)}
       />
       <TicketModal open={ouvert} ticket={ticket} parametres={parametres} onClose={() => setOuvert(false)} />

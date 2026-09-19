@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
 import { cn } from "@/lib/cn";
-import { Icon, type NomIcone } from "@/components/ui/icon";
+import { Icon, IconTile, tonDe, type NomIcone } from "@/components/ui/icon";
 import { formatPourcent } from "@/lib/format";
 import { Compteur } from "./compteur";
 
@@ -153,18 +153,11 @@ export function Stat({
       <div className="flex items-start justify-between gap-2">
         <p className="flex items-center gap-2 text-xs font-medium text-muted">
           {icone ? (
-            <span
-              className={cn(
-                "grid size-6 place-items-center rounded-md",
-                signal === "critique"
-                  ? "bg-danger-soft text-danger"
-                  : signal === "attention"
-                    ? "bg-warning-soft text-warning"
-                    : "bg-accent-soft text-accent",
-              )}
-            >
-              <Icon name={icone} size={13} />
-            </span>
+            <IconTile
+              name={icone}
+              size={14}
+              ton={signal === "critique" ? "danger" : signal === "attention" ? "warning" : tonDe(icone)}
+            />
           ) : (
             <span aria-hidden className={cn("size-1.5 rounded-full", SIGNAL_PASTILLE[signal])} />
           )}

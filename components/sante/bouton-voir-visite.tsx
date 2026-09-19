@@ -10,7 +10,7 @@ export function BoutonVoirVisite({ visiteId }: { visiteId: number }) {
       icone="eye"
       title="Voir le détail"
       aria-label="Voir le détail"
-      className="w-8 rounded-full border-0 bg-accent-soft px-0 text-accent shadow-none hover:bg-accent/20"
+      className="w-8 rounded-full border-0 !bg-info-soft px-0 !text-info shadow-none hover:!bg-info/20"
     />
   );
 }

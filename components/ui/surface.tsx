@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 import { cn } from "@/lib/cn";
-import { Icon, type NomIcone } from "./icon";
+import { Icon, IconTile, type NomIcone } from "./icon";
 import { t } from "@/lib/i18n/fr";
 
 type VarianteSurface = "plat" | "eleve" | "verre";
@@ -116,9 +116,7 @@ export function EmptyState({
           className="absolute size-16 rounded-full bg-accent-soft blur-xl"
           style={{ animation: "sgp-halo 4s ease-in-out infinite" }}
         />
-        <div className="relative grid size-11 place-items-center rounded-full border border-hairline bg-surface text-faint shadow-e1">
-          <Icon name={icone} size={18} />
-        </div>
+        <IconTile name={icone} size={22} className="relative size-14 rounded-2xl shadow-e1" />
       </div>
       <div className="max-w-sm">
         <p className="text-md font-medium tracking-[-0.01em] text-ink">{titre}</p>

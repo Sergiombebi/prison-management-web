@@ -17,7 +17,7 @@ import {
   type ModuleNav,
 } from "@/lib/navigation";
 import type { ProfilSession } from "@/lib/session";
-import { Icon } from "@/components/ui/icon";
+import { Icon, IconTile } from "@/components/ui/icon";
 import { ThemeToggle } from "./theme-toggle";
 import { CommandPalette } from "./command-palette";
 
@@ -267,13 +267,10 @@ function EntreeModule({
             style={{ viewTransitionName: "sgp-repere-module" }}
           />
         )}
-        <Icon
+        <IconTile
           name={module.icone}
-          size={17}
-          className={cn(
-            "shrink-0 transition-colors",
-            actif ? "text-accent" : "text-faint group-hover:text-muted",
-          )}
+          size={14}
+          className={cn("transition-all", actif ? "shadow-e1" : "opacity-90 group-hover:opacity-100")}
         />
         <span className="truncate">{module.label}</span>
         {aSousNav && (

@@ -58,8 +58,8 @@ export function BoutonConfirmation({
           variante === "danger" && !iconeSeule && "text-danger hover:bg-danger-soft",
           iconeSeule &&
             (variante === "danger"
-              ? "w-8 rounded-full border-0 bg-danger-soft px-0 text-danger shadow-none hover:bg-danger/20"
-              : "w-8 rounded-full border-0 bg-accent-soft px-0 text-accent shadow-none hover:bg-accent/20"),
+              ? "w-8 rounded-full border-0 !bg-danger-soft px-0 !text-danger shadow-none hover:!bg-danger/20"
+              : "w-8 rounded-full border-0 !bg-accent-soft px-0 !text-accent shadow-none hover:!bg-accent/20"),
         )}
         onClick={() => {
           setErreur(undefined);

@@ -1,9 +1,11 @@
 /**
- * Jeu d'icônes SVG inline — trait 1.5px, grille 20×20.
+ * Jeu d'icônes SVG inline — trait 1.75px, grille 20×20, avec un remplissage teinté
+ * (bicolore) sur les formes fermées pour donner du corps aux icônes.
  * Aucune dépendance : chaque icône est quelques chemins lisibles.
  */
 
 import type { SVGProps } from "react";
+import { cn } from "@/lib/cn";
 
 const CHEMINS = {
   dashboard: "M3 3h6v8H3zM11 3h6v5h-6zM11 10h6v7h-6zM3 13h6v4H3z",
@@ -58,6 +60,83 @@ const CHEMINS = {
 
 export type NomIcone = keyof typeof CHEMINS;
 
+/** Icônes dont la forme fermée reçoit un aplat teinté. */
+const BICOLORES = new Set<NomIcone>([
+  "dashboard",
+  "cell",
+  "file",
+  "etats",
+  "calendar",
+  "shield",
+  "lock",
+  "monitor",
+  "user",
+  "scale",
+  "alert",
+  "info",
+  "clock",
+]);
+
+export type TonIcone = "accent" | "info" | "success" | "warning" | "danger" | "rose" | "teal";
+
+const TONS: Record<TonIcone, string> = {
+  accent: "bg-accent-soft text-accent ring-accent/20",
+  info: "bg-info-soft text-info ring-info/25",
+  success: "bg-success-soft text-success ring-success/25",
+  warning: "bg-warning-soft text-warning ring-warning/25",
+  danger: "bg-danger-soft text-danger ring-danger/25",
+  rose: "bg-[var(--sgp-viz-5-soft)] text-[var(--sgp-viz-5)] ring-[var(--sgp-viz-5)]/25",
+  teal: "bg-[var(--sgp-viz-4-soft)] text-[var(--sgp-viz-4)] ring-[var(--sgp-viz-4)]/25",
+};
+
+/** Couleur propre à chaque domaine : un repère visuel constant d'un écran à l'autre. */
+export const TON_PAR_ICONE: Partial<Record<NomIcone, TonIcone>> = {
+  dashboard: "accent",
+  detenus: "info",
+  discipline: "warning",
+  sante: "rose",
+  door: "teal",
+  etats: "accent",
+  administration: "info",
+  user: "info",
+  cell: "warning",
+  file: "accent",
+  calendar: "info",
+  pulse: "rose",
+  scale: "warning",
+  shield: "success",
+  alert: "danger",
+  printer: "accent",
+  edit: "warning",
+  eye: "info",
+  trash: "danger",
+  check: "success",
+};
+
+export const tonDe = (name: NomIcone): TonIcone => TON_PAR_ICONE[name] ?? "accent";
+
+/** Icône sur pastille colorée, pour les repères visuels (navigation, indicateurs, états vides). */
+export function IconTile({
+  name,
+  ton,
+  size = 16,
+  className,
+}: {
+  name: NomIcone;
+  ton?: TonIcone;
+  size?: number;
+  className?: string;
+}) {
+  return (
+    <span
+      className={cn("grid shrink-0 place-items-center rounded-lg ring-1 ring-inset", TONS[ton ?? tonDe(name)], className)}
+      style={{ width: size + 14, height: size + 14 }}
+    >
+      <Icon name={name} size={size} />
+    </span>
+  );
+}
+
 interface IconProps extends Omit<SVGProps<SVGSVGElement>, "name"> {
   name: NomIcone;
   size?: number;
@@ -73,7 +152,7 @@ export function Icon({ name, size = 16, label, className, ...rest }: IconProps) 
       viewBox="0 0 20 20"
       fill="none"
       stroke="currentColor"
-      strokeWidth={1.5}
+      strokeWidth={1.75}
       strokeLinecap="round"
       strokeLinejoin="round"
       className={className}
@@ -83,6 +162,7 @@ export function Icon({ name, size = 16, label, className, ...rest }: IconProps) 
       focusable="false"
       {...rest}
     >
+      {BICOLORES.has(name) && <path d={CHEMINS[name]} fill="currentColor" fillOpacity={0.16} />}
       <path d={CHEMINS[name]} />
     </svg>
   );

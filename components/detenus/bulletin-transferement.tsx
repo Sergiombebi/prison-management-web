@@ -117,7 +117,7 @@ export function BoutonBulletin({ sortie, parametres }: { sortie: SortieDetenu; p
         icone="printer"
         title="Imprimer le bulletin de transfèrement"
         aria-label="Imprimer le bulletin de transfèrement"
-        className="w-8 rounded-full border-0 bg-accent-soft px-0 text-accent shadow-none hover:bg-accent/20"
+        className="w-8 rounded-full border-0 !bg-accent-soft px-0 !text-accent shadow-none hover:!bg-accent/20"
         onClick={() => setOuvert(true)}
       />
       <BulletinModal open={ouvert} sortie={sortie} parametres={parametres} onClose={() => setOuvert(false)} titre="Bulletin de transfèrement" />
