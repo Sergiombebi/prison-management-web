@@ -48,7 +48,7 @@ export function AppShell({
   }, [ouvert]);
 
   return (
-    <div className="min-h-screen lg:grid lg:grid-cols-[268px_minmax(0,1fr)]">
+    <div className="min-h-screen lg:grid lg:grid-cols-[268px_minmax(0,1fr)] print:block print:min-h-0">
       <a
         href="#contenu"
         className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-accent focus:px-3 focus:py-2 focus:text-ink-inverse"

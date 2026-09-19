@@ -661,6 +661,13 @@
   [data-print-hide] {
     display: none !important;
   }
+  /* Le conteneur de l'app occupe une page entière (min-h-screen) : une fois son contenu
+     masqué il laisserait une page vierge avant le document imprimé. */
+  html,
+  body {
+    height: auto !important;
+    min-height: 0 !important;
+  }
   body {
     background: #fff;
     background-image: none;
