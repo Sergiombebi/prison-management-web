@@ -100,7 +100,12 @@ export default async function SuiviMedicalPage(props: PageProps<"/sante/suivi-me
         </Panel>
 
         {profil && peut(profil.permissions, "sante.consultations.creer") && (
-          <Panel variante="eleve" titre="Nouvelle consultation" className="xl:sticky xl:top-20">
+          <Panel
+            variante="eleve"
+            titre="Nouvelle consultation"
+            className="xl:sticky xl:top-20 xl:flex xl:max-h-[calc(100vh-7rem)] xl:flex-col"
+            corpsClassName="xl:min-h-0 xl:flex-1 xl:overflow-y-auto"
+          >
             <FormulaireConsultation detenus={detenus.items} detenuInitial={detenuInitial} />
           </Panel>
         )}

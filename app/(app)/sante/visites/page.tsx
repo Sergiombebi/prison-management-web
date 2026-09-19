@@ -134,7 +134,12 @@ export default async function VisitesPage(props: PageProps<"/sante/visites">) {
         </Panel>
 
         {profil && peut(profil.permissions, "visites.creer") && (
-          <Panel variante="eleve" titre="Enregistrer une visite" className="xl:sticky xl:top-20">
+          <Panel
+            variante="eleve"
+            titre="Enregistrer une visite"
+            className="xl:sticky xl:top-20 xl:flex xl:max-h-[calc(100vh-7rem)] xl:flex-col"
+            corpsClassName="xl:min-h-0 xl:flex-1 xl:overflow-y-auto"
+          >
             <FormulaireVisite detenus={detenus.items} detenuInitial={detenuInitial} />
           </Panel>
         )}

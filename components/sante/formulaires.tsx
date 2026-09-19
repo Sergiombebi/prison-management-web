@@ -309,7 +309,11 @@ export function FormulaireVisite({
         </Button>
       </div>
 
-      <div className={etape === 2 ? "flex flex-col gap-4" : "hidden"}>
+      {/* disabled tant qu'on est à l'étape 1 : sinon "Agent de contrôle" (obligatoire,
+          masqué) bloque silencieusement le reportValidity() du clic sur "Continuer"
+          — un champ cascade `display:none` n'est pas exempté de la validation native,
+          contrairement à un champ désactivé. */}
+      <fieldset disabled={etape === 1} className={etape === 2 ? "flex flex-col gap-4" : "hidden"}>
       <fieldset className="grid gap-3 rounded-lg border border-hairline bg-raised p-3">
         <legend className="px-1.5 text-2xs font-semibold uppercase tracking-[0.1em] text-accent">Contrôle</legend>
         <Field label="Agent de contrôle" requis erreur={err("agent_controle")}>
@@ -364,7 +368,7 @@ export function FormulaireVisite({
           Enregistrer la visite
         </Button>
       </div>
-      </div>
+      </fieldset>
     </form>
   );
 }
