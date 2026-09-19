@@ -45,7 +45,7 @@ export function PageHeader({
   meta?: ReactNode;
 }) {
   return (
-    <header className="relative flex flex-col gap-4 pb-5 md:flex-row md:items-end md:justify-between">
+    <header data-print-hide className="relative flex flex-col gap-4 pb-5 md:flex-row md:items-end md:justify-between">
       {/* Filet de base dégradé : il ferme l'en-tête sans le cloisonner */}
       <span
         aria-hidden

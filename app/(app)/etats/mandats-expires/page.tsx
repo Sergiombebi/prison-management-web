@@ -20,7 +20,7 @@ export default async function MandatsExpiresPage() {
   const detenusConcernes = new Set(mandats.map((m) => m.detenuId)).size;
 
   return (
-    <Page>
+    <Page className="print:p-0">
       <PageHeader
         surtitre={t.modules.etats}
         titre="Aperçu des mandats expirés"

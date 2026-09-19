@@ -31,7 +31,7 @@ export default async function CategoriesEtatPage(props: PageProps<"/etats/catego
   ]);
 
   return (
-    <Page>
+    <Page className="print:p-0">
       <PageHeader
         surtitre={t.modules.etats}
         titre="Dossier par catégorie de détenus"

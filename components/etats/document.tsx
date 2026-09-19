@@ -90,7 +90,7 @@ export function AttestationOfficielle({
   ];
   return (
     <article
-      className="relative mx-auto flex aspect-[297/210] w-full max-w-[297mm] bg-[#fffdf7] p-3 font-serif text-neutral-900 shadow-[0_12px_32px_-12px_rgba(0,0,0,0.25)] ring-1 ring-black/5 animate-rise print:max-w-none print:shadow-none print:ring-0"
+      className="relative mx-auto flex min-h-[420px] w-full max-w-[297mm] bg-[#fffdf7] p-3 font-serif text-neutral-900 shadow-[0_12px_32px_-12px_rgba(0,0,0,0.25)] ring-1 ring-black/5 animate-rise print:h-[209mm] print:min-h-0 print:w-[297mm] print:max-w-none print:overflow-hidden print:break-inside-avoid print:shadow-none print:ring-0"
       style={{ colorScheme: "light" }}
     >
       <style>{"@media print { @page { size: A4 landscape; margin: 0 } }"}</style>
@@ -108,7 +108,7 @@ export function AttestationOfficielle({
 
           <p className="mt-2 text-[11px] uppercase tracking-[0.25em] text-[#8a6d2f]">{parametres.nomPrison}</p>
 
-          <h2 className="mt-3 text-[clamp(18px,2.6vw,30px)] font-bold uppercase tracking-[0.14em] text-[#5b4514]">
+          <h2 className="mt-3 text-[clamp(18px,2.6vw,30px)] print:text-[28px] font-bold uppercase tracking-[0.14em] text-[#5b4514]">
             Attestation de détention
           </h2>
           <div className="mt-2 flex items-center gap-3 text-[#8a6d2f]" aria-hidden>
@@ -118,7 +118,7 @@ export function AttestationOfficielle({
           </div>
           {reference && <p className="mt-2 font-mono text-[10px] text-neutral-500">N° {reference}</p>}
 
-          <div className="mt-4 flex flex-1 items-center text-[clamp(11px,1.25vw,15px)] leading-[1.7]">{children}</div>
+          <div className="mt-4 flex flex-1 items-center text-[clamp(11px,1.25vw,15px)] leading-[1.7] print:text-[15px]">{children}</div>
 
           <footer className="mt-2 flex w-full items-end justify-between text-[12px]">
             <div

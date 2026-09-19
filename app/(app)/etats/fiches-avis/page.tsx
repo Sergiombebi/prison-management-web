@@ -28,7 +28,7 @@ export default async function FichesAvisPage(props: PageProps<"/etats/fiches-avi
   const etatValide = etat && (ETATS_A_GENERER as readonly string[]).includes(etat) ? etat : undefined;
 
   return (
-    <Page>
+    <Page className="print:p-0">
       <PageHeader
         surtitre={t.modules.etats}
         titre="Fiches & avis divers"
@@ -36,8 +36,8 @@ export default async function FichesAvisPage(props: PageProps<"/etats/fiches-avi
         actions={etatValide && dossier ? <PrintButton /> : undefined}
       />
 
-      <div className="grid items-start gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
-        <Panel variante="eleve" titre="Document à produire" className="xl:sticky xl:top-20" >
+      <div className="grid items-start gap-6 xl:grid-cols-[320px_minmax(0,1fr)] print:block">
+        <Panel variante="eleve" titre="Document à produire" className="xl:sticky xl:top-20 print:hidden">
           <div data-print-hide>
             <Form action="/etats/fiches-avis" className="flex flex-col gap-4">
               <Field label="État ou avis" requis>

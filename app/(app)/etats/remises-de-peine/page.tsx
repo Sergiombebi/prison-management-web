@@ -9,7 +9,7 @@ const COLONNES = ["Détenu", "Peine initiale", "Remise accordée", "Texte de ré
 
 export default function RemisesDePeinePage() {
   return (
-    <Page>
+    <Page className="print:p-0">
       <PageHeader
         surtitre={t.modules.etats}
         titre="Gestion des remises de peine"
