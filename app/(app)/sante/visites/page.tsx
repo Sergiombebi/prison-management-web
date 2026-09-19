@@ -1,21 +1,16 @@
 import type { Metadata } from "next";
 import { api } from "@/lib/api";
-import type { Visite } from "@/lib/domain/types";
 import { TYPES_VISITE } from "@/lib/domain/referentiels";
-import { formatDate, formatNombre, pluriel } from "@/lib/format";
+import { formatNombre, pluriel } from "@/lib/format";
 import { filtresActifs, param } from "@/lib/url";
-import { t } from "@/lib/i18n/fr";
 import { getProfil, peut } from "@/lib/session";
 import { Page, PageHeader } from "@/components/layout/page";
-import { DataTable } from "@/components/data/data-table";
 import { FilterBar } from "@/components/data/filter-bar";
 import { Stat, StatGrid } from "@/components/data/stat";
-import { Badge } from "@/components/ui/badge";
 import { SearchInput, Select } from "@/components/ui/field";
-import { EmptyState, Ecrou, Panel } from "@/components/ui/surface";
+import { Panel } from "@/components/ui/surface";
 import { FormulaireVisite } from "@/components/sante/formulaires";
-import { BoutonTicket } from "@/components/sante/ticket-visite";
-import { ticketDepuisVisite } from "@/lib/domain/ticket";
+import { VisitesTable } from "@/components/sante/visites-table";
 
 export const metadata: Metadata = { title: "Gestion des visites" };
 
@@ -89,60 +84,7 @@ export default async function VisitesPage(props: PageProps<"/sante/visites">) {
             </Select>
           </FilterBar>
 
-          <DataTable<Visite>
-            legende="Registre des visites"
-            lignes={filtrees}
-            cleLigne={(v) => v.id}
-            lienLigne={(v) => `/detenus/${v.detenuId}?onglet=visites`}
-            colonnes={[
-              {
-                cle: "date",
-                titre: "Date",
-                rendu: (v) => (
-                  <div className="leading-tight">
-                    <p className="font-medium">{formatDate(v.dateVisite)}</p>
-                    <p className="tnum text-xs text-muted">{v.heureArrivee} · {v.dureePrevueMinutes} min</p>
-                  </div>
-                ),
-              },
-              {
-                cle: "detenu",
-                titre: "Détenu",
-                rendu: (v) => (
-                  <div>
-                    <p className="max-w-[20ch] truncate">{v.detenuNom}</p>
-                    <Ecrou className="text-xs text-muted">{v.numeroEcrou}</Ecrou>
-                  </div>
-                ),
-              },
-              {
-                cle: "visiteur",
-                titre: "Visiteur",
-                masquerSous: "md",
-                rendu: (v) => (
-                  <div>
-                    <p className="max-w-[22ch] truncate">{v.nomVisiteur}</p>
-                    <p className="text-xs text-muted">{v.lienParente}</p>
-                  </div>
-                ),
-              },
-              { cle: "type", titre: "Parloir", masquerSous: "lg", rendu: (v) => <span className="text-muted">{v.typeVisite}</span> },
-              {
-                cle: "controle",
-                titre: "Contrôle",
-                rendu: (v) => (
-                  <Badge ton={v.autorisationPrealable ? "succes" : "alerte"}>{v.autorisationPrealable ? "Autorisée" : "Sans autorisation"}</Badge>
-                ),
-              },
-              {
-                cle: "ticket",
-                titre: "",
-                align: "droite",
-                rendu: (v) => <BoutonTicket ticket={ticketDepuisVisite(v)} parametres={parametres} />,
-              },
-            ]}
-            vide={<EmptyState icone="user" titre={t.etats.aucunResultatTitre} texte={t.etats.aucunResultatTexte} />}
-          />
+          <VisitesTable visites={filtrees} parametres={parametres} />
         </Panel>
 
         {profil && peut(profil.permissions, "visites.creer") && (

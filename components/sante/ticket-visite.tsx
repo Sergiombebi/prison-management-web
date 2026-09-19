@@ -172,7 +172,7 @@ export function TicketModal({
   );
 }
 
-/** Bouton « Ticket » du registre : rouvre l'aperçu si l'agent a oublié d'imprimer. */
+/** Bouton « Ticket » du registre, réduit à l'icône : rouvre l'aperçu si l'agent a oublié d'imprimer. */
 export function BoutonTicket({ ticket, parametres }: { ticket: DonneesTicket; parametres: Parametres }) {
   const [ouvert, setOuvert] = useState(false);
 
@@ -183,10 +183,11 @@ export function BoutonTicket({ ticket, parametres }: { ticket: DonneesTicket; pa
         variante="secondaire"
         taille="sm"
         icone="printer"
+        title="Voir le ticket"
+        aria-label="Voir le ticket"
+        className="w-8 rounded-full border-0 bg-accent-soft px-0 text-accent shadow-none hover:bg-accent/20"
         onClick={() => setOuvert(true)}
-      >
-        Ticket
-      </Button>
+      />
       <TicketModal open={ouvert} ticket={ticket} parametres={parametres} onClose={() => setOuvert(false)} />
     </>
   );
