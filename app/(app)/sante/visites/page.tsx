@@ -14,6 +14,8 @@ import { Badge } from "@/components/ui/badge";
 import { SearchInput, Select } from "@/components/ui/field";
 import { EmptyState, Ecrou, Panel } from "@/components/ui/surface";
 import { FormulaireVisite } from "@/components/sante/formulaires";
+import { BoutonTicket } from "@/components/sante/ticket-visite";
+import { ticketDepuisVisite } from "@/lib/domain/ticket";
 
 export const metadata: Metadata = { title: "Gestion des visites" };
 
@@ -55,22 +57,23 @@ export default async function VisitesPage(props: PageProps<"/sante/visites">) {
   const sansAutorisation = visites.filter((v) => !v.autorisationPrealable && new Date(v.dateVisite) >= ilYa7j).length;
 
   return (
+    // Le ticket sort désormais dans une modale portée hors de cette page : elle échappe
+    // à ce conteneur masqué à l'impression, qui n'a donc plus rien à afficher sur papier.
+    <div data-print-hide>
     <Page>
-      <div data-print-hide>
-        <PageHeader
-          titre="Gestion des visites"
-          description="Parloirs, identité des visiteurs et contrôles de sécurité effectués à l’entrée."
-        />
+      <PageHeader
+        titre="Gestion des visites"
+        description="Parloirs, identité des visiteurs et contrôles de sécurité effectués à l’entrée."
+      />
 
-        <StatGrid colonnes={3}>
-          <Stat icone="user" style={{ ["--i" as string]: 0 }} label="Visites du jour" valeur={formatNombre(duJour)} contexte="Enregistrées aujourd’hui" href="/sante/visites?periode=aujourdhui" />
-          <Stat icone="user" style={{ ["--i" as string]: 1 }} label="7 derniers jours" valeur={formatNombre(semaine)} contexte={`${formatNombre(visites.length)} au total`} href="/sante/visites?periode=semaine" />
-          <Stat icone="user" style={{ ["--i" as string]: 2 }} label="Sans autorisation préalable" valeur={formatNombre(sansAutorisation)} signal={sansAutorisation > 0 ? "attention" : "positif"} contexte="Sur les 7 derniers jours" />
-        </StatGrid>
-      </div>
+      <StatGrid colonnes={3}>
+        <Stat icone="user" style={{ ["--i" as string]: 0 }} label="Visites du jour" valeur={formatNombre(duJour)} contexte="Enregistrées aujourd’hui" href="/sante/visites?periode=aujourdhui" />
+        <Stat icone="user" style={{ ["--i" as string]: 1 }} label="7 derniers jours" valeur={formatNombre(semaine)} contexte={`${formatNombre(visites.length)} au total`} href="/sante/visites?periode=semaine" />
+        <Stat icone="user" style={{ ["--i" as string]: 2 }} label="Sans autorisation préalable" valeur={formatNombre(sansAutorisation)} signal={sansAutorisation > 0 ? "attention" : "positif"} contexte="Sur les 7 derniers jours" />
+      </StatGrid>
 
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
-        <Panel variante="eleve" flush className="overflow-hidden print:hidden">
+        <Panel variante="eleve" flush className="overflow-hidden">
           <FilterBar action={CHEMIN} actif={filtresActifs(sp, ["recherche", "periode", "type"])} reinitialiserHref={CHEMIN} resultat={pluriel(filtrees.length, "visite")}>
             <SearchInput name="recherche" defaultValue={param(sp, "recherche")} placeholder="Détenu ou visiteur…" aria-label="Rechercher une visite" className="w-full sm:w-56" />
             <Select name="periode" defaultValue={periode} aria-label="Période" className="w-40">
@@ -131,6 +134,12 @@ export default async function VisitesPage(props: PageProps<"/sante/visites">) {
                   <Badge ton={v.autorisationPrealable ? "succes" : "alerte"}>{v.autorisationPrealable ? "Autorisée" : "Sans autorisation"}</Badge>
                 ),
               },
+              {
+                cle: "ticket",
+                titre: "",
+                align: "droite",
+                rendu: (v) => <BoutonTicket ticket={ticketDepuisVisite(v)} parametres={parametres} />,
+              },
             ]}
             vide={<EmptyState icone="user" titre={t.etats.aucunResultatTitre} texte={t.etats.aucunResultatTexte} />}
           />
@@ -148,5 +157,6 @@ export default async function VisitesPage(props: PageProps<"/sante/visites">) {
         )}
       </div>
     </Page>
+    </div>
   );
 }

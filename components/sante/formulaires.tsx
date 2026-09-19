@@ -15,7 +15,8 @@ import { enregistrerConsultation, enregistrerVisite, type EtatVisite } from "@/a
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { RetourAction } from "@/components/ui/retour-action";
-import { ConfirmationVisite } from "@/components/sante/ticket-visite";
+import { TicketModal } from "@/components/sante/ticket-visite";
+import type { DonneesTicket } from "@/lib/domain/ticket";
 
 /*
  * Champs nommés comme ceux de l'API : une erreur 422 se replace directement sous
@@ -86,6 +87,28 @@ const CHAMPS_ETAPE_VISITE = new Set([
   "telephone_visiteur",
   "adresse_visiteur",
 ]);
+
+/** Reconstruit le ticket à partir des valeurs saisies : la visite créée n'est pas rechargée. */
+function ticketDepuisEtat(etat: EtatVisite, detenus: DetenuResume[]): DonneesTicket | null {
+  if (!etat.ok || !etat.visiteId || !etat.valeurs) return null;
+  const val = etat.valeurs;
+  const detenu = detenus.find((d) => d.id === Number(val.detenu_id));
+  return {
+    id: etat.visiteId,
+    detenuNom: detenu?.nom ?? "",
+    detenuNumeroEcrou: detenu?.numeroEcrou ?? "",
+    nomVisiteur: val.nom_visiteur ?? "",
+    lienParente: val.lien_parente ?? "",
+    typePieceIdentite: val.type_piece_identite ?? "",
+    numeroPieceIdentite: val.numero_piece_identite ?? "",
+    dateVisite: val.date_visite ?? "",
+    heureArrivee: val.heure_arrivee ?? "",
+    dureePrevueMinutes: val.duree_prevue_minutes ?? "",
+    typeVisite: val.type_visite ?? "",
+    lieuVisite: val.lieu_visite ?? "",
+    agentControle: val.agent_controle ?? "",
+  };
+}
 
 function Etapes({ actuelle, total }: { actuelle: number; total: number }) {
   return (
@@ -188,50 +211,35 @@ export function FormulaireVisite({
   detenuInitial?: number;
   parametres: Parametres;
 }) {
-  const { etat, envoyer, enCours, v, err } = useFormulaire<EtatVisite>(enregistrerVisite);
+  const { etat, envoyer, enCours, v: vBrute, err } = useFormulaire<EtatVisite>(enregistrerVisite);
+  // Le formulaire redémarre vierge après un enregistrement réussi : la saisie
+  // précédente n'a plus lieu d'être reproposée, le ticket en garde la trace.
+  const v = (champ: string) => (etat.ok ? undefined : vBrute(champ));
   const forme = useRef<HTMLFormElement>(null);
   const [etape, setEtape] = useState<1 | 2>(1);
+  const [ticketOuvert, setTicketOuvert] = useState(false);
 
   // Une erreur sur un champ de l'étape 1 (ex. numéro de pièce déjà pris) doit
   // ramener dessus, sinon le message apparaît sans que le champ soit visible.
-  // Ajustée pendant le rendu plutôt que dans un effet : `etat` ne change qu'au
-  // retour d'une soumission, jamais en continu.
+  // Un succès ramène aussi à l'étape 1 et ouvre l'aperçu du ticket. Ajustée
+  // pendant le rendu plutôt que dans un effet : `etat` ne change qu'au retour
+  // d'une soumission, jamais en continu.
   const [dernierEtat, setDernierEtat] = useState(etat);
   if (etat !== dernierEtat) {
     setDernierEtat(etat);
-    if (etat.erreurs && Object.keys(etat.erreurs).some((champ) => CHAMPS_ETAPE_VISITE.has(champ))) {
+    if (etat.ok) {
+      setEtape(1);
+      setTicketOuvert(true);
+    } else if (etat.erreurs && Object.keys(etat.erreurs).some((champ) => CHAMPS_ETAPE_VISITE.has(champ))) {
       setEtape(1);
     }
   }
 
-  // Visite enregistrée : place au ticket, le formulaire n'a plus lieu d'être.
-  if (etat.ok && etat.visiteId && etat.valeurs) {
-    const val = etat.valeurs;
-    const detenu = detenus.find((d) => d.id === Number(val.detenu_id));
-    return (
-      <ConfirmationVisite
-        parametres={parametres}
-        ticket={{
-          id: etat.visiteId,
-          detenuNom: detenu?.nom ?? "",
-          detenuNumeroEcrou: detenu?.numeroEcrou ?? "",
-          nomVisiteur: val.nom_visiteur ?? "",
-          lienParente: val.lien_parente ?? "",
-          typePieceIdentite: val.type_piece_identite ?? "",
-          numeroPieceIdentite: val.numero_piece_identite ?? "",
-          dateVisite: val.date_visite ?? "",
-          heureArrivee: val.heure_arrivee ?? "",
-          dureePrevueMinutes: val.duree_prevue_minutes ?? "",
-          typeVisite: val.type_visite ?? "",
-          lieuVisite: val.lieu_visite ?? "",
-          agentControle: val.agent_controle ?? "",
-        }}
-      />
-    );
-  }
+  const ticket = ticketDepuisEtat(etat, detenus);
 
   return (
-    <form ref={forme} action={envoyer} className="flex flex-col gap-4">
+    <>
+    <form key={etat.visiteId ?? "form"} ref={forme} action={envoyer} className="flex flex-col gap-4">
       <RetourAction etat={etat} />
       <Etapes actuelle={etape} total={2} />
 
@@ -399,5 +407,12 @@ export function FormulaireVisite({
       </div>
       </fieldset>
     </form>
+    <TicketModal
+      open={ticketOuvert}
+      ticket={ticket}
+      parametres={parametres}
+      onClose={() => setTicketOuvert(false)}
+    />
+    </>
   );
 }

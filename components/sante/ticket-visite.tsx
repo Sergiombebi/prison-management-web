@@ -1,23 +1,24 @@
-import Link from "next/link";
+"use client";
+
+import { useEffect, useId, useState, useSyncExternalStore } from "react";
+import { createPortal } from "react-dom";
 import type { Parametres } from "@/lib/domain/types";
+import type { DonneesTicket } from "@/lib/domain/ticket";
 import { formatDate, formatDateLongue } from "@/lib/format";
+import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { PrintButton } from "@/components/ui/client-actions";
 
-export interface DonneesTicket {
-  id: number;
-  detenuNom: string;
-  detenuNumeroEcrou: string;
-  nomVisiteur: string;
-  lienParente: string;
-  typePieceIdentite: string;
-  numeroPieceIdentite: string;
-  dateVisite: string;
-  heureArrivee: string;
-  dureePrevueMinutes: string;
-  typeVisite: string;
-  lieuVisite: string;
-  agentControle: string;
+// La modale se porte sur `document.body`, absent côté serveur. Détecté avec
+// useSyncExternalStore (jamais notifié : sa seule utilité est de forcer un
+// second rendu, côté client, une fois l'hydratation passée) plutôt qu'un
+// useState recopié dans un effet.
+function useMonte(): boolean {
+  return useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
 }
 
 /** Ligne « libellé / valeur » compacte, comme sur un billet imprimé. */
@@ -92,40 +93,101 @@ export function TicketVisite({ ticket, parametres }: { ticket: DonneesTicket; pa
 }
 
 /**
- * Écran affiché à la place du formulaire une fois la visite enregistrée : aperçu
- * du ticket avant impression, puis raccourci pour en saisir une autre.
+ * Aperçu du ticket dans une fenêtre modale, portée directement sur `document.body` :
+ * ainsi elle échappe à tout conteneur masqué à l'impression (page, panneau…) et seul
+ * le ticket sort sur papier — l'en-tête et les boutons de la modale sont eux-mêmes
+ * exclus de l'impression via `data-print-hide`.
  */
-export function ConfirmationVisite({
+export function TicketModal({
+  open,
   ticket,
   parametres,
+  onClose,
 }: {
-  ticket: DonneesTicket;
+  open: boolean;
+  ticket: DonneesTicket | null;
   parametres: Parametres;
+  onClose: () => void;
 }) {
-  return (
-    <div className="flex flex-col gap-4">
-      <div data-print-hide className="flex items-start gap-3 rounded-lg border border-success/30 bg-success-soft px-4 py-3.5 animate-rise">
-        <Icon name="check" size={17} className="mt-0.5 shrink-0 text-success" />
-        <div className="min-w-0">
-          <p className="text-sm font-medium text-ink">Visite enregistrée</p>
-          <p className="mt-1 text-sm text-muted">
-            Voici l’aperçu du ticket à remettre au visiteur — vérifiez-le avant de l’imprimer.
-          </p>
+  const titleId = useId();
+  const monte = useMonte();
+
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open, onClose]);
+
+  if (!monte || !open || !ticket) return null;
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[130] flex items-center justify-center bg-ink/50 p-4 backdrop-blur-[2px] print:static print:block print:h-auto print:min-h-0 print:bg-transparent print:p-0 print:backdrop-blur-none"
+      role="presentation"
+      onClick={onClose}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        className="flex max-h-[90vh] w-full max-w-sm flex-col gap-4 overflow-hidden rounded-2xl border border-hairline bg-surface p-5 shadow-e4 print:max-h-none print:w-auto print:max-w-none print:overflow-visible print:rounded-none print:border-0 print:bg-transparent print:p-0 print:shadow-none"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div data-print-hide className="flex items-start gap-3">
+          <div className="grid size-10 shrink-0 place-items-center rounded-xl border border-success/30 bg-success-soft text-success">
+            <Icon name="check" size={17} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h2 id={titleId} className="text-sm font-semibold text-ink">
+              Visite enregistrée
+            </h2>
+            <p className="mt-1 text-sm text-muted">Vérifiez le ticket avant de l’imprimer.</p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Fermer"
+            className="grid size-7 shrink-0 place-items-center rounded-md text-muted transition-colors hover:bg-raised hover:text-ink"
+          >
+            <Icon name="close" size={14} />
+          </button>
+        </div>
+
+        <div className="overflow-y-auto print:overflow-visible">
+          <TicketVisite ticket={ticket} parametres={parametres} />
+        </div>
+
+        <div data-print-hide className="flex justify-end gap-2 border-t border-hairline pt-4">
+          <Button type="button" variante="secondaire" onClick={onClose}>
+            Fermer
+          </Button>
+          <PrintButton>Imprimer le ticket</PrintButton>
         </div>
       </div>
+    </div>,
+    document.body,
+  );
+}
 
-      <TicketVisite ticket={ticket} parametres={parametres} />
+/** Bouton « Ticket » du registre : rouvre l'aperçu si l'agent a oublié d'imprimer. */
+export function BoutonTicket({ ticket, parametres }: { ticket: DonneesTicket; parametres: Parametres }) {
+  const [ouvert, setOuvert] = useState(false);
 
-      <div data-print-hide className="flex flex-wrap justify-end gap-2 border-t border-hairline pt-4">
-        <Link
-          href="/sante/visites"
-          className="inline-flex h-9 items-center gap-2 rounded-md border border-hairline bg-surface px-4 text-sm text-ink shadow-e1 transition-colors hover:bg-raised"
-        >
-          <Icon name="plus" size={15} />
-          Enregistrer une autre visite
-        </Link>
-        <PrintButton>Imprimer le ticket</PrintButton>
-      </div>
-    </div>
+  return (
+    <>
+      <Button
+        type="button"
+        variante="secondaire"
+        taille="sm"
+        icone="printer"
+        onClick={() => setOuvert(true)}
+      >
+        Ticket
+      </Button>
+      <TicketModal open={ouvert} ticket={ticket} parametres={parametres} onClose={() => setOuvert(false)} />
+    </>
   );
 }
