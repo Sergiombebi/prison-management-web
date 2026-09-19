@@ -12,6 +12,7 @@ import { Icon } from "@/components/ui/icon";
 import { EmptyState, Ecrou, Panel } from "@/components/ui/surface";
 import { TabsNav } from "@/components/ui/tabs";
 import { FormulaireSortie } from "@/components/detenus/formulaire-sortie";
+import { AmpliationsInfo } from "@/components/detenus/ampliations";
 import { TransfertsTable } from "@/components/detenus/transferts-table";
 import { consignerSortie } from "../actions";
 
@@ -145,12 +146,7 @@ export default async function LiberationPage(props: PageProps<"/detenus/liberati
               <p>Événement grave : un avis sera généré pour les autorités ampliataires.</p>
             </div>
           )}
-          {typeSortie === "Evasion" && (
-            <div className="mb-4 rounded-md border border-hairline bg-raised px-3 py-2.5">
-              <p className="text-2xs font-semibold uppercase tracking-[0.08em] text-faint">Ampliations</p>
-              <p className="mt-1 whitespace-pre-line font-mono text-2xs leading-5 text-muted">{parametres.autoritesAmpliataires}</p>
-            </div>
-          )}
+          {typeSortie === "Evasion" && <AmpliationsInfo autorites={parametres.autoritesAmpliataires} />}
           <FormulaireSortie
             type={typeSortie}
             action={consignerSortie.bind(null, typeSortie)}
