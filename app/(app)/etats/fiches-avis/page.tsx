@@ -6,7 +6,7 @@ import { formatDate, formatDateLongue, ouVide } from "@/lib/format";
 import { param } from "@/lib/url";
 import { t } from "@/lib/i18n/fr";
 import { Page, PageHeader } from "@/components/layout/page";
-import { DocumentOfficiel, LigneDocument } from "@/components/etats/document";
+import { AttestationOfficielle, DocumentOfficiel, LigneDocument } from "@/components/etats/document";
 import { Button } from "@/components/ui/button";
 import { PrintButton } from "@/components/ui/client-actions";
 import { Field, Select } from "@/components/ui/field";
@@ -74,6 +74,22 @@ export default async function FichesAvisPage(props: PageProps<"/etats/fiches-avi
               titre="Aucun aperçu"
               texte="Sélectionnez un document et un détenu pour afficher l’aperçu avant impression."
             />
+          ) : etatValide === "Attestation de détention" ? (
+            <AttestationOfficielle parametres={parametres} reference={`${dossier.detenu.numeroEcrou}/${new Date().getFullYear()}`}>
+              <p className="w-full text-center">
+                Le Régisseur de la <strong>{parametres.nomPrison}</strong>, soussigné, atteste que
+                <br />
+                <span className="my-1 block text-[1.6em] font-bold uppercase tracking-wide text-[#5b4514]">{dossier.detenu.nom}</span>
+                né(e) le {formatDateLongue(dossier.detenu.dateNaissance)} à {dossier.detenu.lieuNaissance}, fils/fille de{" "}
+                {dossier.detenu.nomPere} et de {dossier.detenu.nomMere}, est détenu(e) dans cet établissement sous le numéro d’écrou{" "}
+                <strong className="font-mono">{dossier.detenu.numeroEcrou}</strong> depuis le{" "}
+                {formatDateLongue(dossier.detenu.mandatCourant?.dateIncarceration)}, en qualité de{" "}
+                <strong>{dossier.detenu.categoriePenale ? LIBELLE_CATEGORIE[dossier.detenu.categoriePenale].toLowerCase() : "détenu"}</strong>{" "}
+                pour {ouVide(dossier.detenu.mandatCourant?.motifDetention).toLowerCase()}.
+                <br />
+                <em>En foi de quoi la présente attestation lui est délivrée pour servir et valoir ce que de droit.</em>
+              </p>
+            </AttestationOfficielle>
           ) : (
             <DocumentOfficiel parametres={parametres} titre={etatValide} reference={`${dossier.detenu.numeroEcrou}/${new Date().getFullYear()}`}>
               {etatValide === "Fiche signalétique" && (
@@ -100,21 +116,6 @@ export default async function FichesAvisPage(props: PageProps<"/etats/fiches-avi
                     ))}
                   </div>
                 </div>
-              )}
-
-              {etatValide === "Attestation de détention" && (
-                <p className="text-justify leading-8">
-                  Le Régisseur de la {parametres.nomPrison} soussigné atteste que le nommé{" "}
-                  <strong>{dossier.detenu.nom}</strong>, né le {formatDateLongue(dossier.detenu.dateNaissance)} à{" "}
-                  {dossier.detenu.lieuNaissance}, fils de {dossier.detenu.nomPere} et de {dossier.detenu.nomMere}, est
-                  détenu dans cet établissement sous le numéro d’écrou{" "}
-                  <strong className="font-mono">{dossier.detenu.numeroEcrou}</strong> depuis le{" "}
-                  {formatDateLongue(dossier.detenu.mandatCourant?.dateIncarceration)}, en qualité de{" "}
-                  <strong>{dossier.detenu.categoriePenale ? LIBELLE_CATEGORIE[dossier.detenu.categoriePenale].toLowerCase() : "détenu"}</strong>{" "}
-                  pour {ouVide(dossier.detenu.mandatCourant?.motifDetention).toLowerCase()}.
-                  <br />
-                  En foi de quoi la présente attestation lui est délivrée pour servir et valoir ce que de droit.
-                </p>
               )}
 
               {(etatValide === "Extrait du registre d'écrou" || etatValide === "Fichier des situations pénales") && (

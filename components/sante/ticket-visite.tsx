@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import type { Parametres } from "@/lib/domain/types";
 import type { DonneesTicket } from "@/lib/domain/ticket";
 import { formatDate, formatDateLongue } from "@/lib/format";
+import { LogoEtablissement } from "@/components/etats/logo-etablissement";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { PrintButton } from "@/components/ui/client-actions";
@@ -47,9 +48,7 @@ export function TicketVisite({ ticket, parametres }: { ticket: DonneesTicket; pa
         <p className="text-[8px] font-semibold uppercase leading-snug tracking-wide text-neutral-600">
           {parametres.nomPrison || "Établissement pénitentiaire"}
         </p>
-        <div className="mx-auto mt-1.5 grid size-8 place-items-center rounded-full border border-neutral-400 font-mono text-[7px] text-neutral-500">
-          LOGO
-        </div>
+        <LogoEtablissement url={parametres.logoUrl} className="mx-auto mt-1.5 size-10" sizes="40px" />
         <h2 className="mt-1.5 text-[13px] font-bold uppercase tracking-[0.14em]">Ticket de visite</h2>
       </header>
 

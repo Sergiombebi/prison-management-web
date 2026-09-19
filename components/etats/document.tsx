@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import type { Parametres } from "@/lib/domain/types";
 import { formatDateLongue } from "@/lib/format";
+import { LogoEtablissement } from "@/components/etats/logo-etablissement";
 
 /**
  * Feuille d'état officielle, fidèle à la mise en page des documents imprimés du
@@ -27,9 +28,7 @@ export function DocumentOfficiel({
     >
       <header className="grid grid-cols-[1fr_auto_1fr] items-start gap-4 text-center text-[10px] font-semibold uppercase leading-snug tracking-wide">
         <p className="whitespace-pre-line">{parametres.enteteGauche}</p>
-        <div className="grid size-14 place-items-center rounded-full border border-neutral-400 font-mono text-[10px] text-neutral-500">
-          LOGO
-        </div>
+        <LogoEtablissement url={parametres.logoUrl} className="size-16" />
         <p className="whitespace-pre-line">{parametres.enteteDroite}</p>
       </header>
 
@@ -65,5 +64,81 @@ export function LigneDocument({ label, valeur }: { label: string; valeur: ReactN
       <span className="min-w-6 flex-1 translate-y-[-3px] border-b border-dotted border-neutral-400" />
       <span className="max-w-[60%] text-right font-medium">{valeur}</span>
     </div>
+  );
+}
+
+/**
+ * Attestation solennelle, présentée comme un diplôme : format paysage, double
+ * cadre, ornements d'angle, typographie à empattements, sceau et signature.
+ */
+export function AttestationOfficielle({
+  parametres,
+  reference,
+  children,
+  signataire = "Le Régisseur",
+}: {
+  parametres: Parametres;
+  reference?: string;
+  children: ReactNode;
+  signataire?: string;
+}) {
+  const coins = [
+    "left-2 top-2",
+    "right-2 top-2 rotate-90",
+    "bottom-2 right-2 rotate-180",
+    "bottom-2 left-2 -rotate-90",
+  ];
+  return (
+    <article
+      className="relative mx-auto flex aspect-[297/210] w-full max-w-[297mm] bg-[#fffdf7] p-3 font-serif text-neutral-900 shadow-[0_12px_32px_-12px_rgba(0,0,0,0.25)] ring-1 ring-black/5 animate-rise print:max-w-none print:shadow-none print:ring-0"
+      style={{ colorScheme: "light" }}
+    >
+      <style>{"@media print { @page { size: A4 landscape; margin: 0 } }"}</style>
+      <div className="relative flex flex-1 flex-col border-[5px] border-double border-[#8a6d2f] p-2">
+        <div className="relative flex flex-1 flex-col items-center border border-[#8a6d2f] px-[6%] py-[3%] text-center">
+          {coins.map((c) => (
+            <span key={c} aria-hidden className={`absolute size-7 border-l-2 border-t-2 border-[#8a6d2f] ${c}`} />
+          ))}
+
+          <header className="grid w-full grid-cols-[1fr_auto_1fr] items-start gap-4 text-[9px] font-semibold uppercase leading-snug tracking-wide">
+            <p className="whitespace-pre-line">{parametres.enteteGauche}</p>
+            <LogoEtablissement url={parametres.logoUrl} className="size-[72px]" sizes="72px" />
+            <p className="whitespace-pre-line">{parametres.enteteDroite}</p>
+          </header>
+
+          <p className="mt-2 text-[11px] uppercase tracking-[0.25em] text-[#8a6d2f]">{parametres.nomPrison}</p>
+
+          <h2 className="mt-3 text-[clamp(18px,2.6vw,30px)] font-bold uppercase tracking-[0.14em] text-[#5b4514]">
+            Attestation de détention
+          </h2>
+          <div className="mt-2 flex items-center gap-3 text-[#8a6d2f]" aria-hidden>
+            <span className="h-px w-24 bg-[#8a6d2f]" />
+            <span>◆</span>
+            <span className="h-px w-24 bg-[#8a6d2f]" />
+          </div>
+          {reference && <p className="mt-2 font-mono text-[10px] text-neutral-500">N° {reference}</p>}
+
+          <div className="mt-4 flex flex-1 items-center text-[clamp(11px,1.25vw,15px)] leading-[1.7]">{children}</div>
+
+          <footer className="mt-2 flex w-full items-end justify-between text-[12px]">
+            <div
+              aria-hidden
+              className="grid size-20 place-items-center rounded-full border-2 border-double border-[#8a6d2f] text-center text-[8px] font-semibold uppercase leading-tight tracking-wide text-[#8a6d2f]"
+            >
+              Sceau de
+              <br />
+              l’établissement
+            </div>
+            <div className="text-center">
+              <p className="italic">
+                Fait à {parametres.ville}, le {formatDateLongue(new Date())}
+              </p>
+              <p className="mt-1 font-semibold uppercase tracking-[0.15em]">{signataire}</p>
+              <div className="mt-8 h-px w-48 bg-neutral-500" />
+            </div>
+          </footer>
+        </div>
+      </div>
+    </article>
   );
 }
