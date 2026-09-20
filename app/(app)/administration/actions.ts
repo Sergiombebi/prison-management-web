@@ -4,11 +4,37 @@ import { revalidatePath } from "next/cache";
 import { api, ApiErreur, modeDe } from "@/lib/api";
 import { etatDepuisErreur, optionnel, texte, type EtatAction } from "@/lib/api/actions";
 import { valeursSaisies } from "@/lib/api/formulaires";
-import type { RoleUtilisateur } from "@/lib/domain/types";
+import {
+  CLES_MODULES,
+  permissionsPourAcces,
+  roleImplicite,
+  type CleModule,
+} from "@/lib/domain/modules";
 
 /** En démonstration rien n'est persisté : le message le dit. */
 const suffixe = () =>
   modeDe("administration") === "mock" ? " (démonstration : rien n’est enregistré)" : "";
+
+/**
+ * Traduit la sélection du formulaire (modules cochés + interrupteur administrateur)
+ * en ce que l'API attend encore : une liste de permissions et un rôle.
+ *
+ * Le rôle n'est plus saisi nulle part ; il est déduit ici parce que la route le
+ * valide toujours comme obligatoire. Côté API ce n'est qu'une étiquette : les
+ * droits réels viennent des permissions.
+ */
+function accesDepuisFormulaire(formulaire: FormData) {
+  const administrateur = formulaire.get("administrateur") !== null;
+  const modules = formulaire
+    .getAll("modules[]")
+    .map(String)
+    .filter((cle): cle is CleModule => (CLES_MODULES as string[]).includes(cle));
+
+  return {
+    role: roleImplicite(modules, administrateur),
+    permissions: permissionsPourAcces(modules, administrateur),
+  };
+}
 
 function rafraichirPersonnel() {
   revalidatePath("/administration/personnel");
@@ -32,8 +58,7 @@ export async function creerUtilisateur(_precedent: EtatAction, formulaire: FormD
       prenom: texte(formulaire, "prenom"),
       username,
       email: texte(formulaire, "email"),
-      role: texte(formulaire, "role") as RoleUtilisateur,
-      permissions: formulaire.getAll("permissions[]").map(String),
+      ...accesDepuisFormulaire(formulaire),
       motDePasse,
     });
   } catch (e) {
@@ -58,8 +83,7 @@ export async function modifierUtilisateur(
       prenom: texte(formulaire, "prenom"),
       username,
       email: texte(formulaire, "email"),
-      role: texte(formulaire, "role") as RoleUtilisateur,
-      permissions: formulaire.getAll("permissions[]").map(String),
+      ...accesDepuisFormulaire(formulaire),
     });
   } catch (e) {
     return etatDepuisErreur(e, formulaire);

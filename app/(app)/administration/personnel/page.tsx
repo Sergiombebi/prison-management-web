@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
 import { api } from "@/lib/api";
-import type { RoleUtilisateur, Utilisateur } from "@/lib/domain/types";
-import { DESCRIPTION_ROLE, LIBELLE_ROLE } from "@/lib/domain/referentiels";
+import type { Utilisateur } from "@/lib/domain/types";
+import {
+  MODULES_METIER,
+  estAdministrateur,
+  modulesAccordes,
+} from "@/lib/domain/modules";
 import { formatNombre, formatRelatif, initiales } from "@/lib/format";
 import { hrefAvec, param } from "@/lib/url";
 import { getProfil, peut } from "@/lib/session";
@@ -16,11 +20,11 @@ import { BoutonConfirmation } from "@/components/ui/bouton-confirmation";
 import { FormulaireUtilisateur } from "@/components/administration/formulaire-utilisateur";
 import { BoutonReinitialiserMotDePasse } from "@/components/administration/bouton-reinitialiser-mot-de-passe";
 import { BoutonRestaurerUtilisateur } from "@/components/administration/bouton-restaurer-utilisateur";
+import { PucesAcces } from "@/components/administration/puces-acces";
 import { creerUtilisateur, desactiverUtilisateur, modifierUtilisateur } from "../actions";
 
 export const metadata: Metadata = { title: "Personnel" };
 
-const ROLES: RoleUtilisateur[] = ["admin", "agent", "medecin"];
 const CHEMIN = "/administration/personnel";
 
 export default async function PersonnelPage(props: PageProps<"/administration/personnel">) {
@@ -35,7 +39,7 @@ export default async function PersonnelPage(props: PageProps<"/administration/pe
             icone="lock"
             titre={t.etats.horsPerimetre}
             texte="La gestion des comptes est réservée aux administrateurs. Adressez-vous au régisseur si vous avez besoin d’un accès."
-            action={<ButtonLink href="/tableau-de-bord" taille="sm">{t.modules.tableauDeBord}</ButtonLink>}
+            action={<ButtonLink href="/accueil" taille="sm">Mon accueil</ButtonLink>}
           />
         </Panel>
       </Page>
@@ -45,6 +49,12 @@ export default async function PersonnelPage(props: PageProps<"/administration/pe
   const sp = await props.searchParams;
   const utilisateurs = await api.listUtilisateurs();
   const actifs = utilisateurs.filter((u) => u.estActif).length;
+  const administrateurs = utilisateurs.filter((u) => estAdministrateur(u.permissions)).length;
+  // Un compte sans module se connecte mais n'ouvre rien : c'est exactement ce qui
+  // envoyait les profils sur l'écran d'erreur. On le fait remonter ici.
+  const sansAcces = utilisateurs.filter(
+    (u) => !estAdministrateur(u.permissions) && modulesAccordes(u.permissions).length === 0,
+  ).length;
   const enModification = utilisateurs.find((u) => String(u.id) === param(sp, "modifier"));
 
   return (
@@ -52,14 +62,39 @@ export default async function PersonnelPage(props: PageProps<"/administration/pe
       <PageHeader
         surtitre={t.modules.administration}
         titre="Personnel"
-        description="Comptes ayant accès au système et niveau d’habilitation de chacun."
+        description="Comptes ayant accès au système. L’habilitation se donne par module : un compte peut en cumuler plusieurs."
       />
 
       <StatGrid colonnes={4}>
-        <Stat icone="user" style={{ ["--i" as string]: 0 }} label="Comptes" valeur={formatNombre(utilisateurs.length)} contexte={`${formatNombre(actifs)} actifs`} />
-        {ROLES.map((r, i) => (
-          <Stat icone="user" key={r} style={{ ["--i" as string]: i + 1 }} label={`${LIBELLE_ROLE[r]}s`} valeur={formatNombre(utilisateurs.filter((u) => u.role === r).length)} contexte={DESCRIPTION_ROLE[r]} />
-        ))}
+        <Stat
+          icone="user"
+          style={{ ["--i" as string]: 0 }}
+          label="Comptes"
+          nombre={utilisateurs.length}
+          contexte={`${formatNombre(actifs)} actifs`}
+        />
+        <Stat
+          icone="shield"
+          style={{ ["--i" as string]: 1 }}
+          label="Administrateurs"
+          nombre={administrateurs}
+          contexte="Accès complet, administration comprise"
+        />
+        <Stat
+          icone="dashboard"
+          style={{ ["--i" as string]: 2 }}
+          label="Modules ouverts"
+          nombre={utilisateurs.reduce((total, u) => total + modulesAccordes(u.permissions).length, 0)}
+          contexte={`Sur ${formatNombre(utilisateurs.length * MODULES_METIER.length)} possibles`}
+        />
+        <Stat
+          icone="alert"
+          style={{ ["--i" as string]: 3 }}
+          label="Sans aucun accès"
+          nombre={sansAcces}
+          signal={sansAcces > 0 ? "attention" : "positif"}
+          contexte={sansAcces > 0 ? "Comptes qui n’ouvriront aucun écran" : "Tous les comptes ont un module"}
+        />
       </StatGrid>
 
       <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
@@ -87,13 +122,9 @@ export default async function PersonnelPage(props: PageProps<"/administration/pe
               },
               { cle: "email", titre: "Adresse électronique", masquerSous: "lg", rendu: (u) => <span className="text-muted">{u.email ?? "—"}</span> },
               {
-                cle: "role",
-                titre: t.champs.role,
-                rendu: (u) => (
-                  <Badge ton={u.role === "admin" ? "accent" : "neutre"} title={DESCRIPTION_ROLE[u.role]}>
-                    {LIBELLE_ROLE[u.role]}
-                  </Badge>
-                ),
+                cle: "acces",
+                titre: "Accès",
+                rendu: (u) => <PucesAcces permissions={u.permissions} />,
               },
               { cle: "etat", titre: "Compte", rendu: (u) => <Badge ton={u.estActif ? "succes" : "neutre"}>{u.estActif ? "Actif" : "Désactivé"}</Badge> },
               {

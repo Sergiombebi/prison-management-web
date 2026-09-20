@@ -584,6 +584,88 @@
   }
 }
 
+/* ---------------------------------------------------------------------------
+   Sous-tableaux de bord des modules
+   Chaque module porte sa teinte dans --teinte / --voile ; le mouvement sert à
+   faire lire la donnée (une jauge se remplit, une cellule s'allume), jamais à
+   décorer.
+   ------------------------------------------------------------------------ */
+
+/* Voile coloré du bandeau de module : il respire très lentement, sans attirer l'œil */
+@keyframes sgp-aurore {
+  0%,
+  100% {
+    transform: translate3d(-4%, -6%, 0) scale(1);
+    opacity: 0.55;
+  }
+  50% {
+    transform: translate3d(4%, 4%, 0) scale(1.14);
+    opacity: 0.8;
+  }
+}
+
+/* Une tuile du plan des cellules qui prend sa couleur */
+@keyframes sgp-allume {
+  from {
+    opacity: 0;
+    transform: scale(0.72);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Onde d'un point « en direct » : un anneau qui s'éloigne et s'efface */
+@keyframes sgp-onde {
+  from {
+    opacity: 0.55;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 0;
+    transform: scale(2.6);
+  }
+}
+
+/* Jauge linéaire qui se remplit depuis son bord de départ */
+@keyframes sgp-jauge {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(var(--part, 1));
+  }
+}
+
+@utility aurore {
+  animation: sgp-aurore 14s var(--ease-soft) infinite;
+}
+
+@utility allume {
+  & > * {
+    animation: sgp-allume var(--dur-slow) var(--ease-spring) both;
+    animation-delay: calc(22ms * var(--i, 0));
+  }
+}
+
+@utility onde {
+  animation: sgp-onde 2.4s var(--ease-out) infinite;
+}
+
+@utility jauge {
+  transform-origin: left;
+  animation: sgp-jauge var(--dur-move) var(--ease-soft) both;
+  animation-delay: calc(60ms * var(--i, 0));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aurore,
+  .onde {
+    animation: none;
+  }
+}
+
 /* ============================================================================
    Transitions de vue — la direction encode la profondeur de navigation
    ========================================================================= */

@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { ACCUEIL, aAcces, permissionsRequises } from "@/lib/acces";
-import { libellePermission } from "@/lib/domain/referentiels";
-import { MODULES, peutVoirModule } from "@/lib/navigation";
+import { ACCUEIL, aAcces, exigenceDe, libelleExigence } from "@/lib/acces";
+import { MODULES_METIER, modulesAccordes } from "@/lib/domain/modules";
 import { getProfil } from "@/lib/session";
 import { param } from "@/lib/url";
 import { Page, PageHeader } from "@/components/layout/page";
@@ -18,8 +17,8 @@ export const metadata: Metadata = { title: "Accès refusé" };
  *
  * L'écran d'erreur générique (`error.tsx`) disait seulement « le chargement a
  * échoué » quand l'API répondait 403 : l'utilisateur ne savait ni ce qui lui
- * manquait, ni où aller. Ici on nomme le droit requis et on propose ce qui, dans
- * son compte, est réellement ouvert.
+ * manquait, ni où aller. Ici on nomme l'accès requis, dans ses mots, et on
+ * propose ce qui est réellement ouvert à son compte.
  */
 export default async function AccesRefusePage(props: PageProps<"/acces-refuse">) {
   const sp = await props.searchParams;
@@ -31,23 +30,20 @@ export default async function AccesRefusePage(props: PageProps<"/acces-refuse">)
   const demande = param(sp, "vers") ?? "";
   const vers = demande.startsWith("/") && !demande.startsWith("//") ? demande : "";
 
-  // Droits élargis depuis la redirection (reconnexion, permission accordée) :
-  // inutile de laisser l'utilisateur devant une porte désormais ouverte.
+  // Droits élargis depuis la redirection (reconnexion, module accordé) : inutile de
+  // laisser l'utilisateur devant une porte désormais ouverte.
   if (vers && aAcces(profil.permissions, vers)) redirect(vers);
 
-  const manquantes = vers ? permissionsRequises(vers) : [];
-  const modulesOuverts = MODULES.filter((m) => peutVoirModule(profil.permissions, m));
+  const exige = vers ? exigenceDe(vers) : null;
+  const ouverts = modulesAccordes(profil.permissions);
+  const modulesOuverts = MODULES_METIER.filter((m) => ouverts.includes(m.cle));
 
   return (
     <Page>
       <PageHeader
         surtitre="Accès refusé"
         titre="Cet écran n’est pas ouvert à votre compte"
-        description={
-          vers
-            ? "Votre compte est bien connecté ; il n’a simplement pas le droit nécessaire pour cet écran."
-            : "Votre compte n’a pas le droit nécessaire pour l’écran demandé."
-        }
+        description="Votre compte est bien connecté ; il n’a simplement pas l’accès nécessaire pour cet écran."
       />
 
       <Panel variante="eleve" accent className="reveal">
@@ -64,31 +60,17 @@ export default async function AccesRefusePage(props: PageProps<"/acces-refuse">)
                 </code>
               </p>
             )}
-            {manquantes.length > 0 ? (
-              <>
-                <p className="mt-2 text-muted">
-                  {manquantes.length > 1
-                    ? "Il faut l’un de ces droits :"
-                    : "Il faut ce droit :"}
-                </p>
-                <ul className="mt-1.5 flex flex-wrap gap-1.5">
-                  {manquantes.map((cle) => (
-                    <li
-                      key={cle}
-                      className="rounded-full border border-hairline bg-sunken px-2.5 py-1 text-xs text-ink"
-                    >
-                      {libellePermission(cle)}
-                    </li>
-                  ))}
-                </ul>
-              </>
-            ) : (
-              <p className="mt-2 text-muted">
-                Aucun droit correspondant n’est accordé à votre compte.
-              </p>
-            )}
+            <p className="mt-2 text-muted">
+              {exige ? (
+                <>
+                  Il faut <strong className="font-medium text-ink">{libelleExigence(exige)}</strong>.
+                </>
+              ) : (
+                <>Aucun accès correspondant n’est accordé à votre compte.</>
+              )}
+            </p>
             <p className="mt-3 text-muted">
-              Les droits s’accordent compte par compte, depuis{" "}
+              Les accès s’accordent module par module, depuis{" "}
               <strong className="font-medium text-ink">Administration › Personnel</strong>.
               Adressez-vous à l’administrateur de l’établissement.
             </p>
@@ -100,7 +82,7 @@ export default async function AccesRefusePage(props: PageProps<"/acces-refuse">)
             Revenir à mon accueil
           </ButtonLink>
           <ButtonLink href="/profil" icone="user">
-            Voir mes droits
+            Voir mes accès
           </ButtonLink>
         </div>
       </Panel>
@@ -109,7 +91,7 @@ export default async function AccesRefusePage(props: PageProps<"/acces-refuse">)
         <Panel titre="Ce que vous pouvez ouvrir" variante="eleve" className="reveal">
           <ul className="stagger grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {modulesOuverts.map((m, rang) => (
-              <CarteModule key={m.id} module={m} index={rang} />
+              <CarteModule key={m.cle} module={m} index={rang} />
             ))}
           </ul>
         </Panel>

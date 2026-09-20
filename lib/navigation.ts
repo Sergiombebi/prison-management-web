@@ -1,12 +1,18 @@
 /**
  * Arborescence de navigation.
  *
- * Reprend la structure du desktop (`MainWindow.xaml` + les quatre `*MainView.xaml`).
- * C'est la seule source de vérité pour la sidebar, le fil d'Ariane et les titres de
- * page : ajouter une route ici la fait apparaître partout.
+ * Seule source de vérité pour la sidebar, le fil d'Ariane et les titres de page :
+ * ajouter une route ici la fait apparaître partout.
+ *
+ * Les quatre modules métier tirent leur habilitation de `lib/domain/modules.ts` —
+ * on ne redit pas ici quelles permissions les composent. Les trois rubriques
+ * transverses (tableau de bord général, édition d'états, administration) ne
+ * s'attribuent pas : seul l'administrateur les détient, et leurs permissions
+ * suffisent à les filtrer.
  */
 
 import { t } from "@/lib/i18n/fr";
+import { moduleMetier } from "@/lib/domain/modules";
 
 export type IconName =
   | "dashboard"
@@ -31,17 +37,25 @@ export interface GroupeNav {
 
 export interface ModuleNav {
   id: string;
+  /** Où mène le module : son sous-tableau de bord pour les quatre modules métier. */
   href: string;
   label: string;
   icone: IconName;
   description: string;
+  /**
+   * Chemins que ce module couvre. Explicite, et non deviné depuis `href` : deux
+   * modules distincts partagent le préfixe /sante, et le sous-tableau de bord d'un
+   * module n'est pas la racine de ses écrans.
+   */
+  racines: string[];
   /** Sous-navigation affichée dans le module, en onglets ou en sections. */
   groupes?: GroupeNav[];
   /** `true` pour la section « Administration » de la sidebar. */
   administratif?: boolean;
   /**
-   * Permission(s) requises pour voir ce module dans la navigation - un tableau se lit
-   * comme un « ou » (ex. Administration : personnel ou paramètres).
+   * Permission(s) requises pour voir ce module dans la navigation — un tableau se
+   * lit comme un « ou ». Pour un module métier, c'est l'ensemble de ses droits
+   * propres : en détenir un, c'est avoir le module.
    */
   permissionRequise: string | string[];
 }
@@ -53,19 +67,26 @@ export const MODULES: ModuleNav[] = [
     label: t.modules.tableauDeBord,
     icone: "dashboard",
     description: "Situation de l'établissement au jour d'aujourd'hui",
+    racines: ["/tableau-de-bord"],
     permissionRequise: "tableau_bord.consulter",
   },
   {
     id: "detenus",
-    href: "/detenus",
+    href: moduleMetier("detenus").accueil,
     label: t.modules.detenus,
     icone: "detenus",
     description: "Écrou, mandats et procédures de sortie",
-    permissionRequise: "detenus.consulter",
+    racines: ["/detenus"],
+    permissionRequise: moduleMetier("detenus").permissions,
     groupes: [
       {
         label: "Fichiers des détenus",
         liens: [
+          {
+            href: "/detenus/apercu",
+            label: "Vue d’ensemble",
+            description: "Situation du registre d'écrou aujourd'hui",
+          },
           {
             href: "/detenus",
             label: "Liste des détenus",
@@ -143,15 +164,21 @@ export const MODULES: ModuleNav[] = [
   },
   {
     id: "discipline",
-    href: "/discipline/cellules",
+    href: moduleMetier("discipline").accueil,
     label: t.modules.discipline,
     icone: "discipline",
     description: "Logement, affectations et sanctions disciplinaires",
-    permissionRequise: ["discipline.cellules.consulter", "discipline.sanctions.consulter"],
+    racines: ["/discipline"],
+    permissionRequise: moduleMetier("discipline").permissions,
     groupes: [
       {
         label: "Discipline",
         liens: [
+          {
+            href: "/discipline",
+            label: "Vue d’ensemble",
+            description: "Occupation des cellules et mesures en cours",
+          },
           {
             href: "/discipline/cellules",
             label: "Logement & cellules",
@@ -173,19 +200,55 @@ export const MODULES: ModuleNav[] = [
   },
   {
     id: "suivi-medical",
-    href: "/sante/suivi-medical",
+    href: moduleMetier("sante").accueil,
     label: t.modules.suiviMedical,
     icone: "sante",
     description: "Consultations, diagnostics et traitements prescrits",
-    permissionRequise: "sante.consultations.consulter",
+    racines: ["/sante/suivi-medical"],
+    permissionRequise: moduleMetier("sante").permissions,
+    groupes: [
+      {
+        label: "Suivi médical",
+        liens: [
+          {
+            href: "/sante/suivi-medical/apercu",
+            label: "Vue d’ensemble",
+            description: "Activité de l'infirmerie aujourd'hui",
+          },
+          {
+            href: "/sante/suivi-medical",
+            label: "Consultations",
+            description: "Historique des consultations et des traitements",
+          },
+        ],
+      },
+    ],
   },
   {
     id: "visites",
-    href: "/sante/visites",
+    href: moduleMetier("visites").accueil,
     label: t.modules.visites,
     icone: "door",
     description: "Parloirs, visiteurs et contrôles de sécurité",
-    permissionRequise: "visites.consulter",
+    racines: ["/sante/visites"],
+    permissionRequise: moduleMetier("visites").permissions,
+    groupes: [
+      {
+        label: "Visites",
+        liens: [
+          {
+            href: "/sante/visites/apercu",
+            label: "Vue d’ensemble",
+            description: "Parloirs du jour et affluence de la semaine",
+          },
+          {
+            href: "/sante/visites",
+            label: "Registre des visites",
+            description: "Toutes les visites enregistrées",
+          },
+        ],
+      },
+    ],
   },
   {
     id: "etats",
@@ -193,6 +256,7 @@ export const MODULES: ModuleNav[] = [
     label: t.modules.etats,
     icone: "etats",
     description: "Fiches, extraits de registre et états statistiques",
+    racines: ["/etats"],
     permissionRequise: "etats.consulter",
     groupes: [
       {
@@ -229,6 +293,7 @@ export const MODULES: ModuleNav[] = [
     icone: "administration",
     administratif: true,
     description: "Comptes du personnel et paramètres de l'établissement",
+    racines: ["/administration"],
     permissionRequise: ["administration.personnel.gerer", "administration.parametres.gerer"],
     groupes: [
       {
@@ -237,7 +302,7 @@ export const MODULES: ModuleNav[] = [
           {
             href: "/administration/personnel",
             label: "Personnel",
-            description: "Comptes utilisateurs et rôles",
+            description: "Comptes utilisateurs et accès aux modules",
           },
           {
             href: "/administration/parametres",
@@ -254,9 +319,39 @@ export const MODULES: ModuleNav[] = [
 export const MODULES_PRINCIPAUX = MODULES.filter((m) => !m.administratif);
 export const MODULES_ADMIN = MODULES.filter((m) => m.administratif);
 
+/**
+ * Hall d'accueil des comptes qui ont plusieurs modules sans être administrateurs.
+ *
+ * Hors de `MODULES` à dessein : il n'exige aucune permission, et il ne doit
+ * apparaître dans la sidebar que lorsque le tableau de bord n'y est pas — jamais
+ * les deux, qui seraient deux « accueils » concurrents.
+ */
+export const MODULE_ACCUEIL: ModuleNav = {
+  id: "accueil",
+  href: "/accueil",
+  label: "Accueil",
+  icone: "dashboard",
+  description: "Vos modules et vos indicateurs du jour",
+  racines: ["/accueil"],
+  permissionRequise: [],
+};
+
+/** Refus d'accès : absent de la sidebar, mais nommé dans le fil d'Ariane. */
+export const MODULE_ACCES_REFUSE: ModuleNav = {
+  id: "acces-refuse",
+  href: "/acces-refuse",
+  label: "Accès refusé",
+  icone: "administration",
+  description: "Accès manquant pour l'écran demandé",
+  racines: ["/acces-refuse"],
+  permissionRequise: [],
+};
+
 /** Un module s'affiche dès que l'une de ses permissions requises est accordée. */
 export function peutVoirModule(permissions: string[], module: ModuleNav): boolean {
-  const requises = Array.isArray(module.permissionRequise) ? module.permissionRequise : [module.permissionRequise];
+  const requises = Array.isArray(module.permissionRequise)
+    ? module.permissionRequise
+    : [module.permissionRequise];
   return requises.some((cle) => permissions.includes(cle));
 }
 
@@ -267,24 +362,12 @@ const TOUS_LES_LIENS: LienNav[] = MODULES.flatMap((m) =>
 
 /** Le module auquel appartient un chemin. */
 export function moduleDe(pathname: string): ModuleNav | undefined {
+  const couvre = (m: ModuleNav) =>
+    m.racines.some((r) => pathname === r || pathname.startsWith(`${r}/`));
+
   // Écrans sans permission propre : absents de MODULES, donc traités à part pour
   // que le fil d'Ariane les nomme au lieu de rester vide.
-  const horsNav = [MODULE_ACCUEIL, MODULE_ACCES_REFUSE].find(
-    (m) => pathname === m.href || pathname.startsWith(`${m.href}/`),
-  );
-  if (horsNav) return horsNav;
-
-  return MODULES.find((m) => {
-    // Un module sans sous-navigation ne couvre que sa propre route : matcher sur le
-    // seul premier segment le confondrait avec un autre module partageant le même
-    // préfixe (ex: /sante/suivi-medical et /sante/visites, deux modules distincts).
-    if (!m.groupes) {
-      return pathname === m.href || pathname.startsWith(`${m.href}/`);
-    }
-
-    const racine = `/${m.href.split("/")[1]}`;
-    return pathname === racine || pathname.startsWith(`${racine}/`);
-  });
+  return [MODULE_ACCUEIL, MODULE_ACCES_REFUSE].find(couvre) ?? MODULES.find(couvre);
 }
 
 /** Le lien de sous-navigation correspondant le plus précisément au chemin. */
@@ -317,29 +400,3 @@ export function filAriane(pathname: string): Miette[] {
 
   return miettes;
 }
-
-/**
- * Écran d'arrivée des profils qui n'ont pas droit au tableau de bord complet.
- *
- * Hors de `MODULES` à dessein : il n'exige aucune permission, et il ne doit
- * apparaître dans la sidebar que lorsque le tableau de bord n'y est pas — jamais
- * les deux, qui seraient deux « accueils » concurrents.
- */
-export const MODULE_ACCUEIL: ModuleNav = {
-  id: "accueil",
-  href: "/accueil",
-  label: "Accueil",
-  icone: "dashboard",
-  description: "Vos modules et vos indicateurs du jour",
-  permissionRequise: [],
-};
-
-/** Refus d'accès : absent de la sidebar, mais nommé dans le fil d'Ariane. */
-export const MODULE_ACCES_REFUSE: ModuleNav = {
-  id: "acces-refuse",
-  href: "/acces-refuse",
-  label: "Accès refusé",
-  icone: "administration",
-  description: "Droit manquant pour l'écran demandé",
-  permissionRequise: [],
-};

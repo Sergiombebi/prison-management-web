@@ -5,13 +5,18 @@ Relevé fait depuis le frontend (`prison-management-web`) contre la branche cour
 
 **Suite de tests de l'API : 106 tests, 439 assertions, tous verts** (`php artisan test`, 35 s).
 Les points ci-dessous ne sont donc pas des régressions : ce sont des cas qu'aucun test ne
-couvre encore, trouvés en faisant tourner les trois profils (`admin`, `eric.agent`,
-`sophie.medecin`) contre l'API réelle.
+couvre encore, trouvés en faisant tourner trois comptes réels contre l'API.
 
-**Origine.** Tous les profils non-administrateurs atterrissaient sur `/tableau-de-bord`,
-recevaient un **403** de l'API et tombaient sur l'écran d'erreur générique. Le frontend est
-corrigé (voir §E) : chaque profil arrive désormais sur un accueil adapté à ses droits. Mais la
-cause côté données reste entière (§B1).
+> **Changement de modèle d'habilitation côté frontend.** L'interface n'attribue plus de
+> *rôle* à un membre du personnel : l'administrateur lui ouvre un ou plusieurs **modules
+> métier** (Gestion des détenus, Discipline, Suivi médical, Visites). Les trois rubriques
+> transverses — tableau de bord général, édition d'états, administration — ne s'attribuent
+> pas : elles n'appartiennent qu'à l'administrateur. Le détail est en §E, et ce que cela
+> demande à l'API en §C9 et §B1.
+
+**Origine du chantier.** Tous les profils non-administrateurs atterrissaient sur
+`/tableau-de-bord`, recevaient un **403** et tombaient sur l'écran d'erreur générique. Le
+frontend est corrigé ; la cause côté données reste entière (§B1).
 
 Légende : 🔴 bloquant · 🟠 important · 🟢 confort / documentation
 
@@ -112,13 +117,17 @@ manuelle obligatoire), il faut l'écrire dans le guide — le frontend pourra al
 if ($utilisateur->id === $request->user()->id) { /* refus */ }
 ```
 
-mais `update()` n'a pas l'équivalent pour les permissions. Un administrateur qui décoche son
-propre `administration.personnel.gerer` perd l'accès au module Personnel. S'il est le seul
-compte à le détenir, **plus personne** ne peut rouvrir les droits : il n'existe aucune route
-ni commande de secours.
+mais `update()` n'a pas l'équivalent pour les permissions. Un administrateur qui décoche sa
+propre habilitation d'administration perd l'accès au module Personnel. S'il est le seul compte
+à la détenir, **plus personne** ne peut rouvrir les accès : il n'existe aucune route ni
+commande de secours.
 
-**Correction suggérée** — même garde que `desactiver()` sur cette permission quand la cible
-est soi-même, plus une commande `php artisan sgp:promouvoir {username}` de dernier recours.
+Le nouveau formulaire rend le geste plus facile qu'avant : une seule case « Administrateur »
+au lieu de deux permissions à décocher séparément.
+
+**Correction suggérée** — même garde que `desactiver()` sur
+`administration.personnel.gerer` quand la cible est soi-même, plus une commande
+`php artisan sgp:promouvoir {username}` de dernier recours.
 
 ---
 
@@ -147,49 +156,64 @@ User::factory()->create([...]);              // agent, permissions => []
 ```
 
 `UserFactory::admin()` donne `Permission::values()` ; `medecin()` ne change que le rôle, et
-l'état par défaut (agent) laisse `permissions => []`. Vérifié sur la base de dev :
+l'état par défaut (agent) laisse `permissions => []`. Vérifié sur la base de dev : le compte
+admin avait 24 permissions, les deux autres **zéro**.
 
-| id | username | rôle | permissions |
-|---|---|---|---|
-| 1 | admin | admin | 24 |
-| 2 | sophie.medecin | medecin | **0** |
-| 3 | eric.agent | agent | **0** |
+**C'est le déclencheur du bug remonté.** Ces comptes se connectent avec succès puis ne peuvent
+rien ouvrir. Le frontend le gère proprement à présent (écran « Aucun module ne vous est encore
+ouvert »), mais des comptes de démo inutilisables restent un manquement.
 
-**C'est le déclencheur du bug remonté.** Ces deux comptes se connectent avec succès puis ne
-peuvent rien ouvrir. Le frontend le gère proprement à présent (écran « Aucun module ne vous
-est encore ouvert »), mais des comptes de démo inutilisables restent un manquement.
-
-**Correction suggérée** — des états `agent()` et `medecin()` porteurs d'un jeu de droits
-cohérent avec le poste. Proposition, alignée sur ce que les écrans attendent :
+**Correction suggérée** — des états de factory alignés sur les quatre modules du frontend.
+Chaque module s'accorde **en bloc**, et tous entraînent `detenus.consulter`, le socle commun
+sans lequel les sélecteurs de détenus des formulaires restent vides (voir §C3) :
 
 ```php
-public function agent(): static
-{
-    return $this->state(fn () => [
-        'role' => RoleUtilisateur::Agent,
-        'permissions' => [
-            'detenus.consulter', 'detenus.creer', 'detenus.modifier',
-            'detenus.mandats.gerer', 'detenus.sorties.enregistrer',
-            'discipline.cellules.consulter', 'discipline.affectations.gerer',
-            'discipline.sanctions.consulter', 'discipline.sanctions.creer',
-            'visites.consulter', 'visites.creer',
-            'etats.consulter',
-        ],
-    ]);
-}
+// database/factories/UserFactory.php
 
-public function medecin(): static
+/** Socle : tout module suppose de pouvoir désigner un détenu. */
+private const SOCLE = ['detenus.consulter'];
+
+private const MODULE_DETENUS = [
+    'detenus.creer', 'detenus.modifier', 'detenus.desactiver', 'detenus.restaurer',
+    'detenus.mandats.gerer', 'detenus.sorties.enregistrer',
+];
+
+private const MODULE_DISCIPLINE = [
+    'discipline.cellules.consulter', 'discipline.cellules.gerer',
+    'discipline.affectations.gerer', 'discipline.sanctions.consulter',
+    'discipline.sanctions.creer', 'discipline.sanctions.modifier',
+    'discipline.sanctions.terminer', 'discipline.sanctions.annuler',
+    'discipline.types_sanction.gerer',
+];
+
+private const MODULE_SANTE = ['sante.consultations.consulter', 'sante.consultations.creer'];
+
+private const MODULE_VISITES = ['visites.consulter', 'visites.creer'];
+
+/** Ouvre un ou plusieurs modules métier à ce compte. */
+public function modules(array ...$modules): static
 {
     return $this->state(fn () => [
-        'role' => RoleUtilisateur::Medecin,
-        'permissions' => [
-            'sante.consultations.consulter', 'sante.consultations.creer',
-            'visites.consulter',
-            'detenus.consulter',   // voir C3 : le sélecteur de détenus en dépend
-        ],
+        'permissions' => array_values(array_unique(array_merge(self::SOCLE, ...$modules))),
     ]);
 }
 ```
+
+et, dans `DatabaseSeeder`, des comptes de démo qui servent à quelque chose :
+
+```php
+// Greffier : registre d'écrou et parloirs
+User::factory()->modules(self::MODULE_DETENUS, self::MODULE_VISITES)->create([...]);
+
+// Surveillant-chef : logement et discipline
+User::factory()->modules(self::MODULE_DISCIPLINE)->create([...]);
+
+// Médecin : infirmerie seule
+User::factory()->modules(self::MODULE_SANTE)->create([...]);
+```
+
+Les rubriques transverses (`tableau_bord.consulter`, `etats.consulter`,
+`administration.*`) restent réservées au compte administrateur.
 
 ---
 
@@ -207,10 +231,10 @@ dépassée.
 
 ### B3. 🟠 Aucune route ne publie le catalogue des permissions
 
-Le frontend redéclare `App\Enums\Permission` à la main dans `lib/domain/referentiels.ts`
-(clé + libellé + regroupement par module) pour afficher les cases à cocher du formulaire
-Personnel. Toute permission ajoutée côté API est invisible du formulaire tant que ce fichier
-n'est pas mis à jour — et rien ne le signale.
+Le frontend redéclare `App\Enums\Permission` à la main dans `lib/domain/referentiels.ts`, et
+c'est désormais à partir de ce catalogue qu'il compose ses quatre modules
+(`lib/domain/modules.ts`). Toute permission ajoutée côté API est invisible du frontend tant
+que ce fichier n'est pas mis à jour — et rien ne le signale.
 
 **Attendu** — `GET /permissions` :
 
@@ -226,8 +250,10 @@ Vérifié sur la base de dev : `GET /suivis-medicaux` → 0 élément, `GET /vis
 alors que cellules (8), types de sanction (6), détenus (15), affectations (14), sanctions (4)
 et sorties (5) sont bien peuplés.
 
-Résultat : une fois ses droits accordés, le profil médecin a **littéralement un écran vide**
-— impossible de montrer ou d'éprouver le module Santé.
+Résultat : les sous-tableaux de bord **Suivi médical** et **Visites** n'affichent que des
+zéros — courbe d'activité plate, semaine vide, aucune ligne à traiter. Les deux autres
+(Détenus, Discipline) sont pleinement exploitables. C'est aujourd'hui le seul obstacle à une
+démonstration complète des quatre modules.
 
 ---
 
@@ -255,6 +281,47 @@ dans le seeder de démo.
 
 ## C. Incohérences de contrat
 
+### C9. 🔴 `role` est toujours obligatoire alors que l'interface ne le demande plus
+
+C'est la demande la plus directe de ce nouveau modèle.
+
+`StoreUtilisateurRequest` et `UpdateUtilisateurRequest` exigent tous deux :
+
+```php
+'role' => ['required', Rule::in(['admin', 'agent', 'medecin'])],
+```
+
+Or l'écran Personnel ne propose plus de rôle : l'administrateur coche des modules. Pour
+satisfaire la validation, le frontend **fabrique** un rôle à partir des accès cochés :
+
+```ts
+// lib/domain/modules.ts
+export function roleImplicite(modules, administrateur) {
+  if (administrateur) return "admin";
+  if (modules.length === 1 && modules[0] === "sante") return "medecin";
+  return "agent";
+}
+```
+
+Ce n'est pas tenable longtemps : la valeur envoyée ne décrit plus rien de réel — un compte
+« Suivi médical + Visites » part en `agent`, un compte « Suivi médical » seul en `medecin`,
+pour la même personne au même poste. Vérifié en conditions réelles : après avoir ajouté le
+module Visites à `sophie.medecin` depuis l'écran Personnel, son `role` est passé de `medecin`
+à `agent` sans que rien de métier n'ait changé.
+
+**Demandé, par ordre de préférence :**
+
+1. Rendre `role` facultatif (`['sometimes', Rule::in(...)]`) et le laisser inchangé quand il
+   est absent — le frontend cesse alors d'inventer une valeur.
+2. Ou le retirer complètement de l'API, puisque `User::hasPermission()` ne le consulte jamais
+   (« Les droits ne dépendent jamais du rôle », dit déjà le commentaire du modèle) et que
+   `UserResource` est le seul à l'exposer vraiment.
+
+Le champ `role` reste utile comme étiquette de poste affichable ; il ne doit simplement plus
+être **obligatoire** sur une route qui ne le connaît plus.
+
+---
+
 ### C1. 🔴 `per_page` est plafonné à 10, en dur
 
 ```php
@@ -270,6 +337,9 @@ enregistrement d'une sortie, fiches & avis. Le frontend parcourt donc les pages 
 s'arrête à 50 pages — soit **500 détenus au maximum**, au-delà desquels les sélecteurs sont
 silencieusement tronqués. À 10 par page, cela fait aussi jusqu'à 50 requêtes HTTP pour
 afficher un seul formulaire.
+
+Depuis que le module Administration est branché sur l'API réelle, `GET /utilisateurs` subit le
+même traitement : l'écran Personnel parcourt les pages dix par dix.
 
 **Demandé** — relever le plafond (100 à 200), ou exposer une route de référence légère :
 `GET /detenus/reference` → `[{ id, nom, numero_ecrou }]`, non paginée.
@@ -290,10 +360,10 @@ Le frontend doit traiter deux formes de réponse pour la même famille d'appels.
 
 ---
 
-### C3. 🟠 Permissions croisées non documentées
+### C3. 🟠 Permissions croisées : réglé côté frontend, à connaître côté API
 
-Plusieurs écrans lisent un domaine voisin pour se compléter. La permission de l'écran ne
-suffit alors pas, et l'API répond 403 sur l'appel secondaire. Relevé complet :
+Plusieurs écrans lisent un domaine voisin pour se compléter, ce qui produisait un 403 sur
+l'appel secondaire et faisait tomber tout l'écran. Relevé complet :
 
 | Écran | Permission de l'écran | Appel croisé | Permission exigée en plus |
 |---|---|---|---|
@@ -307,18 +377,19 @@ suffit alors pas, et l'API répond 403 sur l'appel secondaire. Relevé complet :
 | Libération / transfert / évasion / décès | `detenus.sorties.enregistrer` | `GET /detenus`, `GET /detenus/{id}` | `detenus.consulter` |
 | Listings de mandats, état par catégorie | `detenus.consulter` / `etats.consulter` | `GET /tableau-de-bord` | `tableau_bord.consulter` |
 
-**Côté frontend c'est absorbé** : chaque bloc concerné dégrade proprement (le panneau affiche
-« Droit manquant » au lieu de faire tomber l'écran). Vérifié en conditions réelles sur
-`sophie.medecin`.
+**Le modèle par modules règle la plus grosse part du problème** : ouvrir un module entier
+accorde d'un coup toutes ses permissions internes (plus de « sanctions sans types de
+sanction »), et **tout module entraîne `detenus.consulter`** comme socle. Chaque bloc
+concerné dégrade malgré tout proprement si un droit manque (« Droit manquant » au lieu d'un
+écran en erreur), pour les comptes créés avant ce modèle.
 
-**Côté API, deux options** — soit documenter ces dépendances dans le guide frontend (et les
-refléter dans les jeux de permissions par défaut de B1), soit rattacher les routes de
-référence au domaine qui les consomme : `GET /types-sanction` sous
-`discipline.sanctions.consulter`, `GET /cellules/{id}/detenus` sous
-`discipline.cellules.consulter`.
+**Ce qui reste demandé à l'API** — surtout du rangement, maintenant :
 
-Cas le plus gênant : `GET /cellules/{cellule}/detenus` vit dans `CelluleController`, est
-appelé depuis l'écran des cellules, mais est protégé par `detenus.consulter`.
+- `GET /cellules/{cellule}/detenus` vit dans `CelluleController`, est appelé depuis l'écran
+  des cellules, mais est protégé par `detenus.consulter`. Le rattacher à
+  `discipline.cellules.consulter` serait plus juste.
+- Documenter dans le guide frontend que `detenus.consulter` est un socle de lecture, pas
+  l'équivalent du module « Gestion des détenus » : le frontend, lui, distingue les deux.
 
 ---
 
@@ -388,32 +459,72 @@ avoir tout révoqué.
 - La révocation des jetons sur réinitialisation de mot de passe (exactement ce qui manque
   à `desactiver`, cf. A1).
 - `Rule::in($this->user()?->permissions ?? [])` : on ne peut accorder que ce qu'on détient.
-- Le message du 403, qui nomme la permission — il ne lui manque qu'une clé machine (C5).
+  C'est ce qui permet au nouveau formulaire de griser proprement la case « Administrateur »
+  pour qui ne détient pas déjà tous les droits.
+- **La granularité du catalogue `Permission` est la bonne.** Les quatre modules du frontend se
+  composent exactement à partir de ces 24 clés, sans en manquer aucune ni devoir en inventer.
+  Le modèle par modules est une couche de présentation posée dessus, pas un remplacement.
 
 ---
 
-## E. Ce qui a changé côté frontend (pour information)
+## E. Ce qui a changé côté frontend
 
-- **Redirection par profil.** Plus personne n'atterrit sur `/tableau-de-bord` par défaut :
-  `pageDArrivee()` envoie vers le tableau de bord complet si `tableau_bord.consulter` est
-  accordé, vers `/accueil` sinon.
-- **Mini-tableaux de bord `/accueil`.** Indicateurs et cartes de modules construits
-  uniquement à partir des permissions du compte ; chaque chiffre n'est demandé à l'API que si
-  le droit correspondant existe. Un compte sans aucun droit voit un écran qui le lui dit.
-- **Garde de route** (`lib/acces.ts` + `proxy.ts`) : une URL interdite mène à `/acces-refuse`,
-  qui nomme le droit manquant et propose ce qui est ouvert — au lieu du 403 et de l'écran
-  d'erreur.
-- **Dégradation des appels croisés** (C3) : `optionnel()` / `tenter()` absorbent un 403 sur un
-  appel secondaire et n'en perdent que le bloc concerné.
-- **Détection d'un changement de droits** : si les permissions renvoyées par `GET /auth/me`
-  diffèrent du cookie de session, l'utilisateur est invité à se reconnecter.
-- **Palette de commandes et sidebar** filtrées par permission.
+### Habilitation par module (nouveau)
+
+- **Plus de rôle à la création d'un compte.** L'écran Personnel propose quatre cases — Gestion
+  des détenus, Discipline, Suivi médical, Visites — plus un interrupteur « Administrateur ».
+  Chaque case indique ce qu'elle ouvre concrètement.
+- **Un module s'ouvre en entier** : consultation et saisie, toutes ses permissions d'un bloc.
+  Pas de demi-accès à administrer.
+- **Tout module entraîne `detenus.consulter`**, le socle qui alimente les sélecteurs de détenus
+  des formulaires (§C3).
+- **Les trois rubriques transverses** (tableau de bord général, édition d'états,
+  administration) ne sont plus attribuables : l'interrupteur « Administrateur » les ouvre
+  ensemble, sinon elles n'apparaissent pas.
+- **Relecture symétrique** : à la réouverture d'une fiche, les cases cochées sont déduites des
+  permissions enregistrées. Un compte créé avant ce modèle, qui ne détient qu'une partie d'un
+  module, est rattaché à ce module plutôt qu'exclu.
+- La colonne « Rôle » de l'écran Personnel est remplacée par des **puces de modules**
+  colorées, et un indicateur « Sans aucun accès » signale les comptes qui ne pourront rien
+  ouvrir — exactement le cas qui a déclenché ce chantier.
+
+### Redirection et garde d'accès
+
+- `pageDArrivee()` : l'administrateur va au tableau de bord général ; un compte à **module
+  unique** va droit au sous-tableau de bord de ce module ; les autres passent par le hall
+  `/accueil`.
+- Garde de route (`lib/acces.ts` + `proxy.ts`) : une URL interdite mène à `/acces-refuse`, qui
+  nomme ce qui manque **dans les mots de l'utilisateur** (« il faut l'accès au module
+  “Gestion des détenus” ») et propose ce qui est ouvert.
+- Détection d'un changement d'accès : si les permissions renvoyées par `GET /auth/me` diffèrent
+  du cookie de session, l'utilisateur est invité à se reconnecter.
+- Sidebar, fil d'Ariane et palette de commandes filtrés par module.
+
+### Sous-tableaux de bord (nouveau)
+
+Chaque module a désormais sa page d'accueil, avec sa couleur, son visuel propre et ses
+raccourcis :
+
+| Module | Route | Visuel qui lui est propre |
+|---|---|---|
+| Gestion des détenus | `/detenus/apercu` | Bande de composition par catégorie pénale, titres de détention à régulariser |
+| Discipline | `/discipline` | **Plan des cellules** : une tuile par cellule, remplie à hauteur de son taux d'occupation |
+| Suivi médical | `/sante/suivi-medical/apercu` | Courbe d'activité de l'infirmerie sur 14 jours |
+| Visites | `/sante/visites/apercu` | Rythme de la semaine sur sept colonnes, jour courant marqué |
+
+### Configuration locale
+
+Le domaine `administration` est passé sur l'API réelle (`SGP_API_LIVE`) : l'écran Personnel
+consomme désormais `GET/POST/PUT /utilisateurs` au lieu des données de démonstration.
 
 ---
 
 ## F. Ce que j'ai touché sur ma base locale (aucun code API)
 
-- Accordé des permissions de démonstration à `eric.agent` (12) et `sophie.medecin` (3) via
-  `PUT /api/v1/utilisateurs/{id}`, faute de quoi rien n'était testable — c'est exactement ce
-  que B1 propose d'inscrire dans le seeder.
+- Comptes de démonstration passés au modèle par modules, via `PUT /api/v1/utilisateurs/{id}`
+  et via l'écran Personnel :
+  - `eric.agent` → modules **Gestion des détenus + Visites** (9 permissions) ;
+  - `sophie.medecin` → modules **Suivi médical + Visites** (5 permissions).
+
+  C'est exactement ce que §B1 propose d'inscrire dans le seeder.
 - Désactivé puis restauré `sophie.medecin` le temps de reproduire A1 (état final : active).

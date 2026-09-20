@@ -4,9 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
-import { initiales } from "@/lib/format";
+import { initiales, pluriel } from "@/lib/format";
 import { t } from "@/lib/i18n/fr";
-import { LIBELLE_ROLE } from "@/lib/domain/referentiels";
+import { estAdministrateur, modulesAccordes } from "@/lib/domain/modules";
 import {
   MODULES_ADMIN,
   MODULES_PRINCIPAUX,
@@ -88,6 +88,13 @@ export function AppShell({
       </div>
     </div>
   );
+}
+
+/** Résumé des accès affiché sous le nom, dans le pied de la barre latérale. */
+function libelleAcces(permissions: string[]): string {
+  if (estAdministrateur(permissions)) return "Administrateur";
+  const n = modulesAccordes(permissions).length;
+  return n === 0 ? "Aucun module" : pluriel(n, "module");
 }
 
 // ---------------------------------------------------------------------------
@@ -207,7 +214,9 @@ function Sidebar({
               <p className="truncate text-sm font-medium text-ink">
                 {profil.prenom} {profil.nom}
               </p>
-              <p className="truncate text-2xs text-muted">{LIBELLE_ROLE[profil.role]}</p>
+              {/* Ce que le compte ouvre, non plus l'étiquette de son poste : depuis le
+                  passage aux modules, le rôle ne veut plus rien dire pour l'utilisateur. */}
+              <p className="truncate text-2xs text-muted">{libelleAcces(profil.permissions)}</p>
             </div>
           </Link>
           <form action={seDeconnecter}>
