@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Form from "next/form";
 import { api } from "@/lib/api";
+import { optionnel } from "@/lib/api/disponibilite";
 import { ETATS_A_GENERER, LIBELLE_CATEGORIE, LIBELLE_TYPE_SORTIE } from "@/lib/domain/referentiels";
 import { formatDate, formatDateLongue, ouVide } from "@/lib/format";
 import { param } from "@/lib/url";
@@ -11,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { PrintButton } from "@/components/ui/client-actions";
 import { Field, Select } from "@/components/ui/field";
 import { EmptyState, Panel } from "@/components/ui/surface";
+import { SansDroit } from "@/components/ui/en-attente-api";
 
 export const metadata: Metadata = { title: "Fiches & avis divers" };
 
@@ -19,10 +21,14 @@ export default async function FichesAvisPage(props: PageProps<"/etats/fiches-avi
   const etat = param(sp, "etat");
   const detenuId = Number(param(sp, "detenu"));
 
+  // Produire un état suppose de lire le registre, qui relève d'une autre permission :
+  // un compte « états » sans « détenus » voit l'écran, pas le choix des détenus.
   const [detenus, parametres, dossier] = await Promise.all([
-    api.listDetenus({ parPage: 1000, tri: "nom" }),
+    optionnel(() => api.listDetenus({ parPage: 1000, tri: "nom" }), null),
     api.getParametres(),
-    Number.isFinite(detenuId) && detenuId > 0 ? api.getDossierDetenu(detenuId) : Promise.resolve(null),
+    Number.isFinite(detenuId) && detenuId > 0
+      ? optionnel(() => api.getDossierDetenu(detenuId), null)
+      : Promise.resolve(null),
   ]);
 
   const etatValide = etat && (ETATS_A_GENERER as readonly string[]).includes(etat) ? etat : undefined;
@@ -39,6 +45,12 @@ export default async function FichesAvisPage(props: PageProps<"/etats/fiches-avi
       <div className="grid items-start gap-6 xl:grid-cols-[320px_minmax(0,1fr)] print:block">
         <Panel variante="eleve" titre="Document à produire" className="xl:sticky xl:top-20 print:hidden">
           <div data-print-hide>
+            {!detenus ? (
+              <SansDroit
+                compact
+                texte="Produire une fiche demande aussi le droit de consulter le registre des détenus."
+              />
+            ) : (
             <Form action="/etats/fiches-avis" className="flex flex-col gap-4">
               <Field label="État ou avis" requis>
                 {(p) => (
@@ -64,6 +76,7 @@ export default async function FichesAvisPage(props: PageProps<"/etats/fiches-avi
                 {t.actions.apercu}
               </Button>
             </Form>
+            )}
           </div>
         </Panel>
 

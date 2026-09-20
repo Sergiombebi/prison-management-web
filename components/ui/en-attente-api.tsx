@@ -34,3 +34,32 @@ export function EnAttenteApi({
     />
   );
 }
+
+/**
+ * Panneau dont la donnée existe mais que ce compte n'a pas le droit de lire.
+ *
+ * Distinct de `EnAttenteApi` : ici la route répond, c'est le droit qui manque.
+ * Le dire évite de faire chercher une panne là où il n'y a qu'une permission à
+ * demander à l'administrateur.
+ */
+export function SansDroit({
+  icone = "lock",
+  texte,
+  compact,
+}: {
+  icone?: NomIcone;
+  texte?: string;
+  compact?: boolean;
+}) {
+  return (
+    <EmptyState
+      compact={compact}
+      icone={icone}
+      titre="Droit manquant"
+      texte={
+        texte ??
+        "Votre compte n’a pas le droit de consulter cette donnée. Adressez-vous à l’administrateur de l’établissement."
+      }
+    />
+  );
+}

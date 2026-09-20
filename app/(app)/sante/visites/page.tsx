@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { api } from "@/lib/api";
+import { optionnel } from "@/lib/api/disponibilite";
 import { TYPES_VISITE } from "@/lib/domain/referentiels";
 import { formatNombre, pluriel } from "@/lib/format";
 import { filtresActifs, param } from "@/lib/url";
@@ -9,6 +10,7 @@ import { FilterBar } from "@/components/data/filter-bar";
 import { Stat, StatGrid } from "@/components/data/stat";
 import { SearchInput, Select } from "@/components/ui/field";
 import { Panel } from "@/components/ui/surface";
+import { SansDroit } from "@/components/ui/en-attente-api";
 import { FormulaireVisite } from "@/components/sante/formulaires";
 import { VisitesTable } from "@/components/sante/visites-table";
 
@@ -20,7 +22,8 @@ export default async function VisitesPage(props: PageProps<"/sante/visites">) {
   const sp = await props.searchParams;
   const [visites, detenus, profil, parametres] = await Promise.all([
     api.listVisites(),
-    api.listDetenus({ parPage: 1000, tri: "nom" }),
+    // Domaine voisin (GET /detenus) : un droit manquant ne doit coûter que le sélecteur.
+    optionnel(() => api.listDetenus({ parPage: 1000, tri: "nom" }), null),
     getProfil(),
     api.getParametres(),
   ]);
@@ -94,7 +97,14 @@ export default async function VisitesPage(props: PageProps<"/sante/visites">) {
             className="xl:sticky xl:top-20 xl:flex xl:max-h-[calc(100vh-7rem)] xl:flex-col"
             corpsClassName="xl:min-h-0 xl:flex-1 xl:overflow-y-auto"
           >
-            <FormulaireVisite detenus={detenus.items} detenuInitial={detenuInitial} parametres={parametres} />
+            {detenus ? (
+              <FormulaireVisite detenus={detenus.items} detenuInitial={detenuInitial} parametres={parametres} />
+            ) : (
+              <SansDroit
+                compact
+                texte="L’enregistrement d’une visite demande aussi le droit de consulter le registre des détenus."
+              />
+            )}
           </Panel>
         )}
       </div>

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { api, ApiErreur, modeDe } from "@/lib/api";
+import { optionnel } from "@/lib/api/disponibilite";
 import type { CategoriePenale, DetenuResume } from "@/lib/domain/types";
 import {
   CATEGORIE_SLUG,
@@ -38,7 +39,8 @@ export async function generateMetadata(props: PageProps<"/detenus/mandats/[categ
  * On isole la panne au lieu de faire tomber tout l'écran.
  */
 async function chargerCategorie(categorie: CategoriePenale) {
-  const tb = await api.getTableauDeBord();
+  // Compteur secondaire, derrière tableau_bord.consulter : facultatif.
+  const tb = await optionnel(() => api.getTableauDeBord(), null);
   try {
     return [await api.listParCategorie(categorie), tb, null] as const;
   } catch (e) {
@@ -103,7 +105,7 @@ export default async function CategoriePage(props: PageProps<"/detenus/mandats/[
               label: LIBELLE_CATEGORIE[c],
               // En mode réel, l'API n'expose pas encore de compteurs par catégorie
               // (retour A4) : mieux vaut aucun chiffre qu'un chiffre de démonstration.
-              compte: modeDe("detenus") === "live" ? undefined : tb.effectifsParCategorie[c],
+              compte: modeDe("detenus") === "live" ? undefined : tb?.effectifsParCategorie[c],
               actif: c === categorie,
             }))}
           />

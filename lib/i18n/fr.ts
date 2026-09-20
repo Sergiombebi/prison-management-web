@@ -136,6 +136,8 @@ export const fr = {
     enCours: "Vérification…",
     sessionExpiree: "Votre session a expiré. Reconnectez-vous pour continuer.",
     sessionInvalide: "Votre session n’est plus valide. Reconnectez-vous.",
+    droitsModifies:
+      "Vos droits d’accès ont été modifiés. Reconnectez-vous pour en tenir compte.",
   },
 
   mockBanner: {

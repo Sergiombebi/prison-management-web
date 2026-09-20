@@ -267,6 +267,13 @@ const TOUS_LES_LIENS: LienNav[] = MODULES.flatMap((m) =>
 
 /** Le module auquel appartient un chemin. */
 export function moduleDe(pathname: string): ModuleNav | undefined {
+  // Écrans sans permission propre : absents de MODULES, donc traités à part pour
+  // que le fil d'Ariane les nomme au lieu de rester vide.
+  const horsNav = [MODULE_ACCUEIL, MODULE_ACCES_REFUSE].find(
+    (m) => pathname === m.href || pathname.startsWith(`${m.href}/`),
+  );
+  if (horsNav) return horsNav;
+
   return MODULES.find((m) => {
     // Un module sans sous-navigation ne couvre que sa propre route : matcher sur le
     // seul premier segment le confondrait avec un autre module partageant le même
@@ -310,3 +317,29 @@ export function filAriane(pathname: string): Miette[] {
 
   return miettes;
 }
+
+/**
+ * Écran d'arrivée des profils qui n'ont pas droit au tableau de bord complet.
+ *
+ * Hors de `MODULES` à dessein : il n'exige aucune permission, et il ne doit
+ * apparaître dans la sidebar que lorsque le tableau de bord n'y est pas — jamais
+ * les deux, qui seraient deux « accueils » concurrents.
+ */
+export const MODULE_ACCUEIL: ModuleNav = {
+  id: "accueil",
+  href: "/accueil",
+  label: "Accueil",
+  icone: "dashboard",
+  description: "Vos modules et vos indicateurs du jour",
+  permissionRequise: [],
+};
+
+/** Refus d'accès : absent de la sidebar, mais nommé dans le fil d'Ariane. */
+export const MODULE_ACCES_REFUSE: ModuleNav = {
+  id: "acces-refuse",
+  href: "/acces-refuse",
+  label: "Accès refusé",
+  icone: "administration",
+  description: "Droit manquant pour l'écran demandé",
+  permissionRequise: [],
+};

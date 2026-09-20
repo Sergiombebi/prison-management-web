@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
+import { ACCUEIL } from "@/lib/acces";
 import { t } from "@/lib/i18n/fr";
 
 export default function Erreur({
@@ -35,7 +36,12 @@ export default function Erreur({
         <Button variante="primaire" icone="arrowRight" onClick={reset}>
           {t.actions.reessayer}
         </Button>
-        <ButtonLink href="/tableau-de-bord">{t.modules.tableauDeBord}</ButtonLink>
+        {/*
+          Vers l'accueil et non le tableau de bord : tous les profils n'y ont pas
+          droit, et proposer une porte fermée après une erreur enfermerait
+          l'utilisateur dans une boucle d'écrans d'erreur.
+        */}
+        <ButtonLink href={ACCUEIL}>Mon accueil</ButtonLink>
       </div>
     </div>
   );

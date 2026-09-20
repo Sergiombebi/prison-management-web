@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { api, type MandatDetaille } from "@/lib/api";
+import { optionnel } from "@/lib/api/disponibilite";
 import type { CategoriePenale } from "@/lib/domain/types";
 import {
   CATEGORIE_SLUG,
@@ -7,7 +8,7 @@ import {
   REGLE_CATEGORIE,
   TYPES_STATUT_PENAL,
 } from "@/lib/domain/referentiels";
-import { formatDate, formatNombre, pluriel, tronquer } from "@/lib/format";
+import { VIDE, formatDate, formatNombre, pluriel, tronquer } from "@/lib/format";
 import { filtresActifs, hrefAvec, param, paramEntier } from "@/lib/url";
 import { t } from "@/lib/i18n/fr";
 import { Page, PageHeader } from "@/components/layout/page";
@@ -28,7 +29,12 @@ const ORDRE: CategoriePenale[] = ["Prevenu", "Condamne", "Appellant", "Cassation
 
 export default async function MandatsPage(props: PageProps<"/detenus/mandats">) {
   const sp = await props.searchParams;
-  const [mandats, tb] = await Promise.all([api.listMandats(), api.getTableauDeBord()]);
+  // Le compteur par catégorie vient du tableau de bord, derrière sa propre
+  // permission : sans elle, la carte s'affiche sans chiffre plutôt que pas du tout.
+  const [mandats, tb] = await Promise.all([
+    api.listMandats(),
+    optionnel(() => api.getTableauDeBord(), null),
+  ]);
 
   const recherche = (param(sp, "recherche") ?? "").toLowerCase();
   const etat = param(sp, "etat") ?? "tous";
@@ -66,9 +72,9 @@ export default async function MandatsPage(props: PageProps<"/detenus/mandats">) 
             key={c}
             style={{ ["--i" as string]: i }}
             label={LIBELLE_CATEGORIE[c]}
-            valeur={formatNombre(tb.effectifsParCategorie[c])}
+            valeur={tb ? formatNombre(tb.effectifsParCategorie[c]) : VIDE}
             contexte={REGLE_CATEGORIE[c]}
-            signal={c === "Dpac" && tb.effectifsParCategorie[c] > 0 ? "attention" : "neutre"}
+            signal={c === "Dpac" && (tb?.effectifsParCategorie[c] ?? 0) > 0 ? "attention" : "neutre"}
             href={`/detenus/mandats/${CATEGORIE_SLUG[c]}`}
           />
         ))}

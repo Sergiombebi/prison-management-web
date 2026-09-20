@@ -10,12 +10,14 @@ import { LIBELLE_ROLE } from "@/lib/domain/referentiels";
 import {
   MODULES_ADMIN,
   MODULES_PRINCIPAUX,
+  MODULE_ACCUEIL,
   filAriane,
   lienActif,
   moduleDe,
   peutVoirModule,
   type ModuleNav,
 } from "@/lib/navigation";
+import { pageDArrivee } from "@/lib/acces";
 import type { ProfilSession } from "@/lib/session";
 import { Icon, IconTile } from "@/components/ui/icon";
 import { ThemeToggle } from "./theme-toggle";
@@ -75,7 +77,11 @@ export function AppShell({
       />
 
       <div className="flex min-w-0 flex-col">
-        <Topbar pathname={pathname} onOuvrirMenu={() => setOuvertSur(pathname)} />
+        <Topbar
+          pathname={pathname}
+          permissions={profil.permissions}
+          onOuvrirMenu={() => setOuvertSur(pathname)}
+        />
         <main id="contenu" className="flex-1">
           {children}
         </main>
@@ -101,8 +107,14 @@ function Sidebar({
 }) {
   const moduleCourant = moduleDe(pathname);
   const lien = lienActif(pathname);
-  const modulesPrincipaux = MODULES_PRINCIPAUX.filter((m) => peutVoirModule(profil.permissions, m));
+  const autorises = MODULES_PRINCIPAUX.filter((m) => peutVoirModule(profil.permissions, m));
+  // Sans droit sur le tableau de bord, l'accueil condensé prend sa place en tête de
+  // menu : personne ne doit se retrouver sans point de départ cliquable.
+  const modulesPrincipaux = autorises.some((m) => m.id === "tableau-de-bord")
+    ? autorises
+    : [MODULE_ACCUEIL, ...autorises];
   const modulesAdmin = MODULES_ADMIN.filter((m) => peutVoirModule(profil.permissions, m));
+  const accueil = pageDArrivee(profil.permissions);
 
   return (
     <aside
@@ -122,7 +134,9 @@ function Sidebar({
           className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent to-transparent"
         />
         <div className="flex items-start justify-between gap-2">
-          <Link href="/tableau-de-bord" className="group flex min-w-0 items-center gap-3 rounded-md">
+          {/* Le bloc-marque ramène chacun à SON écran d'arrivée, pas à un tableau
+              de bord que tous les profils n'ont pas le droit d'ouvrir. */}
+          <Link href={accueil} className="group flex min-w-0 items-center gap-3 rounded-md">
             <span
               aria-hidden
               className="grid size-9 place-items-center rounded-md bg-gradient-to-br from-accent to-accent-hover font-mono text-2xs font-bold tracking-tight text-ink-inverse shadow-e2 transition-transform duration-[var(--dur-base)] ease-[var(--ease-spring)] group-hover:scale-105"
@@ -341,7 +355,15 @@ function EntreeModule({
 
 // ---------------------------------------------------------------------------
 
-function Topbar({ pathname, onOuvrirMenu }: { pathname: string; onOuvrirMenu: () => void }) {
+function Topbar({
+  pathname,
+  permissions,
+  onOuvrirMenu,
+}: {
+  pathname: string;
+  permissions: string[];
+  onOuvrirMenu: () => void;
+}) {
   const miettes = filAriane(pathname);
   const [condense, setCondense] = useState(false);
 
@@ -405,7 +427,7 @@ function Topbar({ pathname, onOuvrirMenu }: { pathname: string; onOuvrirMenu: ()
       </nav>
 
       <div className="hidden md:block">
-        <CommandPalette />
+        <CommandPalette permissions={permissions} />
       </div>
     </header>
   );

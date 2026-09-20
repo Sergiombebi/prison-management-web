@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { COOKIE_JETON, COOKIE_PROFIL } from "@/lib/session";
 
-const RAISONS = new Set(["expiree", "session-invalide"]);
+const RAISONS = new Set(["expiree", "session-invalide", "droits-modifies"]);
 
 /**
  * GET /deconnexion — nettoie une session devenue inutilisable (jeton expiré, cookie

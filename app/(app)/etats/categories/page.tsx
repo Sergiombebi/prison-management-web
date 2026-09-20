@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { api } from "@/lib/api";
+import { optionnel } from "@/lib/api/disponibilite";
 import type { CategoriePenale } from "@/lib/domain/types";
 import { CATEGORIE_SLUG, LIBELLE_CATEGORIE, SLUG_CATEGORIE } from "@/lib/domain/referentiels";
 import { formatDate, ouVide, pluriel } from "@/lib/format";
@@ -27,7 +28,8 @@ export default async function CategoriesEtatPage(props: PageProps<"/etats/catego
   const [detenus, parametres, tb] = await Promise.all([
     api.listParCategorie(categorie),
     api.getParametres(),
-    api.getTableauDeBord(),
+    // Compteur secondaire, derrière tableau_bord.consulter : facultatif.
+    optionnel(() => api.getTableauDeBord(), null),
   ]);
 
   return (
@@ -45,7 +47,7 @@ export default async function CategoriesEtatPage(props: PageProps<"/etats/catego
           items={(Object.keys(LIBELLE_CATEGORIE) as CategoriePenale[]).map((c) => ({
             href: `/etats/categories?categorie=${CATEGORIE_SLUG[c]}`,
             label: LIBELLE_CATEGORIE[c],
-            compte: tb.effectifsParCategorie[c],
+            compte: tb?.effectifsParCategorie[c],
             actif: c === categorie,
           }))}
         />

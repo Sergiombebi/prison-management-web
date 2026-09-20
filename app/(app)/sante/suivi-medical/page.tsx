@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { api } from "@/lib/api";
+import { optionnel } from "@/lib/api/disponibilite";
 import type { SuiviMedical } from "@/lib/domain/types";
 import { TYPES_CONSULTATION } from "@/lib/domain/referentiels";
 import { formatDate, formatNombre, ouVide, pluriel, tronquer } from "@/lib/format";
@@ -13,6 +14,7 @@ import { Stat, StatGrid } from "@/components/data/stat";
 import { Badge } from "@/components/ui/badge";
 import { SearchInput, Select } from "@/components/ui/field";
 import { EmptyState, Ecrou, Panel } from "@/components/ui/surface";
+import { SansDroit } from "@/components/ui/en-attente-api";
 import { FormulaireConsultation } from "@/components/sante/formulaires";
 
 export const metadata: Metadata = { title: "Suivi médical" };
@@ -23,7 +25,9 @@ export default async function SuiviMedicalPage(props: PageProps<"/sante/suivi-me
   const sp = await props.searchParams;
   const [suivis, detenus, profil] = await Promise.all([
     api.listSuivisMedicaux(),
-    api.listDetenus({ parPage: 1000, tri: "nom" }),
+    // Domaine voisin : sans droit sur le registre, le formulaire se prive de son
+    // sélecteur plutôt que de faire tomber tout l'écran.
+    optionnel(() => api.listDetenus({ parPage: 1000, tri: "nom" }), null),
     getProfil(),
   ]);
 
@@ -106,7 +110,14 @@ export default async function SuiviMedicalPage(props: PageProps<"/sante/suivi-me
             className="xl:sticky xl:top-20 xl:flex xl:max-h-[calc(100vh-7rem)] xl:flex-col"
             corpsClassName="xl:min-h-0 xl:flex-1 xl:overflow-y-auto"
           >
-            <FormulaireConsultation detenus={detenus.items} detenuInitial={detenuInitial} />
+            {detenus ? (
+              <FormulaireConsultation detenus={detenus.items} detenuInitial={detenuInitial} />
+            ) : (
+              <SansDroit
+                compact
+                texte="La saisie d’une consultation demande aussi le droit de consulter le registre des détenus."
+              />
+            )}
           </Panel>
         )}
       </div>

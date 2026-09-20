@@ -11,9 +11,11 @@ import "server-only";
 import { cookies } from "next/headers";
 import type { RoleUtilisateur } from "@/lib/domain/types";
 import { ROLES_UTILISATEUR } from "@/lib/domain/referentiels";
+import { COOKIE_JETON, COOKIE_PROFIL } from "@/lib/session-cookies";
 
-export const COOKIE_JETON = "sgp_session";
-export const COOKIE_PROFIL = "sgp_profil";
+// Les noms vivent dans un module sans dépendance, pour être lisibles depuis le proxy.
+// Réexportés ici pour que les appelants gardent un seul point d'entrée « session ».
+export { COOKIE_JETON, COOKIE_PROFIL };
 
 export interface ProfilSession {
   id: number;

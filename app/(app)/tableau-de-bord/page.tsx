@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { api } from "@/lib/api";
-import { getProfil } from "@/lib/session";
+import { ACCUEIL } from "@/lib/acces";
+import { getProfil, peut } from "@/lib/session";
 import type { CategoriePenale } from "@/lib/domain/types";
 import {
   CATEGORIE_SLUG,
@@ -38,7 +40,13 @@ const ORDRE_CATEGORIES: CategoriePenale[] = [
 ];
 
 export default async function TableauDeBordPage() {
-  const [tb, profil] = await Promise.all([api.getTableauDeBord(), getProfil()]);
+  const profil = await getProfil();
+  // Garde-fou : le proxy filtre déjà, mais cet écran reste la cible historique de
+  // plusieurs liens. Sans droit, l'appel ci-dessous renverrait un 403 et l'écran
+  // d'erreur générique — l'accueil condensé dit bien mieux ce qui est ouvert.
+  if (profil && !peut(profil.permissions, "tableau_bord.consulter")) redirect(ACCUEIL);
+
+  const tb = await api.getTableauDeBord();
 
   const ecart = tb.effectif - tb.effectifMoisPrecedent;
   const evolution = tb.effectifMoisPrecedent > 0 ? (ecart / tb.effectifMoisPrecedent) * 100 : 0;

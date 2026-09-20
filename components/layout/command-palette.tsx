@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { cn } from "@/lib/cn";
 import { Icon, type NomIcone } from "@/components/ui/icon";
 import { MODULES } from "@/lib/navigation";
+import { aAcces } from "@/lib/acces";
 
 interface Commande {
   id: string;
@@ -43,7 +44,7 @@ function normaliser(s: string) {
  * inerte sont gérés par le navigateur, sans bibliothèque ni code d'accessibilité
  * à maintenir.
  */
-export function CommandPalette() {
+export function CommandPalette({ permissions }: { permissions: string[] }) {
   const router = useRouter();
   const dialogue = useRef<HTMLDialogElement>(null);
   const champ = useRef<HTMLInputElement>(null);
@@ -51,19 +52,28 @@ export function CommandPalette() {
   const [requete, setRequete] = useState("");
   const [index, setIndex] = useState(0);
 
+  // La palette ne propose que des écrans ouverts à ce compte : proposer une porte
+  // fermée puis refuser l'entrée serait la pire des deux situations.
+  const autorisees = useMemo(
+    () => COMMANDES.filter((c) => aAcces(permissions, c.href)),
+    [permissions],
+  );
+
   const resultats = useMemo(() => {
     const q = normaliser(requete.trim());
-    if (!q) return COMMANDES;
-    return COMMANDES.filter(
+    if (!q) return autorisees;
+    return autorisees.filter(
       (c) =>
         normaliser(c.label).includes(q) ||
         normaliser(c.groupe).includes(q) ||
         normaliser(c.motsCles ?? "").includes(q),
     );
-  }, [requete]);
+  }, [requete, autorisees]);
 
-  // Recherche directe dans le registre : toujours proposée en premier
-  const rechercheDetenu = requete.trim().length >= 2 ? requete.trim() : null;
+  // Recherche directe dans le registre — seulement pour qui peut le consulter
+  const peutChercherDetenu = aAcces(permissions, "/detenus");
+  const rechercheDetenu =
+    peutChercherDetenu && requete.trim().length >= 2 ? requete.trim() : null;
   const total = resultats.length + (rechercheDetenu ? 1 : 0);
 
   useEffect(() => {
@@ -156,7 +166,9 @@ export function CommandPalette() {
                 setIndex(0);
               }}
               onKeyDown={surToucheListe}
-              placeholder="Aller à un écran, ou chercher un détenu…"
+              placeholder={
+                peutChercherDetenu ? "Aller à un écran, ou chercher un détenu…" : "Aller à un écran…"
+              }
               aria-label="Rechercher une commande ou un détenu"
               className="h-12 flex-1 bg-transparent text-md text-ink outline-none placeholder:text-faint"
             />

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { api, ApiErreur } from "@/lib/api";
+import { memesPermissions } from "@/lib/acces";
 import { getProfil, type ProfilSession } from "@/lib/session";
 import { seDeconnecter } from "./actions";
 
@@ -14,6 +15,7 @@ export default async function ApplicationLayout({ children }: LayoutProps<"/">) 
 
   let profil: ProfilSession = profilCookie;
   let sessionExpiree = false;
+  let droitsModifies = false;
 
   try {
     // Un layout ne se rend qu'au chargement complet ou au rafraîchissement, pas à chaque
@@ -26,6 +28,12 @@ export default async function ApplicationLayout({ children }: LayoutProps<"/">) 
       role: utilisateur.role,
       permissions: utilisateur.permissions,
     };
+    // L'administrateur a retiré ou accordé un droit depuis la connexion. Le cookie
+    // guide le proxy et la navigation : tant qu'il n'est pas réécrit, l'interface
+    // montrerait des écrans devenus interdits (ou en cacherait de nouveaux ouverts).
+    // Un composant serveur ne peut pas poser de cookie, d'où le passage par une
+    // reconnexion, qui en repose un juste.
+    droitsModifies = !memesPermissions(profilCookie.permissions, profil.permissions);
   } catch (e) {
     if (!(e instanceof ApiErreur)) throw e;
     // 401 : jeton révoqué ou expiré. Toute autre erreur (API injoignable…) : on garde le
@@ -35,6 +43,7 @@ export default async function ApplicationLayout({ children }: LayoutProps<"/">) 
 
   // redirect() hors du try : il lève une exception que le catch intercepterait
   if (sessionExpiree) redirect("/deconnexion?raison=expiree");
+  if (droitsModifies) redirect("/deconnexion?raison=droits-modifies");
 
   return (
     <AppShell profil={profil} seDeconnecter={seDeconnecter}>

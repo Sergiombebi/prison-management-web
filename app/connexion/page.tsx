@@ -25,7 +25,9 @@ export default async function ConnexionPage(props: PageProps<"/connexion">) {
       ? t.connexion.sessionExpiree
       : raison === "session-invalide"
         ? t.connexion.sessionInvalide
-        : undefined;
+        : raison === "droits-modifies"
+          ? t.connexion.droitsModifies
+          : undefined;
 
   return (
     <div className="relative flex min-h-screen flex-col overflow-hidden bg-canvas">

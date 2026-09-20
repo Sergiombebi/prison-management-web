@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { api } from "@/lib/api";
-import { tenter } from "@/lib/api/disponibilite";
+import { optionnel, tenter } from "@/lib/api/disponibilite";
 import type { Sanction } from "@/lib/domain/types";
 import { formatDate, formatNombre, pluriel, tronquer } from "@/lib/format";
 import { filtresActifs, param } from "@/lib/url";
@@ -12,7 +12,7 @@ import { FilterBar } from "@/components/data/filter-bar";
 import { Stat, StatGrid } from "@/components/data/stat";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
-import { EnAttenteApi } from "@/components/ui/en-attente-api";
+import { EnAttenteApi, SansDroit } from "@/components/ui/en-attente-api";
 import { SearchInput, Select } from "@/components/ui/field";
 import { EmptyState, Ecrou, Panel } from "@/components/ui/surface";
 import { FormulaireSanction } from "@/components/discipline/formulaires";
@@ -27,9 +27,12 @@ export default async function SanctionsPage(props: PageProps<"/discipline/sancti
   const [chargement, types, cellules, detenus, profil] = await Promise.all([
     // La liste n'est pas encore exposée par l'API : elle ne doit pas bloquer la saisie
     tenter(() => api.listSanctions()),
-    api.listTypesSanction(),
-    api.listCellules(),
-    api.listDetenus({ parPage: 1000, tri: "nom" }),
+    // Trois domaines voisins, chacun derrière sa propre permission : consulter les
+    // sanctions ne donne droit ni au catalogue des types, ni aux cellules, ni au
+    // registre. Un manque doit rester local au bloc qui s'en sert.
+    optionnel(() => api.listTypesSanction(), []),
+    optionnel(() => api.listCellules(), []),
+    optionnel(() => api.listDetenus({ parPage: 1000, tri: "nom" }), null),
     getProfil(),
   ]);
 
@@ -76,7 +79,9 @@ export default async function SanctionsPage(props: PageProps<"/discipline/sancti
 
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
         <Panel variante="eleve" flush className="overflow-hidden">
-          {!chargement.ok ? (
+          {chargement.ok === false && chargement.raison === "interdit" ? (
+            <SansDroit texte="Votre compte ne peut pas consulter les sanctions prononcées." />
+          ) : !chargement.ok ? (
             <EnAttenteApi
               icone="scale"
               route="GET /sanctions"
@@ -148,12 +153,19 @@ export default async function SanctionsPage(props: PageProps<"/discipline/sancti
 
         {profil && peut(profil.permissions, "discipline.sanctions.creer") && (
           <Panel variante="eleve" titre="Nouvelle sanction" className="xl:sticky xl:top-20">
-            <FormulaireSanction
-              detenus={detenus.items}
-              types={types}
-              cellules={cellules}
-              detenuInitial={Number.isFinite(detenuInitial) ? detenuInitial : undefined}
-            />
+            {detenus ? (
+              <FormulaireSanction
+                detenus={detenus.items}
+                types={types}
+                cellules={cellules}
+                detenuInitial={Number.isFinite(detenuInitial) ? detenuInitial : undefined}
+              />
+            ) : (
+              <SansDroit
+                compact
+                texte="Prononcer une sanction demande aussi le droit de consulter le registre des détenus."
+              />
+            )}
           </Panel>
         )}
       </div>

@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import { api } from "@/lib/api";
-import { tenter } from "@/lib/api/disponibilite";
+import { optionnel, tenter } from "@/lib/api/disponibilite";
 import { formatDate, initiales, pluriel } from "@/lib/format";
 import { param } from "@/lib/url";
 import { t } from "@/lib/i18n/fr";
 import { Page, PageHeader } from "@/components/layout/page";
 import { Badge } from "@/components/ui/badge";
-import { EnAttenteApi } from "@/components/ui/en-attente-api";
+import { EnAttenteApi, SansDroit } from "@/components/ui/en-attente-api";
 import { Avatar, EmptyState, Ecrou, Panel } from "@/components/ui/surface";
 import { AffectationsRecentes } from "@/components/discipline/affectations-recentes";
 import { FormulaireAffectation } from "@/components/discipline/formulaires";
@@ -19,8 +19,9 @@ export default async function AffectationsPage(props: PageProps<"/discipline/aff
     // Ces deux listes n'existent pas encore partout : elles ne doivent pas bloquer la saisie
     tenter(() => api.listDetenusNonLoges()),
     tenter(() => api.listAffectations()),
-    api.listCellules(),
-    api.listDetenus({ parPage: 1000, tri: "nom" }),
+    // Domaines voisins : gérer les affectations n'ouvre ni les cellules ni le registre.
+    optionnel(() => api.listCellules(), []),
+    optionnel(() => api.listDetenus({ parPage: 1000, tri: "nom" }), null),
   ]);
 
   const nombre = (cle: string) => {
@@ -49,7 +50,12 @@ export default async function AffectationsPage(props: PageProps<"/discipline/aff
             actions={nonLoges.ok && nonLoges.donnees.length > 0 && <Badge ton="alerte">À traiter</Badge>}
             flush
           >
-            {!nonLoges.ok ? (
+            {nonLoges.ok === false && nonLoges.raison === "interdit" ? (
+              <SansDroit
+                compact
+                texte="Votre compte ne peut pas consulter le registre : la liste des détenus non logés reste masquée."
+              />
+            ) : !nonLoges.ok ? (
               <EnAttenteApi
                 compact
                 icone="cell"
@@ -77,7 +83,9 @@ export default async function AffectationsPage(props: PageProps<"/discipline/aff
           </Panel>
 
           <Panel variante="eleve" titre="Affectations récentes" flush className="overflow-hidden">
-            {!affectations.ok ? (
+            {affectations.ok === false && affectations.raison === "interdit" ? (
+              <SansDroit compact texte="Votre compte ne peut pas consulter l’historique des affectations." />
+            ) : !affectations.ok ? (
               <EnAttenteApi
                 compact
                 icone="cell"
@@ -91,13 +99,20 @@ export default async function AffectationsPage(props: PageProps<"/discipline/aff
         </div>
 
         <Panel variante="eleve" titre="Affecter à une cellule" className="lg:sticky lg:top-20">
-          <FormulaireAffectation
-            detenus={detenus.items}
-            nonLoges={nonLoges.ok ? nonLoges.donnees : null}
-            cellules={cellules}
-            detenuInitial={nombre("detenu")}
-            celluleInitiale={nombre("cellule")}
-          />
+          {detenus ? (
+            <FormulaireAffectation
+              detenus={detenus.items}
+              nonLoges={nonLoges.ok ? nonLoges.donnees : null}
+              cellules={cellules}
+              detenuInitial={nombre("detenu")}
+              celluleInitiale={nombre("cellule")}
+            />
+          ) : (
+            <SansDroit
+              compact
+              texte="Affecter un détenu demande aussi le droit de consulter le registre des détenus."
+            />
+          )}
         </Panel>
       </div>
     </Page>

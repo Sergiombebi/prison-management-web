@@ -267,3 +267,17 @@ export const SLUG_TYPE_SORTIE: Record<string, TypeSortie> = {
   evasion: "Evasion",
   deces: "Deces",
 };
+
+/**
+ * Libellé lisible d'une permission — « Détenus › Consulter ».
+ *
+ * Sert à expliquer un refus d'accès en nommant le droit qui manque, plutôt qu'en
+ * affichant la clé technique attendue par l'API.
+ */
+export function libellePermission(cle: string): string {
+  for (const groupe of PERMISSIONS) {
+    const trouvee = groupe.permissions.find((p) => p.cle === cle);
+    if (trouvee) return `${groupe.module} › ${trouvee.label}`;
+  }
+  return cle;
+}

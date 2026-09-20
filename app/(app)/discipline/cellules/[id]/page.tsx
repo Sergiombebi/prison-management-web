@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { api } from "@/lib/api";
+import { optionnel } from "@/lib/api/disponibilite";
 import type { DetenuResume } from "@/lib/domain/types";
 import { formatNombre, initiales, pluriel } from "@/lib/format";
 import { hrefAvec, paramEntier } from "@/lib/url";
@@ -12,6 +13,7 @@ import { JaugeRadiale } from "@/components/data/charts";
 import { BadgeCategorie } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
 import { Avatar, EmptyState, Ecrou, Panel } from "@/components/ui/surface";
+import { SansDroit } from "@/components/ui/en-attente-api";
 
 export async function generateMetadata(props: PageProps<"/discipline/cellules/[id]">): Promise<Metadata> {
   const { id } = await props.params;
@@ -29,7 +31,9 @@ export default async function CelluleDetenusPage(props: PageProps<"/discipline/c
 
   const CHEMIN = `/discipline/cellules/${celluleId}`;
   const page = paramEntier(sp, "page", 1);
-  const resultat = await api.listDetenusCellule(celluleId, { page });
+  // Les occupants viennent du registre (GET /cellules/{id}/detenus), derrière
+  // « detenus.consulter » : la fiche de cellule doit rester lisible sans eux.
+  const resultat = await optionnel(() => api.listDetenusCellule(celluleId, { page }), null);
 
   const colonnes: Colonne<DetenuResume>[] = [
     {
@@ -96,11 +100,19 @@ export default async function CelluleDetenusPage(props: PageProps<"/discipline/c
         <div className="flex items-center gap-4 border-b border-hairline px-4 py-3.5">
           <JaugeRadiale valeur={cellule.effectifReel} max={cellule.capaciteMax} />
           <div className="text-sm text-muted">
-            <span className="font-medium text-ink">{pluriel(resultat.total, "détenu")}</span> actuellement
+            {/* L'effectif de la cellule reste connu même sans droit sur le registre :
+                c'est la liste nominative des occupants qui, elle, est masquée. */}
+            <span className="font-medium text-ink">
+              {pluriel(resultat ? resultat.total : cellule.effectifReel, "détenu")}
+            </span>{" "}
+            actuellement
             {cellule.typeCellule ? ` · ${cellule.typeCellule}` : ""}
           </div>
         </div>
 
+        {!resultat ? (
+          <SansDroit texte="La liste nominative des occupants demande le droit de consulter le registre des détenus." />
+        ) : (
         <DataTable
           legende={`Détenus de la cellule ${cellule.numero}`}
           colonnes={colonnes}
@@ -125,8 +137,9 @@ export default async function CelluleDetenusPage(props: PageProps<"/discipline/c
             />
           }
         />
+        )}
 
-        {resultat.total > resultat.parPage && (
+        {resultat && resultat.total > resultat.parPage && (
           <Pagination
             page={resultat.page}
             parPage={resultat.parPage}

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { api } from "@/lib/api";
+import { optionnel } from "@/lib/api/disponibilite";
 import type { SortieDetenu, TypeSortie } from "@/lib/domain/types";
 import { LIBELLE_TYPE_SORTIE, SLUG_TYPE_SORTIE } from "@/lib/domain/referentiels";
 import { formatDate, ouVide, pluriel } from "@/lib/format";
@@ -10,6 +11,7 @@ import { Page, PageHeader } from "@/components/layout/page";
 import { DataTable } from "@/components/data/data-table";
 import { Icon } from "@/components/ui/icon";
 import { EmptyState, Ecrou, Panel } from "@/components/ui/surface";
+import { SansDroit } from "@/components/ui/en-attente-api";
 import { TabsNav } from "@/components/ui/tabs";
 import { FormulaireSortie } from "@/components/detenus/formulaire-sortie";
 import { AmpliationsInfo } from "@/components/detenus/ampliations";
@@ -66,10 +68,14 @@ export default async function LiberationPage(props: PageProps<"/detenus/liberati
 
   const [sorties, detenus, parametres, dossier] = await Promise.all([
     api.listSorties(typeSortie),
-    api.listDetenus({ parPage: 1000, tri: "nom" }),
+    // Le registre relève d'une autre permission que l'enregistrement des sorties :
+    // sans lui, le formulaire perd son sélecteur, pas la page son historique.
+    optionnel(() => api.listDetenus({ parPage: 1000, tri: "nom" }), null),
     api.getParametres(),
     // Une libération normale porte sur un mandat précis : il faut ceux du détenu choisi
-    choisi && typeSortie === "LiberationNormale" ? api.getDossierDetenu(choisi) : null,
+    choisi && typeSortie === "LiberationNormale"
+      ? optionnel(() => api.getDossierDetenu(choisi), null)
+      : null,
   ]);
 
   return (
@@ -150,15 +156,22 @@ export default async function LiberationPage(props: PageProps<"/detenus/liberati
             </div>
           )}
           {typeSortie === "Evasion" && <AmpliationsInfo autorites={parametres.autoritesAmpliataires} />}
-          <FormulaireSortie
-            type={typeSortie}
-            action={consignerSortie.bind(null, typeSortie)}
-            detenus={detenus.items}
-            detenuId={choisi}
-            mandats={dossier ? dossier.mandats.filter((m) => m.ouvert) : null}
-            grave={config.grave}
-            parametres={parametres}
-          />
+          {detenus ? (
+            <FormulaireSortie
+              type={typeSortie}
+              action={consignerSortie.bind(null, typeSortie)}
+              detenus={detenus.items}
+              detenuId={choisi}
+              mandats={dossier ? dossier.mandats.filter((m) => m.ouvert) : null}
+              grave={config.grave}
+              parametres={parametres}
+            />
+          ) : (
+            <SansDroit
+              compact
+              texte="Enregistrer une sortie demande aussi le droit de consulter le registre des détenus."
+            />
+          )}
         </Panel>
       </div>
     </Page>
