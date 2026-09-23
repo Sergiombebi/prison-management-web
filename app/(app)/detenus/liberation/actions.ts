@@ -96,3 +96,43 @@ export async function modifierTransfert(
   const demo = modeDe("sorties") === "mock" ? " (démonstration : rien n’est enregistré)" : "";
   return { ok: true, message: `Transfert modifié${demo}.` };
 }
+
+/**
+ * Réintègre un détenu évadé et repris. Liée à la sortie par `.bind(null, id)`. Le
+ * détenu redevient présent, ses mandats gelés à l'évasion rouvrent avec leur reliquat
+ * reporté, et il est placé en cellule disciplinaire.
+ */
+export async function reintegrerEvasion(
+  sortieId: number,
+  _precedent: EtatSortie,
+  formulaire: FormData,
+): Promise<EtatSortie> {
+  const celluleDisciplinaireId = entier(formulaire, "cellule_disciplinaire_id");
+  if (!celluleDisciplinaireId) {
+    return manquant(formulaire, "cellule_disciplinaire_id", "Choisissez la cellule disciplinaire.");
+  }
+
+  let sortie: SortieDetenu;
+  try {
+    sortie = await api.reintegrerEvasion(sortieId, {
+      dateReintegration: texte(formulaire, "date_reintegration"),
+      celluleDisciplinaireId,
+      lieuReintegration: optionnel(formulaire, "lieu_reintegration"),
+      autoriteReintegration: optionnel(formulaire, "autorite_reintegration"),
+      observationsReintegration: optionnel(formulaire, "observations_reintegration"),
+    });
+  } catch (e) {
+    return etatDepuisErreur(e, formulaire);
+  }
+
+  revalidatePath("/detenus/liberation", "layout");
+  revalidatePath("/detenus", "layout");
+  revalidatePath("/discipline", "layout");
+
+  const demo = modeDe("sorties") === "mock" ? " (démonstration : rien n’est enregistré)" : "";
+  return {
+    ok: true,
+    sortie,
+    message: `Détenu réintégré et placé en cellule disciplinaire${demo}.`,
+  };
+}

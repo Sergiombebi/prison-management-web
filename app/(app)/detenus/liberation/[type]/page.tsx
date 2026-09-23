@@ -66,7 +66,7 @@ export default async function LiberationPage(props: PageProps<"/detenus/liberati
   const detenuId = Number.parseInt(param(sp, "detenu") ?? "", 10);
   const choisi = Number.isFinite(detenuId) ? detenuId : undefined;
 
-  const [sorties, detenus, parametres, dossier] = await Promise.all([
+  const [sorties, detenus, parametres, dossier, cellules] = await Promise.all([
     api.listSorties(typeSortie),
     // Le registre relève d'une autre permission que l'enregistrement des sorties :
     // sans lui, le formulaire perd son sélecteur, pas la page son historique.
@@ -76,6 +76,8 @@ export default async function LiberationPage(props: PageProps<"/detenus/liberati
     choisi && typeSortie === "LiberationNormale"
       ? optionnel(() => api.getDossierDetenu(choisi), null)
       : null,
+    // Choix de la cellule disciplinaire à la réintégration d'un évadé repris
+    typeSortie === "Evasion" ? optionnel(() => api.listCellules(), []) : Promise.resolve([]),
   ]);
 
   return (
@@ -99,7 +101,7 @@ export default async function LiberationPage(props: PageProps<"/detenus/liberati
           {typeSortie === "Transfert" ? (
             <TransfertsTable sorties={sorties} parametres={parametres} />
           ) : typeSortie === "Evasion" ? (
-            <EvasionsTable sorties={sorties} parametres={parametres} />
+            <EvasionsTable sorties={sorties} cellules={cellules} parametres={parametres} />
           ) : (
           <DataTable<SortieDetenu>
             legende={`Historique : ${LIBELLE_TYPE_SORTIE[typeSortie]}`}
