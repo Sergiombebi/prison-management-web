@@ -224,6 +224,8 @@ export const PERMISSIONS: { module: string; permissions: { cle: string; label: s
       { cle: "sante.dossier_medical.gerer", label: "Modifier l’état de santé (allergies, traitement en cours…)" },
       { cle: "sante.evacuations.consulter", label: "Consulter les évacuations sanitaires" },
       { cle: "sante.evacuations.creer", label: "Enregistrer une évacuation et son retour" },
+      { cle: "sante.traitements.consulter", label: "Consulter les traitements prescrits" },
+      { cle: "sante.traitements.creer", label: "Prescrire un traitement et l’arrêter avant terme" },
     ],
   },
   {

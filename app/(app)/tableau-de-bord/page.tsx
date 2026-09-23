@@ -90,6 +90,11 @@ export default async function TableauDeBordPage() {
       texte: `${pluriel(tb.liberablesCeMois.length, "détenu libérable", "détenus libérables")} d’ici la fin du mois`,
       href: "#liberables",
     },
+    tb.traitementsARenouveler > 0 && {
+      ton: "attention" as const,
+      texte: `${pluriel(tb.traitementsARenouveler, "traitement à renouveler", "traitements à renouveler")} d’ici 3 jours`,
+      href: "/sante/traitements",
+    },
   ].filter(Boolean) as Array<{ ton: "critique" | "attention"; texte: string; href: string }>;
 
   return (

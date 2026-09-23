@@ -22,6 +22,7 @@ import type {
   Mandas,
   PageResultat,
   Parametres,
+  Prescription,
   Sanction,
   Sexe,
   SortieDetenu,
@@ -82,6 +83,7 @@ export interface DossierMedical {
   detenu: FicheMedicale;
   suivisMedicaux: SuiviMedical[];
   evacuations: EvacuationSanitaire[];
+  prescriptions: Prescription[];
 }
 
 export interface DossierDetenu {
@@ -93,6 +95,7 @@ export interface DossierDetenu {
   suivisMedicaux: SuiviMedical[];
   sorties: SortieDetenu[];
   evacuations: EvacuationSanitaire[];
+  prescriptions: Prescription[];
   /**
    * Rubriques que la source ne sait pas encore fournir. Une liste vide ne dit pas
    * « aucune sanction » : l'écran doit pouvoir distinguer les deux cas.
@@ -242,12 +245,15 @@ export interface EntreeReintegration {
   observationsReintegration?: string | null;
 }
 
-/** État de santé persistant du détenu — indépendant de toute consultation précise. */
+/**
+ * État de santé persistant du détenu — indépendant de toute consultation précise.
+ * Le traitement en cours ne s'y saisit plus : il se déduit des prescriptions actives
+ * (voir `EntreePrescription`).
+ */
 export interface EntreeDossierMedical {
   groupeSanguin?: string | null;
   allergies?: string | null;
   maladiesChroniques?: string | null;
-  traitementEnCours?: string | null;
 }
 
 /** Départ en évacuation sanitaire à consigner. */
@@ -263,6 +269,22 @@ export interface EntreeEvacuation {
 export interface EntreeRetourEvacuation {
   dateRetour: string;
   observationsRetour?: string | null;
+}
+
+/** Prescription à enregistrer pour un détenu. */
+export interface EntreePrescription {
+  medicament: string;
+  posologie: string;
+  dateDebut: string;
+  dateFin?: string | null;
+  prescripteur: string;
+  observations?: string | null;
+}
+
+/** Arrêt anticipé d'un traitement en cours. */
+export interface EntreeArretPrescription {
+  arreteLe: string;
+  motifArret?: string | null;
 }
 
 /** Consultation médicale à enregistrer. */
@@ -461,6 +483,13 @@ export interface ApiClient {
   creerEvacuation(detenuId: number, entree: EntreeEvacuation): Promise<{ id: number }>;
   /** POST /evacuations/{id}/retour — 422 si le retour est déjà enregistré */
   enregistrerRetourEvacuation(evacuationId: number, entree: EntreeRetourEvacuation): Promise<void>;
+
+  /** GET /prescriptions — tous les traitements, le plus récent d'abord */
+  listPrescriptions(): Promise<Prescription[]>;
+  /** POST /detenus/{id}/prescriptions — 409 si le détenu est désactivé */
+  creerPrescription(detenuId: number, entree: EntreePrescription): Promise<{ id: number }>;
+  /** POST /prescriptions/{id}/arreter — 422 si déjà arrêté */
+  arreterPrescription(prescriptionId: number, entree: EntreeArretPrescription): Promise<void>;
 
   /** GET /visites — toutes les visites, la plus récente d'abord */
   listVisites(): Promise<Visite[]>;

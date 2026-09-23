@@ -204,7 +204,7 @@ export const MODULES: ModuleNav[] = [
     label: t.modules.suiviMedical,
     icone: "sante",
     description: "Consultations, diagnostics et traitements prescrits",
-    racines: ["/sante/suivi-medical", "/sante/evacuations"],
+    racines: ["/sante/suivi-medical", "/sante/evacuations", "/sante/traitements"],
     permissionRequise: moduleMetier("sante").permissions,
     groupes: [
       {
@@ -218,7 +218,12 @@ export const MODULES: ModuleNav[] = [
           {
             href: "/sante/suivi-medical",
             label: "Consultations",
-            description: "Historique des consultations et des traitements",
+            description: "Historique des consultations",
+          },
+          {
+            href: "/sante/traitements",
+            label: "Traitements",
+            description: "Prescriptions en cours, terminées et arrêtées",
           },
           {
             href: "/sante/evacuations",

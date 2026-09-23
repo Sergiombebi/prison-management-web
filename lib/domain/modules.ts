@@ -109,7 +109,7 @@ export const MODULES_METIER: ModuleMetier[] = [
     resume: "Consultations, diagnostics et traitements prescrits",
     capacites: [
       "Consulter le dossier médical des détenus",
-      "Saisir une consultation et prescrire un traitement",
+      "Saisir une consultation et suivre les traitements prescrits",
       "Enregistrer les évacuations sanitaires et leur retour",
     ],
     icone: "sante",
@@ -122,6 +122,8 @@ export const MODULES_METIER: ModuleMetier[] = [
       "sante.dossier_medical.gerer",
       "sante.evacuations.consulter",
       "sante.evacuations.creer",
+      "sante.traitements.consulter",
+      "sante.traitements.creer",
     ],
   },
   {

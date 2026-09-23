@@ -22,6 +22,7 @@ import type {
   FiltreDetenus,
   Mandas,
   Parametres,
+  Prescription,
   RoleUtilisateur,
   Sanction,
   Sexe,
@@ -427,6 +428,7 @@ export interface TableauDeBordApi {
   sorties_prevues_mois_prochain: number;
   mandats_expires: number;
   sanctions_en_cours: number;
+  traitements_a_renouveler: number;
   mouvements: {
     incarcerations: number;
     liberations: number;
@@ -566,6 +568,39 @@ export function versEvacuation(x: EvacuationApi, detenu?: { nom: string; numeroE
     observationsDepart: x.observations_depart,
     dateRetour: x.date_retour,
     observationsRetour: x.observations_retour,
+  };
+}
+
+export interface PrescriptionApi {
+  id: number;
+  detenu_id: number;
+  detenu?: { id: number; numero_ecrou: string; nom: string };
+  medicament: string;
+  posologie: string;
+  date_debut: string | null;
+  date_fin: string | null;
+  prescripteur: string;
+  observations: string | null;
+  statut: "en_cours" | "termine" | "arrete";
+  arrete_le: string | null;
+  motif_arret: string | null;
+}
+
+export function versPrescription(x: PrescriptionApi, detenu?: { nom: string; numeroEcrou: string }): Prescription {
+  return {
+    id: x.id,
+    detenuId: x.detenu_id,
+    detenuNom: x.detenu?.nom ?? detenu?.nom ?? "",
+    numeroEcrou: x.detenu?.numero_ecrou ?? detenu?.numeroEcrou ?? "",
+    medicament: x.medicament,
+    posologie: x.posologie,
+    dateDebut: x.date_debut ?? "",
+    dateFin: x.date_fin,
+    prescripteur: x.prescripteur,
+    observations: x.observations,
+    statut: x.statut,
+    arreteLe: x.arrete_le,
+    motifArret: x.motif_arret,
   };
 }
 
@@ -711,6 +746,7 @@ export function versTableauDeBord(d: TableauDeBordApi): TableauDeBord {
     sortiesPrevuesMoisProchain: d.sorties_prevues_mois_prochain,
     mandatsExpires: d.mandats_expires,
     sanctionsEnCours: d.sanctions_en_cours,
+    traitementsARenouveler: d.traitements_a_renouveler,
     mouvements: d.mouvements,
     effectifsParCategorie: categories,
     populationDerniersMois: d.population_derniers_mois ?? [],
@@ -1144,13 +1180,14 @@ export const liveApi: ApiClient = {
   },
 
   async getDossierDetenu(id): Promise<DossierDetenu | null> {
-    const [corps, affectationsApi, sortiesApi, suivisApi, visitesApi, evacuationsApi] = await Promise.all([
+    const [corps, affectationsApi, sortiesApi, suivisApi, visitesApi, evacuationsApi, prescriptionsApi] = await Promise.all([
       requete<{ data: DetenuDetailApi } | null>(`/detenus/${id}`, { nullSur404: true }),
       requete<{ data: AffectationApi[] } | null>(`/detenus/${id}/affectations`, { nullSur404: true }),
       requete<{ data: SortieApi[] } | null>(`/detenus/${id}/sorties`, { nullSur404: true }),
       requete<{ data: SuiviMedicalApi[] } | null>(`/detenus/${id}/suivis-medicaux`, { nullSur404: true }),
       requete<{ data: VisiteApi[] } | null>(`/detenus/${id}/visites`, { nullSur404: true }),
       requete<{ data: EvacuationApi[] } | null>(`/detenus/${id}/evacuations`, { nullSur404: true }),
+      requete<{ data: PrescriptionApi[] } | null>(`/detenus/${id}/prescriptions`, { nullSur404: true }),
     ]);
     if (!corps?.data) return null;
 
@@ -1178,17 +1215,22 @@ export const liveApi: ApiClient = {
       suivisMedicaux: (suivisApi?.data ?? []).map((s) => versSuiviMedical(s, identite)),
       visites: (visitesApi?.data ?? []).map((v) => versVisite(v, identite)),
       evacuations: (evacuationsApi?.data ?? []).map((x) => versEvacuation(x, identite)),
+      prescriptions: (prescriptionsApi?.data ?? []).map((x) => versPrescription(x, identite)),
     };
   },
 
   async getDossierMedical(id): Promise<DossierMedical | null> {
-    const [corps, suivisApi, evacuationsApi] = await Promise.all([
+    const [corps, suivisApi, evacuationsApi, prescriptionsApi] = await Promise.all([
       requete<{ data: DossierMedicalApi } | null>(`/detenus/${id}/dossier-medical`, { nullSur404: true }),
       requete<{ data: SuiviMedicalApi[] } | null>(`/detenus/${id}/suivis-medicaux`, { nullSur404: true }),
       // Permission distincte de celle qui garde /dossier-medical : un médecin peut ne
       // l'avoir pas, sans que la page entière doive lui rester fermée pour autant.
       optionnel(
         () => requete<{ data: EvacuationApi[] } | null>(`/detenus/${id}/evacuations`, { nullSur404: true }),
+        null,
+      ),
+      optionnel(
+        () => requete<{ data: PrescriptionApi[] } | null>(`/detenus/${id}/prescriptions`, { nullSur404: true }),
         null,
       ),
     ]);
@@ -1199,6 +1241,7 @@ export const liveApi: ApiClient = {
       detenu: versFicheMedicale(corps.data),
       suivisMedicaux: (suivisApi?.data ?? []).map((s) => versSuiviMedical(s, identite)),
       evacuations: (evacuationsApi?.data ?? []).map((x) => versEvacuation(x, identite)),
+      prescriptions: (prescriptionsApi?.data ?? []).map((x) => versPrescription(x, identite)),
     };
   },
 
@@ -1257,7 +1300,6 @@ export const liveApi: ApiClient = {
         groupe_sanguin: entree.groupeSanguin ?? null,
         allergies: entree.allergies ?? null,
         maladies_chroniques: entree.maladiesChroniques ?? null,
-        traitement_en_cours: entree.traitementEnCours ?? null,
       }),
     });
   },
@@ -1533,6 +1575,41 @@ export const liveApi: ApiClient = {
         sansVides({
           date_retour: entree.dateRetour,
           observations_retour: entree.observationsRetour,
+        }),
+      ),
+    });
+  },
+
+  async listPrescriptions() {
+    // Non paginé côté API, comme les autres registres médicaux.
+    const corps = await requete<{ data: PrescriptionApi[] }>("/prescriptions");
+    return corps.data.map((x) => versPrescription(x));
+  },
+
+  async creerPrescription(detenuId, entree) {
+    const corps = await requete<{ data: { id: number } }>(`/detenus/${detenuId}/prescriptions`, {
+      method: "POST",
+      body: JSON.stringify(
+        sansVides({
+          medicament: entree.medicament,
+          posologie: entree.posologie,
+          date_debut: entree.dateDebut,
+          date_fin: entree.dateFin,
+          prescripteur: entree.prescripteur,
+          observations: entree.observations,
+        }),
+      ),
+    });
+    return { id: corps.data.id };
+  },
+
+  async arreterPrescription(prescriptionId, entree) {
+    await requete(`/prescriptions/${prescriptionId}/arreter`, {
+      method: "POST",
+      body: JSON.stringify(
+        sansVides({
+          arrete_le: entree.arreteLe,
+          motif_arret: entree.motifArret,
         }),
       ),
     });

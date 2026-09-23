@@ -19,6 +19,7 @@ import type {
   EvacuationSanitaire,
   Mandas,
   Parametres,
+  Prescription,
   Sanction,
   SortieDetenu,
   SuiviMedical,
@@ -661,6 +662,107 @@ export const evacuations: EvacuationSanitaire[] = Array.from({ length: 4 }, (_, 
     observationsRetour: enCours ? null : "Sortie autorisée par le médecin traitant.",
   } satisfies EvacuationSanitaire;
 });
+
+/**
+ * Le statut n'est jamais stocké : il se déduit de `arreteLe`/`dateFin`, ici comme
+ * côté API (voir Prescription::getStatutAttribute() côté backend). Les fixtures ne
+ * gardent donc que les dates brutes, et `avecStatut` calcule le statut à la lecture.
+ */
+export type PrescriptionBrute = Omit<Prescription, "statut">;
+
+export function statutPrescription(
+  p: Pick<PrescriptionBrute, "dateFin" | "arreteLe">,
+  maintenant = new Date(),
+): Prescription["statut"] {
+  if (p.arreteLe !== null) return "arrete";
+  const debutJour = new Date(maintenant);
+  debutJour.setHours(0, 0, 0, 0);
+  if (p.dateFin !== null && new Date(p.dateFin) < debutJour) return "termine";
+  return "en_cours";
+}
+
+export function avecStatut(p: PrescriptionBrute, maintenant = new Date()): Prescription {
+  return { ...p, statut: statutPrescription(p, maintenant) };
+}
+
+export const prescriptions: PrescriptionBrute[] = [
+  {
+    id: 1,
+    detenuId: detenus[0].id,
+    detenuNom: detenus[0].nom,
+    numeroEcrou: detenus[0].numeroEcrou,
+    medicament: "Paracétamol",
+    posologie: "500mg, 2 fois par jour",
+    dateDebut: jour(-10),
+    dateFin: null,
+    prescripteur: "Dr Ekotto",
+    observations: null,
+    arreteLe: null,
+    motifArret: null,
+  },
+  {
+    id: 2,
+    detenuId: detenus[0].id,
+    detenuNom: detenus[0].nom,
+    numeroEcrou: detenus[0].numeroEcrou,
+    medicament: "Amoxicilline",
+    posologie: "1g, 3 fois par jour",
+    dateDebut: jour(-20),
+    dateFin: jour(-5),
+    prescripteur: "Dr Ekotto",
+    observations: "Infection respiratoire",
+    arreteLe: null,
+    motifArret: null,
+  },
+  {
+    id: 3,
+    detenuId: detenus[1].id,
+    detenuNom: detenus[1].nom,
+    numeroEcrou: detenus[1].numeroEcrou,
+    medicament: "Ibuprofène",
+    posologie: "400mg, 2 fois par jour",
+    dateDebut: jour(-8),
+    dateFin: jour(-2),
+    prescripteur: "Dr Mballa",
+    observations: null,
+    arreteLe: jour(-3),
+    motifArret: "Effet indésirable (nausées)",
+  },
+  {
+    id: 4,
+    detenuId: detenus[2].id,
+    detenuNom: detenus[2].nom,
+    numeroEcrou: detenus[2].numeroEcrou,
+    // Échéance dans 2 jours : nourrit l'indicateur « traitements à renouveler ».
+    medicament: "Antihypertenseur",
+    posologie: "1 comprimé le matin",
+    dateDebut: jour(-60),
+    dateFin: jour(2),
+    prescripteur: "Dr Ekotto",
+    observations: "Traitement de fond",
+    arreteLe: null,
+    motifArret: null,
+  },
+  ...Array.from({ length: 3 }, (_, i) => {
+    const d = detenus[entre(0, detenus.length - 1)];
+    const dateDebut = -entre(1, 40);
+
+    return {
+      id: 5 + i,
+      detenuId: d.id,
+      detenuNom: d.nom,
+      numeroEcrou: d.numeroEcrou,
+      medicament: piocher(["Doliprane", "Aspirine", "Vitamine C", "Oméprazole", "Ventoline"]),
+      posologie: piocher(["1 comprimé/jour", "2 fois par jour", "3 bouffées/jour", "1 sachet matin et soir"]),
+      dateDebut: jour(dateDebut),
+      dateFin: parfois(0.5) ? jour(dateDebut + entre(5, 20)) : null,
+      prescripteur: piocher(["Dr Ekotto", "Dr Mballa", "Dr Ngo Bell"]),
+      observations: null,
+      arreteLe: null,
+      motifArret: null,
+    } satisfies PrescriptionBrute;
+  }),
+];
 
 // ---------------------------------------------------------------------------
 // Personnel et paramètres

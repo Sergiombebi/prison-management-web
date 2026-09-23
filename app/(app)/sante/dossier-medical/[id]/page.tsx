@@ -25,7 +25,7 @@ export default async function DossierMedicalPage(props: PageProps<"/sante/dossie
   const [dossier, profil] = await Promise.all([api.getDossierMedical(numero), getProfil()]);
   if (!dossier) notFound();
 
-  const { detenu: d, suivisMedicaux, evacuations } = dossier;
+  const { detenu: d, suivisMedicaux, evacuations, prescriptions } = dossier;
   const peutGererSante = Boolean(profil && peut(profil.permissions, "sante.dossier_medical.gerer"));
   const peutVoirFicheComplete = Boolean(profil && peut(profil.permissions, "detenus.consulter"));
 
@@ -93,6 +93,41 @@ export default async function DossierMedicalPage(props: PageProps<"/sante/dossie
       <div className="flex flex-col gap-4">
         <Panel titre="État de santé" sousTitre="Indépendant de toute consultation : reste visible tant qu'il n'est pas mis à jour" variante="eleve">
           <EtatSante detenu={d} modifiable={peutGererSante} />
+        </Panel>
+
+        <Panel titre="Traitements" variante="eleve" flush>
+          <DataTable
+            legende="Traitements prescrits au détenu"
+            lignes={prescriptions}
+            cleLigne={(p) => p.id}
+            colonnes={[
+              { cle: "debut", titre: "Début", rendu: (p) => formatDate(p.dateDebut) },
+              {
+                cle: "medicament",
+                titre: "Médicament",
+                rendu: (p) => (
+                  <div>
+                    <p className="font-medium">{p.medicament}</p>
+                    <p className="text-xs text-muted">{p.posologie}</p>
+                  </div>
+                ),
+              },
+              {
+                cle: "statut",
+                titre: "Statut",
+                rendu: (p) =>
+                  p.statut === "en_cours" ? (
+                    <Badge ton="accent">En cours</Badge>
+                  ) : p.statut === "arrete" ? (
+                    <Badge ton="danger">Arrêté</Badge>
+                  ) : (
+                    <Badge ton="neutre">Terminé</Badge>
+                  ),
+              },
+              { cle: "prescripteur", titre: "Prescripteur", masquerSous: "md", rendu: (p) => <span className="text-muted">{p.prescripteur}</span> },
+            ]}
+            vide={<EmptyState compact icone="sante" titre="Aucun traitement" />}
+          />
         </Panel>
 
         <Panel titre="Consultations médicales" variante="eleve" flush>

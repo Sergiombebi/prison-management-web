@@ -322,6 +322,27 @@ export interface EvacuationSanitaire {
   observationsRetour: string | null;
 }
 
+/**
+ * Traitement prescrit à un détenu. `statut` est calculé côté serveur à partir des
+ * dates (jamais stocké) : « en_cours », « termine » (échéance passée naturellement)
+ * ou « arrete » (interrompu avant terme, voir `arreteLe`/`motifArret`).
+ */
+export interface Prescription {
+  id: number;
+  detenuId: number;
+  detenuNom: string;
+  numeroEcrou: string;
+  medicament: string;
+  posologie: string;
+  dateDebut: string;
+  dateFin: string | null;
+  prescripteur: string;
+  observations: string | null;
+  statut: "en_cours" | "termine" | "arrete";
+  arreteLe: string | null;
+  motifArret: string | null;
+}
+
 export interface Utilisateur {
   id: number;
   username: string;
@@ -401,6 +422,8 @@ export interface TableauDeBord {
   sortiesPrevuesMoisProchain: number;
   mandatsExpires: number;
   sanctionsEnCours: number;
+  /** Traitements dont la date de fin tombe dans les 3 prochains jours, pas encore arrêtés. */
+  traitementsARenouveler: number;
 
   mouvements: {
     incarcerations: number;

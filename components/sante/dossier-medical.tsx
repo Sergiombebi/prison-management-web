@@ -27,18 +27,23 @@ interface SanteDetenu {
  * Utilisé aussi bien depuis la fiche détenu que depuis le dossier médical dédié.
  */
 export function EtatSante({ detenu, modifiable }: { detenu: SanteDetenu; modifiable: boolean }) {
-  if (!modifiable) {
-    return (
-      <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
-        <DataPair label="Groupe sanguin" mono>{ouVide(detenu.groupeSanguin)}</DataPair>
-        <DataPair label="Allergies connues">{ouVide(detenu.allergies)}</DataPair>
-        <DataPair label="Maladies chroniques">{ouVide(detenu.maladiesChroniques)}</DataPair>
-        <DataPair label="Traitement en cours">{ouVide(detenu.traitementEnCours)}</DataPair>
-      </dl>
-    );
-  }
+  return (
+    <div className="flex flex-col gap-5">
+      <DataPair label="Traitement en cours">
+        {detenu.traitementEnCours ?? <span className="text-faint">Aucun traitement actif</span>}
+      </DataPair>
 
-  return <FormulaireEtatSante detenu={detenu} />;
+      {modifiable ? (
+        <FormulaireEtatSante detenu={detenu} />
+      ) : (
+        <dl className="grid gap-x-6 gap-y-4 border-t border-hairline pt-5 sm:grid-cols-2">
+          <DataPair label="Groupe sanguin" mono>{ouVide(detenu.groupeSanguin)}</DataPair>
+          <DataPair label="Allergies connues">{ouVide(detenu.allergies)}</DataPair>
+          <DataPair label="Maladies chroniques">{ouVide(detenu.maladiesChroniques)}</DataPair>
+        </dl>
+      )}
+    </div>
+  );
 }
 
 function FormulaireEtatSante({ detenu }: { detenu: SanteDetenu }) {
@@ -48,7 +53,7 @@ function FormulaireEtatSante({ detenu }: { detenu: SanteDetenu }) {
   const err = (champ: string) => etat.erreurs?.[champ]?.[0];
 
   return (
-    <form action={envoyer} className="flex flex-col gap-4">
+    <form action={envoyer} className="flex flex-col gap-4 border-t border-hairline pt-5">
       <RetourAction etat={etat} />
       <Field label="Groupe sanguin" erreur={err("groupe_sanguin")}>
         {(p) => (
@@ -66,9 +71,6 @@ function FormulaireEtatSante({ detenu }: { detenu: SanteDetenu }) {
       </Field>
       <Field label="Maladies chroniques" erreur={err("maladies_chroniques")}>
         {(p) => <Textarea {...p} name="maladies_chroniques" rows={2} defaultValue={v("maladies_chroniques", detenu.maladiesChroniques)} placeholder="Ex. Asthme, diabète" />}
-      </Field>
-      <Field label="Traitement en cours" erreur={err("traitement_en_cours")}>
-        {(p) => <Textarea {...p} name="traitement_en_cours" rows={2} defaultValue={v("traitement_en_cours", detenu.traitementEnCours)} />}
       </Field>
       <div className="flex justify-end border-t border-hairline pt-4">
         <Button type="submit" variante="primaire" icone="check" chargement={enCours}>

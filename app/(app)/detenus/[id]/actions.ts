@@ -91,8 +91,9 @@ export async function desactiverMandat(
 
 /**
  * Met à jour l'état de santé persistant (groupe sanguin, allergies, maladies
- * chroniques, traitement en cours) — indépendant de toute consultation. Liée au
- * détenu par `.bind(null, id)` dans la page.
+ * chroniques) — indépendant de toute consultation. Le traitement en cours ne s'y
+ * saisit plus : il se déduit des prescriptions actives (voir `creerPrescription`).
+ * Liée au détenu par `.bind(null, id)` dans la page.
  */
 export async function modifierDossierMedical(
   detenuId: number,
@@ -104,7 +105,6 @@ export async function modifierDossierMedical(
       groupeSanguin: optionnel(formulaire, "groupe_sanguin"),
       allergies: optionnel(formulaire, "allergies"),
       maladiesChroniques: optionnel(formulaire, "maladies_chroniques"),
-      traitementEnCours: optionnel(formulaire, "traitement_en_cours"),
     });
   } catch (e) {
     return etatDepuisErreur(e, formulaire);

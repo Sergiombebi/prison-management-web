@@ -542,6 +542,52 @@ export default async function DossierDetenuPage(props: PageProps<"/detenus/[id]"
             </Panel>
 
             <Panel
+              titre="Traitements"
+              variante="eleve"
+              flush
+              actions={
+                present && (
+                  <ButtonLink href={`/sante/traitements?detenu=${d.id}`} taille="sm" icone="plus">
+                    Prescrire un traitement
+                  </ButtonLink>
+                )
+              }
+            >
+              <DataTable
+                legende="Traitements prescrits au détenu"
+                lignes={dossier.prescriptions}
+                cleLigne={(p) => p.id}
+                colonnes={[
+                  { cle: "debut", titre: "Début", rendu: (p) => formatDate(p.dateDebut) },
+                  {
+                    cle: "medicament",
+                    titre: "Médicament",
+                    rendu: (p) => (
+                      <div>
+                        <p className="font-medium">{p.medicament}</p>
+                        <p className="text-xs text-muted">{p.posologie}</p>
+                      </div>
+                    ),
+                  },
+                  {
+                    cle: "statut",
+                    titre: "Statut",
+                    rendu: (p) =>
+                      p.statut === "en_cours" ? (
+                        <Badge ton="accent">En cours</Badge>
+                      ) : p.statut === "arrete" ? (
+                        <Badge ton="danger">Arrêté</Badge>
+                      ) : (
+                        <Badge ton="neutre">Terminé</Badge>
+                      ),
+                  },
+                  { cle: "prescripteur", titre: "Prescripteur", masquerSous: "md", rendu: (p) => <span className="text-muted">{p.prescripteur}</span> },
+                ]}
+                vide={<EmptyState compact icone="sante" titre="Aucun traitement" />}
+              />
+            </Panel>
+
+            <Panel
               titre="Consultations médicales"
               variante="eleve"
               flush

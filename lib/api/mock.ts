@@ -35,6 +35,10 @@ function resumer(detenuId: number): DetenuResume {
   const aff = fx.affectations.find((a) => a.detenuId === d.id);
   const cellule = aff ? fx.cellules.find((c) => c.id === aff.celluleId) : null;
   const evacuation = fx.evacuations.find((e) => e.detenuId === d.id && !e.dateRetour);
+  const prescriptionsActives = fx.prescriptions
+    .filter((p) => p.detenuId === d.id)
+    .map((p) => fx.avecStatut(p))
+    .filter((p) => p.statut === "en_cours");
 
   return {
     ...d,
@@ -55,6 +59,9 @@ function resumer(detenuId: number): DetenuResume {
       : null,
     evacuationActive: evacuation
       ? { id: evacuation.id, dateDepart: evacuation.dateDepart, structureDestination: evacuation.structureDestination, motif: evacuation.motif }
+      : null,
+    traitementEnCours: prescriptionsActives.length
+      ? prescriptionsActives.map((p) => `${p.medicament} (${p.posologie})`).join(", ")
       : null,
   };
 }
@@ -250,6 +257,12 @@ export const mockApi: ApiClient = {
       }).length,
       mandatsExpires: fx.mandats.filter((m) => !fx.estMandatActif(m)).length,
       sanctionsEnCours: fx.sanctions.filter((s) => s.statut === "En cours").length,
+      traitementsARenouveler: fx.prescriptions.filter((p) => {
+        if (p.arreteLe !== null || p.dateFin === null) return false;
+        const dans3Jours = new Date(maintenant);
+        dans3Jours.setDate(dans3Jours.getDate() + 3);
+        return new Date(p.dateFin) >= maintenant && new Date(p.dateFin) <= dans3Jours;
+      }).length,
       mouvements: {
         incarcerations: fx.mandats.filter((m) => dansLesTrenteJours(m.dateIncarceration) && new Date(m.dateIncarceration) >= debutMois).length,
         liberations: fx.sorties.filter((s) => s.typeSortie === "LiberationNormale" && dansLesTrenteJours(s.dateSortie)).length,
@@ -328,6 +341,7 @@ export const mockApi: ApiClient = {
       suivisMedicaux: fx.suivisMedicaux.filter((s) => s.detenuId === id),
       sorties: fx.sorties.filter((s) => s.detenuId === id),
       evacuations: fx.evacuations.filter((e) => e.detenuId === id),
+      prescriptions: fx.prescriptions.filter((p) => p.detenuId === id).map((p) => fx.avecStatut(p)),
     };
   },
 
@@ -350,7 +364,7 @@ export const mockApi: ApiClient = {
         groupeSanguin: d.groupeSanguin,
         allergies: d.allergies,
         maladiesChroniques: d.maladiesChroniques,
-        traitementEnCours: d.traitementEnCours,
+        traitementEnCours: resume.traitementEnCours,
         cellule: resume.cellule,
         mandatCourant: resume.mandatCourant
           ? {
@@ -365,6 +379,7 @@ export const mockApi: ApiClient = {
       },
       suivisMedicaux: fx.suivisMedicaux.filter((s) => s.detenuId === id),
       evacuations: fx.evacuations.filter((e) => e.detenuId === id),
+      prescriptions: fx.prescriptions.filter((p) => p.detenuId === id).map((p) => fx.avecStatut(p)),
     };
   },
 
@@ -480,6 +495,22 @@ export const mockApi: ApiClient = {
   },
 
   async enregistrerRetourEvacuation() {
+    await attendre();
+  },
+
+  async listPrescriptions() {
+    await attendre();
+    return [...fx.prescriptions]
+      .map((p) => fx.avecStatut(p))
+      .sort((a, b) => b.dateDebut.localeCompare(a.dateDebut));
+  },
+
+  async creerPrescription() {
+    await attendre();
+    return { id: fx.prescriptions[0]?.id ?? 1 };
+  },
+
+  async arreterPrescription() {
     await attendre();
   },
 
