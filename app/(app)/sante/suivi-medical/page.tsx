@@ -81,7 +81,7 @@ export default async function SuiviMedicalPage(props: PageProps<"/sante/suivi-me
             legende="Historique des consultations"
             lignes={filtres}
             cleLigne={(s) => s.id}
-            lienLigne={(s) => `/detenus/${s.detenuId}?onglet=sante`}
+            lienLigne={(s) => `/sante/dossier-medical/${s.detenuId}`}
             colonnes={[
               { cle: "date", titre: "Date", rendu: (s) => <span className="font-medium">{formatDate(s.dateConsultation)}</span> },
               {

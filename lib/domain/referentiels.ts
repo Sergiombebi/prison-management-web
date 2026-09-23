@@ -221,6 +221,9 @@ export const PERMISSIONS: { module: string; permissions: { cle: string; label: s
     permissions: [
       { cle: "sante.consultations.consulter", label: "Consulter" },
       { cle: "sante.consultations.creer", label: "Saisir une consultation" },
+      { cle: "sante.dossier_medical.gerer", label: "Modifier l’état de santé (allergies, traitement en cours…)" },
+      { cle: "sante.evacuations.consulter", label: "Consulter les évacuations sanitaires" },
+      { cle: "sante.evacuations.creer", label: "Enregistrer une évacuation et son retour" },
     ],
   },
   {

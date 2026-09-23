@@ -92,6 +92,19 @@ export interface Detenu {
   photoFaceUrl: string | null;
   photoProfilUrl: string | null;
   anthropometrie: string | null;
+
+  /** État de santé persistant : indépendant de toute consultation précise. */
+  groupeSanguin: string | null;
+  allergies: string | null;
+  maladiesChroniques: string | null;
+  traitementEnCours: string | null;
+  /**
+   * Évacuation sanitaire en cours, s'il y en a une — présente uniquement sur la
+   * fiche détaillée. Son absence dit à elle seule que le détenu n'est pas en
+   * évacuation : aucun statut séparé à tenir à jour.
+   */
+  evacuationActive?: Pick<EvacuationSanitaire, "id" | "dateDepart" | "structureDestination" | "motif"> | null;
+
   statut: StatutDetenu;
   dateCreation: string;
   dateModification: string | null;
@@ -282,6 +295,31 @@ export interface SortieDetenu {
    * qu'un mandat : le détenu reste écroué s'il en a d'autres (cas des DPAC).
    */
   definitive?: boolean;
+
+  /** Renseigné une fois un détenu évadé repris — son absence signifie « encore en fuite ». */
+  dateReintegration?: string | null;
+  lieuReintegration?: string | null;
+  autoriteReintegration?: string | null;
+  observationsReintegration?: string | null;
+}
+
+/**
+ * Évacuation vers une structure hospitalière extérieure. À la différence d'une
+ * sortie, le détenu reste présent dans l'effectif et garde sa cellule — il revient.
+ * `dateRetour` vide dit à elle seule que le détenu est encore en évacuation.
+ */
+export interface EvacuationSanitaire {
+  id: number;
+  detenuId: number;
+  detenuNom: string;
+  numeroEcrou: string;
+  dateDepart: string;
+  structureDestination: string;
+  motif: string | null;
+  escorte: string | null;
+  observationsDepart: string | null;
+  dateRetour: string | null;
+  observationsRetour: string | null;
 }
 
 export interface Utilisateur {

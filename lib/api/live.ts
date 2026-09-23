@@ -18,6 +18,7 @@ import type {
   CategoriePenale,
   Cellule,
   DetenuResume,
+  EvacuationSanitaire,
   FiltreDetenus,
   Mandas,
   Parametres,
@@ -34,12 +35,15 @@ import type {
 } from "@/lib/domain/types";
 import { CATEGORIE_SLUG, ROLES_UTILISATEUR } from "@/lib/domain/referentiels";
 import { getJeton } from "@/lib/session";
+import { optionnel } from "@/lib/api/disponibilite";
 import {
   ApiErreur,
   type ApiClient,
   type DossierDetenu,
+  type DossierMedical,
   type EntreeDetenu,
   type EntreeMandat,
+  type FicheMedicale,
   type MandatDetaille,
   type ProfilUtilisateur,
 } from "./contract";
@@ -355,11 +359,42 @@ export interface DetenuDetailApi
   photo_face_url: string | null;
   photo_profil_url: string | null;
   anthropometrie: string | null;
+  groupe_sanguin: string | null;
+  allergies: string | null;
+  maladies_chroniques: string | null;
+  traitement_en_cours: string | null;
+  evacuation_active?: EvacuationApi | null;
   mandas?: MandasApi[];
   sanctions?: SanctionApi[];
   cellule_actuelle?: AffectationApi | null;
   created_at: string | null;
   updated_at: string | null;
+}
+
+/** Réponse de GET /detenus/{id}/dossier-medical — voir DossierMedicalResource côté API. */
+export interface DossierMedicalApi {
+  id: number;
+  numero_ecrou: string;
+  nom: string;
+  sexe: string;
+  date_naissance: string | null;
+  age: number | null;
+  lieu_naissance: string;
+  photo_face_url: string | null;
+  est_present: boolean;
+  groupe_sanguin: string | null;
+  allergies: string | null;
+  maladies_chroniques: string | null;
+  traitement_en_cours: string | null;
+  cellule_actuelle?: { id: number; numero: string; bloc: string | null } | null;
+  mandat_courant?: {
+    type_statut_penal: string | null;
+    date_incarceration: string | null;
+    motif_detention: string | null;
+    date_expiration_mandat: string | null;
+  } | null;
+  categorie_penale?: string | null;
+  evacuation_active?: EvacuationApi | null;
 }
 
 export interface CelluleApi {
@@ -498,7 +533,40 @@ export interface SortieApi {
   cause: string | null;
   observation: string | null;
   sortie_definitive: boolean;
+  date_reintegration: string | null;
+  lieu_reintegration: string | null;
+  autorite_reintegration: string | null;
+  observations_reintegration: string | null;
   created_at: string | null;
+}
+
+export interface EvacuationApi {
+  id: number;
+  detenu_id: number;
+  detenu?: { id: number; numero_ecrou: string; nom: string };
+  date_depart: string | null;
+  structure_destination: string;
+  motif: string | null;
+  escorte: string | null;
+  observations_depart: string | null;
+  date_retour: string | null;
+  observations_retour: string | null;
+}
+
+export function versEvacuation(x: EvacuationApi, detenu?: { nom: string; numeroEcrou: string }): EvacuationSanitaire {
+  return {
+    id: x.id,
+    detenuId: x.detenu_id,
+    detenuNom: x.detenu?.nom ?? detenu?.nom ?? "",
+    numeroEcrou: x.detenu?.numero_ecrou ?? detenu?.numeroEcrou ?? "",
+    dateDepart: x.date_depart ?? "",
+    structureDestination: x.structure_destination,
+    motif: x.motif,
+    escorte: x.escorte,
+    observationsDepart: x.observations_depart,
+    dateRetour: x.date_retour,
+    observationsRetour: x.observations_retour,
+  };
 }
 
 /** Valeur de `type_sortie` dans les réponses et dans le filtre de l'archive. */
@@ -687,6 +755,10 @@ export function versSortie(x: SortieApi, detenu?: { nom: string; numeroEcrou: st
       : null,
     dateEnregistrement: x.created_at ?? "",
     definitive: x.sortie_definitive,
+    dateReintegration: x.date_reintegration,
+    lieuReintegration: x.lieu_reintegration,
+    autoriteReintegration: x.autorite_reintegration,
+    observationsReintegration: x.observations_reintegration,
   };
 }
 
@@ -769,6 +841,10 @@ export function versResume(d: DetenuListeApi): DetenuResume {
     photoFaceUrl: null,
     photoProfilUrl: null,
     anthropometrie: null,
+    groupeSanguin: null,
+    allergies: null,
+    maladiesChroniques: null,
+    traitementEnCours: null,
     statut: d.est_present ? "Present" : "Sorti",
     dateCreation: "",
     dateModification: null,
@@ -831,6 +907,11 @@ export function versResumeDetail(d: DetenuDetailApi, mandats: MandatDetaille[]):
     photoFaceUrl: d.photo_face_url,
     photoProfilUrl: d.photo_profil_url,
     anthropometrie: d.anthropometrie,
+    groupeSanguin: d.groupe_sanguin,
+    allergies: d.allergies,
+    maladiesChroniques: d.maladies_chroniques,
+    traitementEnCours: d.traitement_en_cours,
+    evacuationActive: d.evacuation_active ? versEvacuation(d.evacuation_active) : null,
     statut: d.est_present ? "Present" : "Sorti",
     dateCreation: d.created_at ?? "",
     dateModification: d.updated_at ?? null,
@@ -853,6 +934,37 @@ export function versResumeDetail(d: DetenuDetailApi, mandats: MandatDetaille[]):
           bloc: d.cellule_actuelle.cellule.bloc,
         }
       : null,
+  };
+}
+
+export function versFicheMedicale(d: DossierMedicalApi): FicheMedicale {
+  return {
+    id: d.id,
+    numeroEcrou: d.numero_ecrou,
+    nom: d.nom,
+    sexe: versSexe(d.sexe),
+    dateNaissance: d.date_naissance ?? "",
+    age: d.age !== null && d.age !== undefined ? String(d.age) : null,
+    lieuNaissance: d.lieu_naissance,
+    photoFaceUrl: d.photo_face_url,
+    estPresent: d.est_present,
+    groupeSanguin: d.groupe_sanguin,
+    allergies: d.allergies,
+    maladiesChroniques: d.maladies_chroniques,
+    traitementEnCours: d.traitement_en_cours,
+    cellule: d.cellule_actuelle
+      ? { id: d.cellule_actuelle.id, numero: d.cellule_actuelle.numero, bloc: d.cellule_actuelle.bloc }
+      : null,
+    mandatCourant: d.mandat_courant
+      ? {
+          typeStatutPenal: (d.mandat_courant.type_statut_penal as TypeStatutPenal | null) ?? null,
+          dateIncarceration: d.mandat_courant.date_incarceration,
+          motifDetention: d.mandat_courant.motif_detention,
+          dateExpirationMandat: d.mandat_courant.date_expiration_mandat,
+        }
+      : null,
+    categoriePenale: d.categorie_penale ? (CATEGORIE_DEPUIS_SLUG[d.categorie_penale] ?? null) : null,
+    evacuationActive: d.evacuation_active ? versEvacuation(d.evacuation_active) : null,
   };
 }
 
@@ -1032,12 +1144,13 @@ export const liveApi: ApiClient = {
   },
 
   async getDossierDetenu(id): Promise<DossierDetenu | null> {
-    const [corps, affectationsApi, sortiesApi, suivisApi, visitesApi] = await Promise.all([
+    const [corps, affectationsApi, sortiesApi, suivisApi, visitesApi, evacuationsApi] = await Promise.all([
       requete<{ data: DetenuDetailApi } | null>(`/detenus/${id}`, { nullSur404: true }),
       requete<{ data: AffectationApi[] } | null>(`/detenus/${id}/affectations`, { nullSur404: true }),
       requete<{ data: SortieApi[] } | null>(`/detenus/${id}/sorties`, { nullSur404: true }),
       requete<{ data: SuiviMedicalApi[] } | null>(`/detenus/${id}/suivis-medicaux`, { nullSur404: true }),
       requete<{ data: VisiteApi[] } | null>(`/detenus/${id}/visites`, { nullSur404: true }),
+      requete<{ data: EvacuationApi[] } | null>(`/detenus/${id}/evacuations`, { nullSur404: true }),
     ]);
     if (!corps?.data) return null;
 
@@ -1064,6 +1177,28 @@ export const liveApi: ApiClient = {
       sanctions: (brut.sanctions ?? []).map((s) => versSanction(s, identite)),
       suivisMedicaux: (suivisApi?.data ?? []).map((s) => versSuiviMedical(s, identite)),
       visites: (visitesApi?.data ?? []).map((v) => versVisite(v, identite)),
+      evacuations: (evacuationsApi?.data ?? []).map((x) => versEvacuation(x, identite)),
+    };
+  },
+
+  async getDossierMedical(id): Promise<DossierMedical | null> {
+    const [corps, suivisApi, evacuationsApi] = await Promise.all([
+      requete<{ data: DossierMedicalApi } | null>(`/detenus/${id}/dossier-medical`, { nullSur404: true }),
+      requete<{ data: SuiviMedicalApi[] } | null>(`/detenus/${id}/suivis-medicaux`, { nullSur404: true }),
+      // Permission distincte de celle qui garde /dossier-medical : un médecin peut ne
+      // l'avoir pas, sans que la page entière doive lui rester fermée pour autant.
+      optionnel(
+        () => requete<{ data: EvacuationApi[] } | null>(`/detenus/${id}/evacuations`, { nullSur404: true }),
+        null,
+      ),
+    ]);
+    if (!corps?.data) return null;
+
+    const identite = { nom: corps.data.nom, numeroEcrou: corps.data.numero_ecrou };
+    return {
+      detenu: versFicheMedicale(corps.data),
+      suivisMedicaux: (suivisApi?.data ?? []).map((s) => versSuiviMedical(s, identite)),
+      evacuations: (evacuationsApi?.data ?? []).map((x) => versEvacuation(x, identite)),
     };
   },
 
@@ -1109,6 +1244,21 @@ export const liveApi: ApiClient = {
     await requete(`/detenus/${id}`, {
       method: "PUT",
       body: JSON.stringify(versCorpsDetenu(entree, "maj")),
+    });
+  },
+
+  async majDossierMedical(id, entree) {
+    // Jamais `sansVides` ici : un champ vidé doit explicitement passer à `null` pour
+    // effacer l'ancienne valeur, pas disparaître du corps de la requête (auquel cas
+    // l'API le laisserait inchangé).
+    await requete(`/detenus/${id}/dossier-medical`, {
+      method: "PUT",
+      body: JSON.stringify({
+        groupe_sanguin: entree.groupeSanguin ?? null,
+        allergies: entree.allergies ?? null,
+        maladies_chroniques: entree.maladiesChroniques ?? null,
+        traitement_en_cours: entree.traitementEnCours ?? null,
+      }),
     });
   },
 
@@ -1354,6 +1504,40 @@ export const liveApi: ApiClient = {
     return { id: corps.data.id };
   },
 
+  async listEvacuations() {
+    // Non paginé côté API, comme le registre des visites.
+    const corps = await requete<{ data: EvacuationApi[] }>("/evacuations");
+    return corps.data.map((x) => versEvacuation(x));
+  },
+
+  async creerEvacuation(detenuId, entree) {
+    const corps = await requete<{ data: { id: number } }>(`/detenus/${detenuId}/evacuations`, {
+      method: "POST",
+      body: JSON.stringify(
+        sansVides({
+          date_depart: entree.dateDepart,
+          structure_destination: entree.structureDestination,
+          motif: entree.motif,
+          escorte: entree.escorte,
+          observations_depart: entree.observationsDepart,
+        }),
+      ),
+    });
+    return { id: corps.data.id };
+  },
+
+  async enregistrerRetourEvacuation(evacuationId, entree) {
+    await requete(`/evacuations/${evacuationId}/retour`, {
+      method: "POST",
+      body: JSON.stringify(
+        sansVides({
+          date_retour: entree.dateRetour,
+          observations_retour: entree.observationsRetour,
+        }),
+      ),
+    });
+  },
+
   async listVisites() {
     // Non paginé côté API : un registre des visites se consulte en entier.
     const corps = await requete<{ data: VisiteApi[] }>("/visites");
@@ -1458,6 +1642,22 @@ export const liveApi: ApiClient = {
       },
     );
     return { id: corps.data.id, definitive: corps.data.sortie_definitive };
+  },
+
+  async reintegrerEvasion(sortieId, entree) {
+    const corps = await requete<{ data: SortieApi }>(`/sorties/${sortieId}/reintegrer`, {
+      method: "POST",
+      body: JSON.stringify(
+        sansVides({
+          date_reintegration: entree.dateReintegration,
+          cellule_disciplinaire_id: entree.celluleDisciplinaireId,
+          lieu_reintegration: entree.lieuReintegration,
+          autorite_reintegration: entree.autoriteReintegration,
+          observations_reintegration: entree.observationsReintegration,
+        }),
+      ),
+    });
+    return versSortie(corps.data);
   },
 
   // -------------------------------------------------------------------------

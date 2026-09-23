@@ -14,6 +14,7 @@ import {
 } from "@/lib/format";
 import { hrefAvec, param } from "@/lib/url";
 import { cn } from "@/lib/cn";
+import { getProfil, peut } from "@/lib/session";
 import { Page } from "@/components/layout/page";
 import { DataTable } from "@/components/data/data-table";
 import { Badge, BadgeCategorie, BadgeStatut } from "@/components/ui/badge";
@@ -27,6 +28,7 @@ import { ConfirmationToast } from "@/components/ui/confirmation-toast";
 import { ActionsSanction } from "@/components/discipline/actions-sanction";
 import { BoutonRestaurer } from "@/components/detenus/bouton-restaurer";
 import { BoutonVoirVisite } from "@/components/sante/bouton-voir-visite";
+import { AlerteEvacuation, EtatSante } from "@/components/sante/dossier-medical";
 import { restaurerDossier } from "../nouveau/actions";
 import { desactiverDossier, desactiverMandat } from "./actions";
 
@@ -81,10 +83,11 @@ export default async function DossierDetenuPage(props: PageProps<"/detenus/[id]"
   const numero = Number.parseInt(id, 10);
   if (!Number.isFinite(numero)) notFound();
 
-  const dossier = await api.getDossierDetenu(numero);
+  const [dossier, profil] = await Promise.all([api.getDossierDetenu(numero), getProfil()]);
   if (!dossier) notFound();
 
   const { detenu: d } = dossier;
+  const peutGererSante = Boolean(profil && peut(profil.permissions, "sante.dossier_medical.gerer"));
   const ongletBrut = param(sp, "onglet");
   const onglet: OngletId = ONGLETS.includes(ongletBrut as OngletId) ? (ongletBrut as OngletId) : "identite";
   const chemin = `/detenus/${d.id}`;
@@ -125,6 +128,8 @@ export default async function DossierDetenuPage(props: PageProps<"/detenus/[id]"
           <BoutonRestaurer detenuId={d.id} restaurer={restaurerDossier} />
         </div>
       )}
+
+      {d.evacuationActive && <AlerteEvacuation evacuation={d.evacuationActive} />}
 
       {/* En-tête d'identité — la carte du dossier */}
       <header className="relative overflow-hidden rounded-xl border border-hairline bg-surface shadow-e2 animate-pop">
@@ -242,7 +247,7 @@ export default async function DossierDetenuPage(props: PageProps<"/detenus/[id]"
               { href: lien("mandats"), label: "Mandats", compte: dossier.mandats.length, actif: onglet === "mandats" },
               { href: lien("detention"), label: "Détention", compte: dossier.affectations.length + dossier.sorties.length, actif: onglet === "detention" },
               { href: lien("discipline"), label: "Discipline", compte: dossier.sanctions.length, actif: onglet === "discipline" },
-              { href: lien("sante"), label: "Santé", compte: dossier.suivisMedicaux.length, actif: onglet === "sante" },
+              { href: lien("sante"), label: "Dossier médical", compte: dossier.suivisMedicaux.length, actif: onglet === "sante" },
               { href: lien("visites"), label: "Visites", compte: dossier.visites.length, actif: onglet === "visites" },
             ]}
           />
@@ -531,36 +536,78 @@ export default async function DossierDetenuPage(props: PageProps<"/detenus/[id]"
         )}
 
         {onglet === "sante" && (
-          <Panel
-            titre="Consultations médicales"
-            variante="eleve"
-            flush
-            actions={
-              present && (
-                <ButtonLink href={`/sante/suivi-medical?detenu=${d.id}`} taille="sm" icone="plus">
-                  Enregistrer une consultation
-                </ButtonLink>
-              )
-            }
-          >
-            <DataTable
-              legende="Suivi médical du détenu"
-              lignes={dossier.suivisMedicaux}
-              cleLigne={(s) => s.id}
-              colonnes={[
-                { cle: "date", titre: "Date", rendu: (s) => formatDate(s.dateConsultation) },
-                {
-                  cle: "type",
-                  titre: "Type",
-                  rendu: (s) => <Badge ton={s.typeConsultation === "Urgence" ? "danger" : "neutre"}>{s.typeConsultation}</Badge>,
-                },
-                { cle: "diagnostic", titre: "Diagnostic", rendu: (s) => <span className="font-medium">{ouVide(s.diagnostic)}</span> },
-                { cle: "traitement", titre: "Traitement", masquerSous: "lg", rendu: (s) => <span className="text-muted">{ouVide(s.medicamentsPrescrits)}</span> },
-                { cle: "medecin", titre: "Médecin", masquerSous: "md", rendu: (s) => <span className="text-muted">{s.nomMedecin}</span> },
-              ]}
-              vide={<EmptyState compact icone="sante" titre="Aucune consultation" />}
-            />
-          </Panel>
+          <div className="flex flex-col gap-4">
+            <Panel titre="État de santé" sousTitre="Indépendant de toute consultation : reste visible tant qu'il n'est pas mis à jour" variante="eleve">
+              <EtatSante detenu={d} modifiable={peutGererSante} />
+            </Panel>
+
+            <Panel
+              titre="Consultations médicales"
+              variante="eleve"
+              flush
+              actions={
+                present && (
+                  <ButtonLink href={`/sante/suivi-medical?detenu=${d.id}`} taille="sm" icone="plus">
+                    Enregistrer une consultation
+                  </ButtonLink>
+                )
+              }
+            >
+              <DataTable
+                legende="Suivi médical du détenu"
+                lignes={dossier.suivisMedicaux}
+                cleLigne={(s) => s.id}
+                colonnes={[
+                  { cle: "date", titre: "Date", rendu: (s) => formatDate(s.dateConsultation) },
+                  {
+                    cle: "type",
+                    titre: "Type",
+                    rendu: (s) => <Badge ton={s.typeConsultation === "Urgence" ? "danger" : "neutre"}>{s.typeConsultation}</Badge>,
+                  },
+                  { cle: "diagnostic", titre: "Diagnostic", rendu: (s) => <span className="font-medium">{ouVide(s.diagnostic)}</span> },
+                  { cle: "traitement", titre: "Traitement", masquerSous: "lg", rendu: (s) => <span className="text-muted">{ouVide(s.medicamentsPrescrits)}</span> },
+                  { cle: "medecin", titre: "Médecin", masquerSous: "md", rendu: (s) => <span className="text-muted">{s.nomMedecin}</span> },
+                ]}
+                vide={<EmptyState compact icone="sante" titre="Aucune consultation" />}
+              />
+            </Panel>
+
+            <Panel
+              titre="Évacuations sanitaires"
+              variante="eleve"
+              flush
+              actions={
+                present &&
+                !d.evacuationActive && (
+                  <ButtonLink href={`/sante/evacuations?detenu=${d.id}`} taille="sm" icone="plus">
+                    Enregistrer une évacuation
+                  </ButtonLink>
+                )
+              }
+            >
+              <DataTable
+                legende="Évacuations sanitaires du détenu"
+                lignes={dossier.evacuations}
+                cleLigne={(e) => e.id}
+                colonnes={[
+                  { cle: "depart", titre: "Départ", rendu: (e) => formatDate(e.dateDepart) },
+                  { cle: "structure", titre: "Structure", rendu: (e) => <span className="font-medium">{e.structureDestination}</span> },
+                  {
+                    cle: "statut",
+                    titre: "Statut",
+                    rendu: (e) =>
+                      e.dateRetour ? (
+                        <Badge ton="succes">Rentré le {formatDate(e.dateRetour)}</Badge>
+                      ) : (
+                        <Badge ton="alerte">En évacuation</Badge>
+                      ),
+                  },
+                  { cle: "motif", titre: "Motif", masquerSous: "md", rendu: (e) => <span className="text-muted">{ouVide(e.motif)}</span> },
+                ]}
+                vide={<EmptyState compact icone="pulse" titre="Aucune évacuation" />}
+              />
+            </Panel>
+          </div>
         )}
 
         {onglet === "visites" && (

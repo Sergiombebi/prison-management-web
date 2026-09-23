@@ -2,8 +2,8 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { api, ApiErreur } from "@/lib/api";
-import { etatDepuisErreur, type EtatAction } from "@/lib/api/actions";
+import { api, ApiErreur, modeDe } from "@/lib/api";
+import { etatDepuisErreur, optionnel, type EtatAction } from "@/lib/api/actions";
 import { construireDetenu } from "@/lib/api/formulaires";
 
 export interface EtatModification extends EtatAction {
@@ -87,4 +87,30 @@ export async function desactiverMandat(
   revalidatePath(`/detenus/${detenuId}`);
   revalidatePath("/detenus");
   return { ok: true };
+}
+
+/**
+ * Met à jour l'état de santé persistant (groupe sanguin, allergies, maladies
+ * chroniques, traitement en cours) — indépendant de toute consultation. Liée au
+ * détenu par `.bind(null, id)` dans la page.
+ */
+export async function modifierDossierMedical(
+  detenuId: number,
+  _precedent: EtatAction,
+  formulaire: FormData,
+): Promise<EtatAction> {
+  try {
+    await api.majDossierMedical(detenuId, {
+      groupeSanguin: optionnel(formulaire, "groupe_sanguin"),
+      allergies: optionnel(formulaire, "allergies"),
+      maladiesChroniques: optionnel(formulaire, "maladies_chroniques"),
+      traitementEnCours: optionnel(formulaire, "traitement_en_cours"),
+    });
+  } catch (e) {
+    return etatDepuisErreur(e, formulaire);
+  }
+
+  revalidatePath(`/detenus/${detenuId}`);
+  const demo = modeDe("sante") === "mock" ? " (démonstration : rien n’est enregistré)" : "";
+  return { ok: true, message: `Dossier médical mis à jour${demo}.` };
 }

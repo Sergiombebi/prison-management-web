@@ -40,12 +40,16 @@ const DOMAINE_DE: Record<keyof ApiClient, DomaineApi> = {
   getTableauDeBord: "tableauDeBord",
   listDetenus: "detenus",
   getDossierDetenu: "detenus",
+  // Volontairement rattaché à « sante », pas « detenus » : c'est justement ce qui
+  // permet à ce module de rester en direct même quand detenus ne l'est pas.
+  getDossierMedical: "sante",
   // Écran d'affectation : il appartient à la discipline, pas au registre — ainsi
   // basculer « detenus » en réel ne casse pas un module que l'API n'expose pas.
   listDetenusNonLoges: "discipline",
   verifierIdentiteDetenu: "detenus",
   creerDetenu: "detenus",
   majDetenu: "detenus",
+  majDossierMedical: "sante",
   desactiverDetenu: "detenus",
   restaurerDetenu: "detenus",
   televerserPhotos: "detenus",
@@ -76,12 +80,16 @@ const DOMAINE_DE: Record<keyof ApiClient, DomaineApi> = {
   desactiverSanction: "discipline",
   listSuivisMedicaux: "sante",
   creerSuiviMedical: "sante",
+  listEvacuations: "sante",
+  creerEvacuation: "sante",
+  enregistrerRetourEvacuation: "sante",
   listVisites: "sante",
   getVisite: "sante",
   creerVisite: "sante",
   listSorties: "sorties",
   getSortie: "sorties",
   majSortie: "sorties",
+  reintegrerEvasion: "sorties",
   enregistrerSortie: "sorties",
   listUtilisateurs: "administration",
   creerUtilisateur: "administration",

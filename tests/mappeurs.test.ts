@@ -310,6 +310,10 @@ describe("versSortie", () => {
     cause: null,
     observation: null,
     sortie_definitive: false,
+    date_reintegration: null,
+    lieu_reintegration: null,
+    autorite_reintegration: null,
+    observations_reintegration: null,
     created_at: "2026-09-17T10:00:00+01:00",
   };
 

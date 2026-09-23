@@ -34,6 +34,7 @@ function resumer(detenuId: number): DetenuResume {
   const courant = actifs[0] ?? null;
   const aff = fx.affectations.find((a) => a.detenuId === d.id);
   const cellule = aff ? fx.cellules.find((c) => c.id === aff.celluleId) : null;
+  const evacuation = fx.evacuations.find((e) => e.detenuId === d.id && !e.dateRetour);
 
   return {
     ...d,
@@ -51,6 +52,9 @@ function resumer(detenuId: number): DetenuResume {
       : null,
     cellule: cellule
       ? { id: cellule.id, numero: cellule.numero, bloc: cellule.bloc }
+      : null,
+    evacuationActive: evacuation
+      ? { id: evacuation.id, dateDepart: evacuation.dateDepart, structureDestination: evacuation.structureDestination, motif: evacuation.motif }
       : null,
   };
 }
@@ -132,6 +136,10 @@ export const mockApi: ApiClient = {
   // En démonstration, les écritures ne persistent rien : elles répondent comme l'API
   // pour que les parcours restent testables de bout en bout.
   async majDetenu() {
+    await attendre();
+  },
+
+  async majDossierMedical() {
     await attendre();
   },
 
@@ -319,6 +327,44 @@ export const mockApi: ApiClient = {
       visites: fx.visites.filter((v) => v.detenuId === id),
       suivisMedicaux: fx.suivisMedicaux.filter((s) => s.detenuId === id),
       sorties: fx.sorties.filter((s) => s.detenuId === id),
+      evacuations: fx.evacuations.filter((e) => e.detenuId === id),
+    };
+  },
+
+  async getDossierMedical(id) {
+    await attendre();
+    const d = fx.detenus.find((x) => x.id === id);
+    if (!d) return null;
+    const resume = resumer(id);
+    return {
+      detenu: {
+        id: d.id,
+        numeroEcrou: d.numeroEcrou,
+        nom: d.nom,
+        sexe: d.sexe,
+        dateNaissance: d.dateNaissance,
+        age: d.age,
+        lieuNaissance: d.lieuNaissance,
+        photoFaceUrl: d.photoFaceUrl,
+        estPresent: d.statut === "Present",
+        groupeSanguin: d.groupeSanguin,
+        allergies: d.allergies,
+        maladiesChroniques: d.maladiesChroniques,
+        traitementEnCours: d.traitementEnCours,
+        cellule: resume.cellule,
+        mandatCourant: resume.mandatCourant
+          ? {
+              typeStatutPenal: resume.mandatCourant.typeStatutPenal,
+              dateIncarceration: resume.mandatCourant.dateIncarceration,
+              motifDetention: resume.mandatCourant.motifDetention,
+              dateExpirationMandat: resume.mandatCourant.dateSortieMandat,
+            }
+          : null,
+        categoriePenale: resume.categoriePenale,
+        evacuationActive: resume.evacuationActive ?? null,
+      },
+      suivisMedicaux: fx.suivisMedicaux.filter((s) => s.detenuId === id),
+      evacuations: fx.evacuations.filter((e) => e.detenuId === id),
     };
   },
 
@@ -423,6 +469,20 @@ export const mockApi: ApiClient = {
     return { id: fx.suivisMedicaux[0]?.id ?? 1 };
   },
 
+  async listEvacuations() {
+    await attendre();
+    return [...fx.evacuations].sort((a, b) => b.dateDepart.localeCompare(a.dateDepart));
+  },
+
+  async creerEvacuation() {
+    await attendre();
+    return { id: fx.evacuations[0]?.id ?? 1 };
+  },
+
+  async enregistrerRetourEvacuation() {
+    await attendre();
+  },
+
   async creerVisite() {
     await attendre();
     return { id: fx.visites[0]?.id ?? 1 };
@@ -489,6 +549,18 @@ export const mockApi: ApiClient = {
 
   async majSortie() {
     await attendre();
+  },
+
+  async reintegrerEvasion(sortieId, entree) {
+    await attendre();
+    const sortie = fx.sorties.find((s) => s.id === sortieId);
+    return {
+      ...(sortie ?? fx.sorties[0]),
+      dateReintegration: entree.dateReintegration,
+      lieuReintegration: entree.lieuReintegration ?? null,
+      autoriteReintegration: entree.autoriteReintegration ?? null,
+      observationsReintegration: entree.observationsReintegration ?? null,
+    };
   },
 
   async enregistrerSortie(detenuId, entree) {

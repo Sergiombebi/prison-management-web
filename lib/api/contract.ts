@@ -17,6 +17,7 @@ import type {
   EntreeParametres,
   EntreeProfil,
   EntreeUtilisateur,
+  EvacuationSanitaire,
   FiltreDetenus,
   Mandas,
   PageResultat,
@@ -45,6 +46,44 @@ export interface MandatDetaille extends Mandas {
   ouvert: boolean;
 }
 
+/**
+ * Vue « dossier médical » d'un détenu : identité, résumé pénal et cellule pour le
+ * situer, plus son état de santé persistant. Volontairement plus légère que
+ * `DetenuResume` — accessible avec la seule permission `sante.consultations.consulter`,
+ * sans passer par le module Détenus.
+ */
+export interface FicheMedicale {
+  id: number;
+  numeroEcrou: string;
+  nom: string;
+  sexe: Sexe;
+  dateNaissance: string;
+  age: string | null;
+  lieuNaissance: string;
+  photoFaceUrl: string | null;
+  estPresent: boolean;
+  groupeSanguin: string | null;
+  allergies: string | null;
+  maladiesChroniques: string | null;
+  traitementEnCours: string | null;
+  cellule: { id: number; numero: string; bloc: string | null } | null;
+  mandatCourant: {
+    typeStatutPenal: TypeStatutPenal | null;
+    dateIncarceration: string | null;
+    motifDetention: string | null;
+    dateExpirationMandat: string | null;
+  } | null;
+  categoriePenale: CategoriePenale | null;
+  evacuationActive: Pick<EvacuationSanitaire, "id" | "dateDepart" | "structureDestination" | "motif"> | null;
+}
+
+/** Dossier médical complet : la fiche ci-dessus, avec l'historique santé du détenu. */
+export interface DossierMedical {
+  detenu: FicheMedicale;
+  suivisMedicaux: SuiviMedical[];
+  evacuations: EvacuationSanitaire[];
+}
+
 export interface DossierDetenu {
   detenu: DetenuResume;
   mandats: MandatDetaille[];
@@ -53,6 +92,7 @@ export interface DossierDetenu {
   visites: Visite[];
   suivisMedicaux: SuiviMedical[];
   sorties: SortieDetenu[];
+  evacuations: EvacuationSanitaire[];
   /**
    * Rubriques que la source ne sait pas encore fournir. Une liste vide ne dit pas
    * « aucune sanction » : l'écran doit pouvoir distinguer les deux cas.
@@ -193,6 +233,38 @@ export interface EntreeTransfert {
   observation?: string | null;
 }
 
+/** Réintégration d'un détenu évadé et repris. */
+export interface EntreeReintegration {
+  dateReintegration: string;
+  celluleDisciplinaireId: number;
+  lieuReintegration?: string | null;
+  autoriteReintegration?: string | null;
+  observationsReintegration?: string | null;
+}
+
+/** État de santé persistant du détenu — indépendant de toute consultation précise. */
+export interface EntreeDossierMedical {
+  groupeSanguin?: string | null;
+  allergies?: string | null;
+  maladiesChroniques?: string | null;
+  traitementEnCours?: string | null;
+}
+
+/** Départ en évacuation sanitaire à consigner. */
+export interface EntreeEvacuation {
+  dateDepart: string;
+  structureDestination: string;
+  motif?: string | null;
+  escorte?: string | null;
+  observationsDepart?: string | null;
+}
+
+/** Retour d'une évacuation sanitaire. */
+export interface EntreeRetourEvacuation {
+  dateRetour: string;
+  observationsRetour?: string | null;
+}
+
 /** Consultation médicale à enregistrer. */
 export interface EntreeSuiviMedical {
   dateConsultation: string;
@@ -292,6 +364,11 @@ export interface ApiClient {
   listDetenus(filtre?: FiltreDetenus): Promise<PageResultat<DetenuResume>>;
   /** GET /detenus/{id} — fiche complète avec ses mandats */
   getDossierDetenu(id: number): Promise<DossierDetenu | null>;
+  /**
+   * GET /detenus/{id}/dossier-medical — identité, résumé pénal et santé, sans le
+   * reste de la fiche. Gardé par `sante.consultations.consulter`, pas `detenus.consulter`.
+   */
+  getDossierMedical(id: number): Promise<DossierMedical | null>;
   /** GET /detenus?categorie_penale= — règle calculée côté serveur */
   listParCategorie(categorie: CategoriePenale): Promise<DetenuResume[]>;
   /**
@@ -306,6 +383,8 @@ export interface ApiClient {
   creerDetenu(entree: EntreeDetenu): Promise<{ id: number }>;
   /** PUT /detenus/{id} — 409 si le dossier est désactivé */
   majDetenu(id: number, entree: EntreeDetenu): Promise<void>;
+  /** PUT /detenus/{id}/dossier-medical */
+  majDossierMedical(id: number, entree: EntreeDossierMedical): Promise<void>;
   /**
    * DELETE /detenus/{id} — correction administrative (doublon, erreur de saisie).
    * N'enregistre aucune sortie : une vraie sortie passe par `enregistrerSortie`.
@@ -375,6 +454,14 @@ export interface ApiClient {
   listSuivisMedicaux(): Promise<SuiviMedical[]>;
   /** POST /detenus/{id}/suivis-medicaux */
   creerSuiviMedical(detenuId: number, entree: EntreeSuiviMedical): Promise<{ id: number }>;
+
+  /** GET /evacuations — toutes les évacuations sanitaires, la plus récente d'abord */
+  listEvacuations(): Promise<EvacuationSanitaire[]>;
+  /** POST /detenus/{id}/evacuations — 409 si le détenu est déjà en évacuation */
+  creerEvacuation(detenuId: number, entree: EntreeEvacuation): Promise<{ id: number }>;
+  /** POST /evacuations/{id}/retour — 422 si le retour est déjà enregistré */
+  enregistrerRetourEvacuation(evacuationId: number, entree: EntreeRetourEvacuation): Promise<void>;
+
   /** GET /visites — toutes les visites, la plus récente d'abord */
   listVisites(): Promise<Visite[]>;
   /** GET /visites/{id} */
@@ -390,6 +477,8 @@ export interface ApiClient {
   majSortie(sortieId: number, entree: EntreeTransfert): Promise<void>;
   /** POST /detenus/{id}/sorties/{type} */
   enregistrerSortie(detenuId: number, entree: EntreeSortie): Promise<{ id: number; definitive: boolean }>;
+  /** POST /sorties/{id}/reintegrer — évasions uniquement (422 sinon) */
+  reintegrerEvasion(sortieId: number, entree: EntreeReintegration): Promise<SortieDetenu>;
 
   /** GET /utilisateurs — réservé aux administrateurs (403 sinon) */
   listUtilisateurs(): Promise<Utilisateur[]>;

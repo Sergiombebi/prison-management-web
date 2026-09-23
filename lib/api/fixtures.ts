@@ -16,6 +16,7 @@ import type {
   CategoriePenale,
   Cellule,
   Detenu,
+  EvacuationSanitaire,
   Mandas,
   Parametres,
   Sanction,
@@ -310,6 +311,10 @@ export const detenus: Detenu[] = NOMS.map((nom, i) => {
     anthropometrie: parfois(0.5)
       ? `Taille ${entre(155, 192)} cm — ${piocher(["cicatrice au front", "tatouage avant-bras gauche", "aucun signe particulier", "cicatrice à la joue droite"])}`
       : null,
+    groupeSanguin: parfois(0.4) ? piocher(["O+", "O-", "A+", "A-", "B+", "B-", "AB+", "AB-"]) : null,
+    allergies: parfois(0.15) ? "Pénicilline" : null,
+    maladiesChroniques: parfois(0.1) ? "Asthme" : null,
+    traitementEnCours: null,
     statut: "Present",
     dateCreation: jour(-entre(20, 900)),
     dateModification: parfois(0.3) ? jour(-entre(1, 60)) : null,
@@ -634,6 +639,27 @@ export const sorties: SortieDetenu[] = Array.from({ length: 11 }, (_, i) => {
     observation: parfois(0.4) ? "Procès-verbal transmis au Procureur de la République." : null,
     dateEnregistrement: jour(dateSortie),
   } satisfies SortieDetenu;
+});
+
+export const evacuations: EvacuationSanitaire[] = Array.from({ length: 4 }, (_, i) => {
+  const d = detenus[entre(0, detenus.length - 1)];
+  // La première est encore en cours, pour que l'écran ait toujours un exemple à montrer.
+  const enCours = i === 0;
+  const dateDepart = -entre(1, 30);
+
+  return {
+    id: i + 1,
+    detenuId: d.id,
+    detenuNom: d.nom,
+    numeroEcrou: d.numeroEcrou,
+    dateDepart: jour(dateDepart),
+    structureDestination: piocher(["Hôpital Central de Yaoundé", "Hôpital Gynéco-Obstétrique", "Hôpital Militaire"]),
+    motif: piocher(["Douleurs abdominales aiguës", "Consultation spécialisée", "Radiographie", "Malaise"]),
+    escorte: parfois(0.7) ? "Brigadier " + piocher(NOMS).split(" ")[0] : null,
+    observationsDepart: null,
+    dateRetour: enCours ? null : jour(dateDepart + entre(1, 5)),
+    observationsRetour: enCours ? null : "Sortie autorisée par le médecin traitant.",
+  } satisfies EvacuationSanitaire;
 });
 
 // ---------------------------------------------------------------------------
