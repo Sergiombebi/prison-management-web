@@ -242,6 +242,224 @@
   --sgp-connexion-filet: rgb(255 255 255 / 0.22);
 }
 
+/* ============================================================================
+   Palettes — le violet ci-dessus reste le thème par défaut (aucun attribut
+   `data-palette`, ou `data-palette="violet"`). Chaque palette ne touche que les
+   surfaces, le texte, l'accent et les ombres : les couleurs de signal
+   (succès/alerte/danger/info) restent identiques partout, ce sont des couleurs
+   fonctionnelles, pas de marque. `--sgp-viz-1` suit l'accent, comme pour le violet.
+   ========================================================================= */
+
+/* --- Bleu ciel — clair --- */
+:root[data-palette="bleu-ciel"] {
+  --sgp-canvas: #f5fafd;
+  --sgp-surface: #ffffff;
+  --sgp-raised: #fafdff;
+  --sgp-sunken: #eaf4fa;
+  --sgp-inverse: #0c3a57;
+
+  --sgp-hairline: #e1eef6;
+  --sgp-rule: #d2e6f0;
+  --sgp-rule-strong: #a9c9db;
+
+  --sgp-ink: #0f2a3d;
+  --sgp-ink-muted: #51707f;
+  --sgp-ink-faint: #84a0ac;
+  --sgp-ink-inverse: #ffffff;
+
+  --sgp-accent: #0f8fe0;
+  --sgp-accent-hover: #0c76bd;
+  --sgp-accent-soft: #e2f2fc;
+  --sgp-accent-ink: #0a5a8f;
+
+  --sgp-focus: #0f8fe0;
+
+  --sgp-viz-1: #0f8fe0;
+  --sgp-viz-1-soft: #e2f2fc;
+
+  --shadow-1: 0 1px 2px -1px rgb(10 40 60 / 0.1), 0 1px 1px rgb(10 40 60 / 0.04);
+  --shadow-2: 0 2px 4px -2px rgb(10 40 60 / 0.08), 0 6px 16px -6px rgb(10 40 60 / 0.12);
+  --shadow-3: 0 4px 8px -4px rgb(10 40 60 / 0.08), 0 16px 32px -12px rgb(10 40 60 / 0.16);
+  --shadow-4: 0 8px 16px -8px rgb(10 40 60 / 0.1), 0 36px 64px -24px rgb(10 40 60 / 0.24);
+  --shadow-accent: 0 6px 20px -8px rgb(15 143 224 / 0.5);
+}
+
+/* --- Bleu ciel — sombre (manuel ou système) --- */
+@media (prefers-color-scheme: dark) {
+  :root[data-palette="bleu-ciel"]:not([data-theme="light"]) {
+    color-scheme: dark;
+    --sgp-canvas: #071824;
+    --sgp-surface: #0d2233;
+    --sgp-raised: #123044;
+    --sgp-sunken: #061520;
+    --sgp-inverse: #eaf6fd;
+
+    --sgp-hairline: #1b3a4e;
+    --sgp-rule: #254a61;
+    --sgp-rule-strong: #376280;
+
+    --sgp-ink: #e7f3fa;
+    --sgp-ink-muted: #9dc0d1;
+    --sgp-ink-faint: #6f92a3;
+    --sgp-ink-inverse: #0d2233;
+
+    --sgp-accent: #6fc3f5;
+    --sgp-accent-hover: #8fd1f8;
+    --sgp-accent-soft: #153347;
+    --sgp-accent-ink: #bfe4fa;
+
+    --sgp-focus: #6fc3f5;
+
+    --sgp-viz-1: #6fc3f5;
+    --sgp-viz-1-soft: #153347;
+
+    --shadow-1: 0 1px 2px rgb(0 0 0 / 0.5);
+    --shadow-2: 0 2px 6px rgb(0 0 0 / 0.5), 0 8px 20px -8px rgb(0 0 0 / 0.6);
+    --shadow-3: 0 6px 16px -6px rgb(0 0 0 / 0.55), 0 20px 40px -14px rgb(0 0 0 / 0.65);
+    --shadow-4: 0 12px 28px -10px rgb(0 0 0 / 0.6), 0 44px 76px -26px rgb(0 0 0 / 0.72);
+    --shadow-accent: 0 6px 22px -8px rgb(111 195 245 / 0.45);
+  }
+}
+
+:root[data-palette="bleu-ciel"][data-theme="dark"] {
+  color-scheme: dark;
+  --sgp-canvas: #071824;
+  --sgp-surface: #0d2233;
+  --sgp-raised: #123044;
+  --sgp-sunken: #061520;
+  --sgp-inverse: #eaf6fd;
+
+  --sgp-hairline: #1b3a4e;
+  --sgp-rule: #254a61;
+  --sgp-rule-strong: #376280;
+
+  --sgp-ink: #e7f3fa;
+  --sgp-ink-muted: #9dc0d1;
+  --sgp-ink-faint: #6f92a3;
+  --sgp-ink-inverse: #0d2233;
+
+  --sgp-accent: #6fc3f5;
+  --sgp-accent-hover: #8fd1f8;
+  --sgp-accent-soft: #153347;
+  --sgp-accent-ink: #bfe4fa;
+
+  --sgp-focus: #6fc3f5;
+
+  --sgp-viz-1: #6fc3f5;
+  --sgp-viz-1-soft: #153347;
+
+  --shadow-1: 0 1px 2px rgb(0 0 0 / 0.5);
+  --shadow-2: 0 2px 6px rgb(0 0 0 / 0.5), 0 8px 20px -8px rgb(0 0 0 / 0.6);
+  --shadow-3: 0 6px 16px -6px rgb(0 0 0 / 0.55), 0 20px 40px -14px rgb(0 0 0 / 0.65);
+  --shadow-4: 0 12px 28px -10px rgb(0 0 0 / 0.6), 0 44px 76px -26px rgb(0 0 0 / 0.72);
+  --shadow-accent: 0 6px 22px -8px rgb(111 195 245 / 0.45);
+}
+
+/* --- Marron clair mat — clair --- */
+:root[data-palette="marron-clair"] {
+  --sgp-canvas: #f8f5ef;
+  --sgp-surface: #fffdf9;
+  --sgp-raised: #fbf7ef;
+  --sgp-sunken: #f0ead9;
+  --sgp-inverse: #3a2c14;
+
+  --sgp-hairline: #e8e0cd;
+  --sgp-rule: #ddd2b8;
+  --sgp-rule-strong: #c1b28c;
+
+  --sgp-ink: #2c2314;
+  --sgp-ink-muted: #6b5f45;
+  --sgp-ink-faint: #9c9070;
+  --sgp-ink-inverse: #fffdf9;
+
+  --sgp-accent: #8a6d3a;
+  --sgp-accent-hover: #725a2e;
+  --sgp-accent-soft: #f1e7d2;
+  --sgp-accent-ink: #5c4823;
+
+  --sgp-focus: #8a6d3a;
+
+  --sgp-viz-1: #8a6d3a;
+  --sgp-viz-1-soft: #f1e7d2;
+
+  --shadow-1: 0 1px 2px -1px rgb(45 34 14 / 0.12), 0 1px 1px rgb(45 34 14 / 0.05);
+  --shadow-2: 0 2px 4px -2px rgb(45 34 14 / 0.1), 0 6px 16px -6px rgb(45 34 14 / 0.14);
+  --shadow-3: 0 4px 8px -4px rgb(45 34 14 / 0.1), 0 16px 32px -12px rgb(45 34 14 / 0.18);
+  --shadow-4: 0 8px 16px -8px rgb(45 34 14 / 0.12), 0 36px 64px -24px rgb(45 34 14 / 0.26);
+  --shadow-accent: 0 6px 20px -8px rgb(138 109 58 / 0.45);
+}
+
+/* --- Marron clair mat — sombre (manuel ou système) --- */
+@media (prefers-color-scheme: dark) {
+  :root[data-palette="marron-clair"]:not([data-theme="light"]) {
+    color-scheme: dark;
+    --sgp-canvas: #1a140a;
+    --sgp-surface: #251d10;
+    --sgp-raised: #2f2415;
+    --sgp-sunken: #150f07;
+    --sgp-inverse: #f5ecd9;
+
+    --sgp-hairline: #3a2e19;
+    --sgp-rule: #4a3b22;
+    --sgp-rule-strong: #63512f;
+
+    --sgp-ink: #f0e6d2;
+    --sgp-ink-muted: #c2b08a;
+    --sgp-ink-faint: #8f7f5f;
+    --sgp-ink-inverse: #251d10;
+
+    --sgp-accent: #d3ac6f;
+    --sgp-accent-hover: #e1c087;
+    --sgp-accent-soft: #3a2e15;
+    --sgp-accent-ink: #f0d9a8;
+
+    --sgp-focus: #d3ac6f;
+
+    --sgp-viz-1: #d3ac6f;
+    --sgp-viz-1-soft: #3a2e15;
+
+    --shadow-1: 0 1px 2px rgb(0 0 0 / 0.5);
+    --shadow-2: 0 2px 6px rgb(0 0 0 / 0.5), 0 8px 20px -8px rgb(0 0 0 / 0.6);
+    --shadow-3: 0 6px 16px -6px rgb(0 0 0 / 0.55), 0 20px 40px -14px rgb(0 0 0 / 0.65);
+    --shadow-4: 0 12px 28px -10px rgb(0 0 0 / 0.6), 0 44px 76px -26px rgb(0 0 0 / 0.72);
+    --shadow-accent: 0 6px 22px -8px rgb(211 172 111 / 0.4);
+  }
+}
+
+:root[data-palette="marron-clair"][data-theme="dark"] {
+  color-scheme: dark;
+  --sgp-canvas: #1a140a;
+  --sgp-surface: #251d10;
+  --sgp-raised: #2f2415;
+  --sgp-sunken: #150f07;
+  --sgp-inverse: #f5ecd9;
+
+  --sgp-hairline: #3a2e19;
+  --sgp-rule: #4a3b22;
+  --sgp-rule-strong: #63512f;
+
+  --sgp-ink: #f0e6d2;
+  --sgp-ink-muted: #c2b08a;
+  --sgp-ink-faint: #8f7f5f;
+  --sgp-ink-inverse: #251d10;
+
+  --sgp-accent: #d3ac6f;
+  --sgp-accent-hover: #e1c087;
+  --sgp-accent-soft: #3a2e15;
+  --sgp-accent-ink: #f0d9a8;
+
+  --sgp-focus: #d3ac6f;
+
+  --sgp-viz-1: #d3ac6f;
+  --sgp-viz-1-soft: #3a2e15;
+
+  --shadow-1: 0 1px 2px rgb(0 0 0 / 0.5);
+  --shadow-2: 0 2px 6px rgb(0 0 0 / 0.5), 0 8px 20px -8px rgb(0 0 0 / 0.6);
+  --shadow-3: 0 6px 16px -6px rgb(0 0 0 / 0.55), 0 20px 40px -14px rgb(0 0 0 / 0.65);
+  --shadow-4: 0 12px 28px -10px rgb(0 0 0 / 0.6), 0 44px 76px -26px rgb(0 0 0 / 0.72);
+  --shadow-accent: 0 6px 22px -8px rgb(211 172 111 / 0.4);
+}
+
 @theme inline {
   --color-canvas: var(--sgp-canvas);
   --color-surface: var(--sgp-surface);

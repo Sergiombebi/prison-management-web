@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { SCRIPT_THEME } from "@/components/layout/theme-toggle";
+import { SCRIPT_PALETTE, SCRIPT_THEME } from "@/components/layout/theme-toggle";
 import { SCRIPT_VIEW_TRANSITION_GUARD } from "@/components/layout/view-transition-guard";
 import { ToastProvider } from "@/components/ui/toast";
 import { t } from "@/lib/i18n/fr";
@@ -42,6 +42,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <head>
         <script dangerouslySetInnerHTML={{ __html: SCRIPT_VIEW_TRANSITION_GUARD }} />
         <script dangerouslySetInnerHTML={{ __html: SCRIPT_THEME }} />
+        <script dangerouslySetInnerHTML={{ __html: SCRIPT_PALETTE }} />
       </head>
       <body className="min-h-full">
         <ToastProvider>{children}</ToastProvider>

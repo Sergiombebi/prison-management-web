@@ -20,7 +20,7 @@ import {
 import { pageDArrivee } from "@/lib/acces";
 import type { ProfilSession } from "@/lib/session";
 import { Icon, IconTile } from "@/components/ui/icon";
-import { ThemeToggle } from "./theme-toggle";
+import { PaletteToggle, ThemeToggle } from "./theme-toggle";
 import { CommandPalette } from "./command-palette";
 
 export function AppShell({
@@ -234,6 +234,10 @@ function Sidebar({
         <div className="mt-2 flex items-center justify-between px-1">
           <span className="text-2xs text-faint">{t.nav.theme}</span>
           <ThemeToggle />
+        </div>
+        <div className="mt-2 flex items-center justify-between px-1">
+          <span className="text-2xs text-faint">Palette</span>
+          <PaletteToggle />
         </div>
       </div>
     </aside>

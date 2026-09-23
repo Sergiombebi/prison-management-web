@@ -114,3 +114,102 @@ export function ThemeToggle({ className }: { className?: string }) {
     </div>
   );
 }
+
+// ---------------------------------------------------------------------------
+// Palette de couleur — un second réglage, indépendant du clair/sombre ci-dessus :
+// le choix (violet / bleu ciel / marron clair mat) fixe `--sgp-accent` et les
+// surfaces associées (voir globals.css), quel que soit le mode clair ou sombre.
+// ---------------------------------------------------------------------------
+
+type Palette = "violet" | "bleu-ciel" | "marron-clair";
+
+const CLE_PALETTE = "sgp-palette";
+
+const PALETTES: Array<{ valeur: Palette; label: string; teinte: string }> = [
+  { valeur: "violet", label: "Violet", teinte: "#6c3fed" },
+  { valeur: "bleu-ciel", label: "Bleu ciel", teinte: "#0f8fe0" },
+  { valeur: "marron-clair", label: "Marron clair mat", teinte: "#8a6d3a" },
+];
+
+const PALETTES_VALIDES = new Set<string>(PALETTES.map((p) => p.valeur));
+
+/** Script bloquant injecté dans <head> : fixe la palette avant la première peinture. */
+export const SCRIPT_PALETTE = `(function(){try{var c=localStorage.getItem('${CLE_PALETTE}');if(c&&c!=='violet'){document.documentElement.dataset.palette=c;}}catch(e){}})();`;
+
+const abonnesPalette = new Set<() => void>();
+
+function lirePalette(): Palette {
+  try {
+    const v = localStorage.getItem(CLE_PALETTE);
+    return v && PALETTES_VALIDES.has(v) ? (v as Palette) : "violet";
+  } catch {
+    return "violet";
+  }
+}
+
+function abonnerPalette(rappel: () => void) {
+  abonnesPalette.add(rappel);
+  window.addEventListener("storage", rappel);
+  return () => {
+    abonnesPalette.delete(rappel);
+    window.removeEventListener("storage", rappel);
+  };
+}
+
+function appliquerPalette(palette: Palette) {
+  // "violet" est la valeur par défaut : ne pas poser l'attribut évite un
+  // sélecteur CSS de plus à faire correspondre sur chaque page pour le cas courant.
+  if (palette === "violet") {
+    delete document.documentElement.dataset.palette;
+  } else {
+    document.documentElement.dataset.palette = palette;
+  }
+}
+
+export function PaletteToggle({ className }: { className?: string }) {
+  const palette = useSyncExternalStore(abonnerPalette, lirePalette, () => "violet" as Palette);
+
+  function choisir(valeur: Palette) {
+    try {
+      localStorage.setItem(CLE_PALETTE, valeur);
+    } catch {
+      /* stockage indisponible : la palette s'applique quand même pour la session */
+    }
+    abonnesPalette.forEach((rappel) => rappel());
+
+    const doc = document as Document & {
+      startViewTransition?: (cb: () => void) => { ready: Promise<void>; finished: Promise<void> };
+    };
+    if (doc.startViewTransition && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      const transition = doc.startViewTransition(() => appliquerPalette(valeur));
+      transition.ready.catch(() => {});
+      transition.finished.catch(() => {});
+    } else {
+      appliquerPalette(valeur);
+    }
+  }
+
+  return (
+    <div role="radiogroup" aria-label="Palette de couleur" className={cn("inline-flex items-center gap-1.5", className)}>
+      {PALETTES.map((p) => (
+        <button
+          key={p.valeur}
+          type="button"
+          role="radio"
+          aria-checked={palette === p.valeur}
+          title={p.label}
+          onClick={() => choisir(p.valeur)}
+          className={cn(
+            "grid size-6 shrink-0 place-items-center rounded-full border transition-[transform,box-shadow] duration-[var(--dur-fast)]",
+            palette === p.valeur
+              ? "scale-110 border-ink/70 shadow-e1"
+              : "border-hairline hover:scale-105",
+          )}
+          style={{ backgroundColor: p.teinte }}
+        >
+          <span className="sr-only">{p.label}</span>
+        </button>
+      ))}
+    </div>
+  );
+}

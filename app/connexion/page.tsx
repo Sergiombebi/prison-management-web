@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { modeDe } from "@/lib/api";
 import { t } from "@/lib/i18n/fr";
 import { param } from "@/lib/url";
-import { ThemeToggle } from "@/components/layout/theme-toggle";
+import { PaletteToggle, ThemeToggle } from "@/components/layout/theme-toggle";
 import { Armoiries } from "@/components/ui/armoiries";
 import { LoginForm, type AideConnexion } from "./login-form";
 
@@ -88,7 +88,10 @@ export default async function ConnexionPage(props: PageProps<"/connexion">) {
           </span>
         </div>
 
-        <ThemeToggle />
+        <div className="flex items-center gap-3">
+          <PaletteToggle />
+          <ThemeToggle />
+        </div>
       </header>
 
       <main className="relative z-10 flex flex-1 items-center justify-center px-5 py-8 sm:px-6">
