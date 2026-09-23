@@ -27,9 +27,14 @@ export function TicketVisite({ ticket, parametres }: { ticket: DonneesTicket; pa
   return (
     <article
       data-ticket
-      className="mx-auto w-full max-w-[78mm] rounded-md bg-white p-4 text-neutral-900 shadow-[0_12px_32px_-12px_rgba(0,0,0,0.18)] ring-1 ring-black/5 print:max-w-none print:rounded-none print:shadow-none print:ring-0"
+      className="mx-auto w-full max-w-[78mm] rounded-md bg-white p-4 text-neutral-900 shadow-[0_12px_32px_-12px_rgba(0,0,0,0.18)] ring-1 ring-black/5 print:rounded-none print:shadow-none print:ring-0"
       style={{ colorScheme: "light" }}
     >
+      {/* Page à la taille du ticket lui-même : sans ça, l'impression (ou le PDF
+          généré) part sur une feuille A4/Letter entière avec le ticket flottant
+          dans un coin. `auto` en hauteur laisse la page s'ajuster au contenu. */}
+      <style>{"@media print { @page { size: 80mm auto; margin: 0 } }"}</style>
+
       <header className="text-center">
         <p className="text-[8px] font-semibold uppercase leading-snug tracking-wide text-neutral-600">
           {parametres.nomPrison || "Établissement pénitentiaire"}
