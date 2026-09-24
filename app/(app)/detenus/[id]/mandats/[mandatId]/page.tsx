@@ -49,7 +49,7 @@ export default async function EvolutionMandatPage(
         }
       />
 
-      <MandatForm mandat={mandat} />
+      <MandatForm detenuId={mandat.detenuId} mandat={mandat} />
     </Page>
   );
 }

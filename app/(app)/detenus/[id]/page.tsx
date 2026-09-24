@@ -366,29 +366,40 @@ export default async function DossierDetenuPage(props: PageProps<"/detenus/[id]"
           </div>
         )}
 
-        {onglet === "mandats" &&
-          (dossier.mandats.length === 0 ? (
-            <Panel variante="eleve">
-              <EmptyState icone="file" titre="Aucun mandat" texte="Ce détenu n’a aucun titre de détention enregistré." />
-            </Panel>
-          ) : (
-            <div className="flex flex-col gap-4">
-              {d.categoriePenale && (
-                <p className="flex flex-wrap items-center gap-2 rounded-lg border border-hairline bg-surface px-4 py-3 text-sm text-muted shadow-e1">
-                  <Icon name="info" size={15} className="shrink-0 text-accent" />
-                  Catégorie retenue : <BadgeCategorie categorie={d.categoriePenale} />
-                  <span className="min-w-0">{REGLE_CATEGORIE[d.categoriePenale]}</span>
-                </p>
-              )}
-              <ol className="stagger flex flex-col gap-4">
-                {dossier.mandats.map((m, i) => (
-                  <li key={m.id} style={{ ["--i" as string]: i }}>
-                    <CarteMandat mandat={m} modifiable={present} />
-                  </li>
-                ))}
-              </ol>
-            </div>
-          ))}
+        {onglet === "mandats" && (
+          <div className="flex flex-col gap-4">
+            {present && (
+              <div className="flex justify-end">
+                <ButtonLink href={`/detenus/${d.id}/mandats/nouveau`} taille="sm" icone="plus" transitionTypes={["nav-forward"]}>
+                  Ajouter un mandat
+                </ButtonLink>
+              </div>
+            )}
+
+            {dossier.mandats.length === 0 ? (
+              <Panel variante="eleve">
+                <EmptyState icone="file" titre="Aucun mandat" texte="Ce détenu n’a aucun titre de détention enregistré." />
+              </Panel>
+            ) : (
+              <>
+                {d.categoriePenale && (
+                  <p className="flex flex-wrap items-center gap-2 rounded-lg border border-hairline bg-surface px-4 py-3 text-sm text-muted shadow-e1">
+                    <Icon name="info" size={15} className="shrink-0 text-accent" />
+                    Catégorie retenue : <BadgeCategorie categorie={d.categoriePenale} />
+                    <span className="min-w-0">{REGLE_CATEGORIE[d.categoriePenale]}</span>
+                  </p>
+                )}
+                <ol className="stagger flex flex-col gap-4">
+                  {dossier.mandats.map((m, i) => (
+                    <li key={m.id} style={{ ["--i" as string]: i }}>
+                      <CarteMandat mandat={m} modifiable={present} />
+                    </li>
+                  ))}
+                </ol>
+              </>
+            )}
+          </div>
+        )}
 
         {onglet === "detention" && (
           <div className="grid gap-4 xl:grid-cols-2">
