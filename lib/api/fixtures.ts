@@ -328,6 +328,28 @@ export const detenus: Detenu[] = NOMS.map((nom, i) => {
 
 let compteurMandat = 0;
 
+/**
+ * Date de sortie « active » d'un mandat, calculée exactement comme côté API (voir
+ * Mandas::getDateSortieEffectiveAttribute()) : jamais stockée, retombe sur l'étage
+ * précédent tant que l'étage suivant n'a pas sa propre date de sortie renseignée.
+ */
+function dateSortieEffectiveDe(
+  m: Pick<Mandas, "typeStatutPenal" | "dateSortieDetentionProvisoire" | "dateSortieExecutionPeine" | "dateSortieAppel" | "dateSortieCassation">,
+): string | null {
+  switch (m.typeStatutPenal) {
+    case "Détention provisoire":
+      return m.dateSortieDetentionProvisoire;
+    case "Exécution de peine":
+      return m.dateSortieExecutionPeine;
+    case "Appellant":
+      return m.dateSortieAppel ?? m.dateSortieExecutionPeine;
+    case "Cassationnaire":
+      return m.dateSortieCassation ?? m.dateSortieAppel ?? m.dateSortieExecutionPeine;
+    default:
+      return null;
+  }
+}
+
 export const mandats: Mandas[] = detenus.flatMap((d) => {
   // La plupart des détenus ont un seul mandat ; certains en cumulent, ce qui crée
   // les cas DPAC.
@@ -355,6 +377,16 @@ export const mandats: Mandas[] = detenus.flatMap((d) => {
     const estAppel = statut === "Appellant";
     const estCassation = statut === "Cassationnaire";
 
+    const decisionAppelPiochee = estAppel
+      ? piocher(["Appel en cours d'examen", "Audience renvoyée", "Mise en délibéré"])
+      : estCassation
+        ? "Confirmation du jugement de première instance"
+        : null;
+    // Seule une décision d'appel effectivement rendue (le cas de la cassation, ici)
+    // porte sa propre date de sortie : les libellés « en cours »/« renvoyée » du cas
+    // Appellant montrent volontairement la cascade retombant sur l'exécution de peine.
+    const appelTranche = decisionAppelPiochee === "Confirmation du jugement de première instance";
+
     return {
       id: compteurMandat,
       detenuId: d.id,
@@ -370,6 +402,8 @@ export const mandats: Mandas[] = detenus.flatMap((d) => {
       referenceMandat: `${entre(100, 999)}/MD/${new Date(jour(incarceration)).getFullYear()}/TPI`,
       dateSignatureMandat: jour(incarceration - entre(1, 12)),
       dateSortieMandat: jour(expiration),
+      dateSortieDetentionProvisoire:
+        statut === "Détention provisoire" && parfois(0.15) ? jour(incarceration + entre(30, 180)) : null,
       observationsStatut: parfois(0.25) ? "Dossier transmis au parquet." : null,
       objetsPersonnels: parfois(0.6)
         ? piocher([
@@ -392,22 +426,24 @@ export const mandats: Mandas[] = detenus.flatMap((d) => {
         : estAppel || estCassation
           ? `${entre(12, 240)} mois d'emprisonnement`
           : null,
+      dateSortieExecutionPeine: estExecution || estAppel || estCassation ? jour(incarceration + entre(400, 2000)) : null,
 
       dateAppel: estAppel || estCassation ? jour(incarceration + entre(190, 320)) : null,
       tribunalAppel: estAppel || estCassation ? "Cour d'Appel du Centre" : null,
-      decisionAppel: estAppel
-        ? piocher(["Appel en cours d'examen", "Audience renvoyée", "Mise en délibéré"])
-        : estCassation
-          ? "Confirmation du jugement de première instance"
-          : null,
+      decisionAppel: decisionAppelPiochee,
+      dateSortieAppel: appelTranche ? jour(incarceration + entre(400, 2000)) : null,
       observationsAppel: null,
 
       dateCassation: estCassation ? jour(incarceration + entre(330, 480)) : null,
       tribunalCassation: estCassation ? "Cour Suprême" : null,
+      // Toujours « en attente » dans les fixtures : montre la cascade retombant sur
+      // la date de sortie d'appel tant que le pourvoi n'est pas tranché.
       decisionCassation: estCassation ? "Pourvoi enrôlé, en attente d'audience" : null,
+      dateSortieCassation: null,
       observationsCassation: null,
+      dateSortieEffective: null,
     } satisfies Mandas;
-  });
+  }).map((m) => ({ ...m, dateSortieEffective: dateSortieEffectiveDe(m) }));
 });
 
 // ---------------------------------------------------------------------------

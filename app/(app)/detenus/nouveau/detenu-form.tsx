@@ -65,6 +65,19 @@ function age(dateIso: string): number | null {
 }
 
 /**
+ * Date d'expiration du mandat : toujours signature + 6 mois, jamais saisie à la
+ * main (voir StoreMandasRequest::prepareForValidation() côté API, qui recalcule
+ * de toute façon la valeur envoyée — l'affichage ici n'est qu'un aperçu immédiat).
+ */
+function ajouterMois(dateIso: string, mois: number): string {
+  if (!dateIso) return "";
+  const d = new Date(dateIso);
+  if (Number.isNaN(d.getTime())) return "";
+  d.setMonth(d.getMonth() + mois);
+  return d.toISOString().slice(0, 10);
+}
+
+/**
  * Fiche d'enregistrement d'un détenu entrant.
  *
  * - Les noms des champs sont ceux de l'API : une erreur 422 se replace donc
@@ -93,8 +106,7 @@ export function DetenuForm({ edition }: { edition?: EditionDetenu } = {}) {
   const [dateNaissance, setDateNaissance] = useState(edition?.initial.date_naissance ?? "");
   const [statutPenal, setStatutPenal] = useState("");
   const [dateIncarceration, setDateIncarceration] = useState("");
-  const [dateExpiration, setDateExpiration] = useState("");
-  const [erreurExpiration, setErreurExpiration] = useState<string>();
+  const [dateSignature, setDateSignature] = useState("");
 
   // Vérification à la volée de l'écrou/CNI, au blur du champ — sans attendre que le
   // reste de la fiche soit rempli. Le contrôle à la soumission reste le filet réel.
@@ -122,7 +134,9 @@ export function DetenuForm({ edition }: { edition?: EditionDetenu } = {}) {
 
   const ageCalcule = age(dateNaissance);
   const avecJugement = ["Exécution de peine", "Appellant", "Cassationnaire"].includes(statutPenal);
-  const avecAppel = statutPenal === "Appellant";
+  // Un cassationnaire est nécessairement passé par l'appel : le formulaire garde
+  // donc la rubrique Appel ouverte en plus de la Cassation, pas à sa place.
+  const avecAppel = statutPenal === "Appellant" || statutPenal === "Cassationnaire";
   const avecCassation = statutPenal === "Cassationnaire";
 
   /**
@@ -159,13 +173,7 @@ export function DetenuForm({ edition }: { edition?: EditionDetenu } = {}) {
     return () => window.removeEventListener("beforeunload", avertir);
   }, [modifie, etat.ok]);
 
-  function verifierExpiration(inc = dateIncarceration, exp = dateExpiration) {
-    if (inc && exp && new Date(exp) <= new Date(inc)) {
-      setErreurExpiration("La date d’expiration doit être postérieure à la date d’incarcération.");
-    } else {
-      setErreurExpiration(undefined);
-    }
-  }
+  const dateExpirationCalculee = ajouterMois(dateSignature || v("date_signature_mandat") || "", 6);
 
   // --- Enregistrement réussi : on ne réaffiche pas les quarante champs
   if (etat.ok) {
@@ -537,7 +545,6 @@ export function DetenuForm({ edition }: { edition?: EditionDetenu } = {}) {
                 name="date_incarceration"
                 value={dateIncarceration || v("date_incarceration") || ""}
                 onChange={(e) => setDateIncarceration(e.target.value)}
-                onBlur={() => verifierExpiration()}
               />
             )}
           </Field>
@@ -557,20 +564,38 @@ export function DetenuForm({ edition }: { edition?: EditionDetenu } = {}) {
             {(p) => <Input {...p} name="autorite_signataire" defaultValue={v("autorite_signataire") ?? "Procureur de la République"} />}
           </Field>
           <Field label="Date de signature" requis erreur={err("date_signature_mandat")}>
-            {(p) => <Input {...p} type="date" name="date_signature_mandat" defaultValue={v("date_signature_mandat")} />}
+            {(p) => (
+              <Input
+                {...p}
+                type="date"
+                name="date_signature_mandat"
+                value={dateSignature || v("date_signature_mandat") || ""}
+                onChange={(e) => setDateSignature(e.target.value)}
+              />
+            )}
           </Field>
-          <Field label="Date d’expiration" requis erreur={erreurExpiration ?? err("date_expiration_mandat")}>
+          <Field
+            label="Date d’expiration"
+            aide="Calculée automatiquement (signature + 6 mois) : sert d’alerte « mandats expirés », pas de date de sortie."
+            erreur={err("date_expiration_mandat")}
+          >
             {(p) => (
               <Input
                 {...p}
                 type="date"
                 name="date_expiration_mandat"
-                value={dateExpiration || v("date_expiration_mandat") || ""}
-                min={dateIncarceration || undefined}
-                onChange={(e) => setDateExpiration(e.target.value)}
-                onBlur={() => verifierExpiration()}
+                value={dateExpirationCalculee}
+                readOnly
+                className="cursor-not-allowed bg-sunken text-muted"
               />
             )}
+          </Field>
+          <Field
+            label="Date de sortie"
+            aide="Facultative : sortie d’un prévenu qui n’ira pas jusqu’au jugement (relaxe, non-lieu…)."
+            erreur={err("date_sortie_detention_provisoire")}
+          >
+            {(p) => <Input {...p} type="date" name="date_sortie_detention_provisoire" defaultValue={v("date_sortie_detention_provisoire")} />}
           </Field>
           <Pleine>
             <Field label="Motif de détention" requis erreur={err("motif_detention")}>
@@ -646,6 +671,13 @@ export function DetenuForm({ edition }: { edition?: EditionDetenu } = {}) {
                 {(p) => <Textarea {...p} name="peine_prononcee" rows={2} defaultValue={v("peine_prononcee")} disabled={!avecJugement} />}
               </Field>
             </Pleine>
+            <Field
+              label="Date de sortie"
+              aide="Facultative : sortie du condamné une fois sa peine purgée."
+              erreur={err("date_sortie_execution_peine")}
+            >
+              {(p) => <Input {...p} type="date" name="date_sortie_execution_peine" defaultValue={v("date_sortie_execution_peine")} disabled={!avecJugement} />}
+            </Field>
           </Rubrique>
 
           <Rubrique ouverte={avecAppel} titre="Appel">
@@ -655,11 +687,22 @@ export function DetenuForm({ edition }: { edition?: EditionDetenu } = {}) {
             <Field label="Juridiction d’appel" requis={avecAppel} erreur={err("tribunal_appel")}>
               {(p) => <Input {...p} name="tribunal_appel" defaultValue={v("tribunal_appel") ?? "Cour d’Appel du Centre"} disabled={!avecAppel} />}
             </Field>
-            <Pleine>
-              <Field label="Décision en appel" requis={avecAppel} erreur={err("decision_appel")}>
-                {(p) => <Input {...p} name="decision_appel" defaultValue={v("decision_appel")} disabled={!avecAppel} />}
-              </Field>
-            </Pleine>
+            <Field
+              label="Décision en appel"
+              requis={avecCassation}
+              aide={avecAppel && !avecCassation ? "Facultative tant que la décision n’est pas tombée." : undefined}
+              erreur={err("decision_appel")}
+            >
+              {(p) => <Input {...p} name="decision_appel" defaultValue={v("decision_appel")} disabled={!avecAppel} />}
+            </Field>
+            <Field
+              label="Date de sortie"
+              requis={avecCassation}
+              aide="Devient la date de sortie active une fois la décision d’appel connue."
+              erreur={err("date_sortie_appel")}
+            >
+              {(p) => <Input {...p} type="date" name="date_sortie_appel" defaultValue={v("date_sortie_appel")} disabled={!avecAppel} />}
+            </Field>
           </Rubrique>
 
           <Rubrique ouverte={avecCassation} titre="Cassation">
@@ -669,11 +712,20 @@ export function DetenuForm({ edition }: { edition?: EditionDetenu } = {}) {
             <Field label="Juridiction" requis={avecCassation} erreur={err("tribunal_cassation")}>
               {(p) => <Input {...p} name="tribunal_cassation" defaultValue={v("tribunal_cassation") ?? "Cour Suprême"} disabled={!avecCassation} />}
             </Field>
-            <Pleine>
-              <Field label="Décision de cassation" requis={avecCassation} erreur={err("decision_cassation")}>
-                {(p) => <Input {...p} name="decision_cassation" defaultValue={v("decision_cassation")} disabled={!avecCassation} />}
-              </Field>
-            </Pleine>
+            <Field
+              label="Décision de cassation"
+              aide="Facultative : renseignée une fois la décision tombée."
+              erreur={err("decision_cassation")}
+            >
+              {(p) => <Input {...p} name="decision_cassation" defaultValue={v("decision_cassation")} disabled={!avecCassation} />}
+            </Field>
+            <Field
+              label="Date de sortie"
+              aide="Devient la date de sortie active une fois la décision de cassation connue."
+              erreur={err("date_sortie_cassation")}
+            >
+              {(p) => <Input {...p} type="date" name="date_sortie_cassation" defaultValue={v("date_sortie_cassation")} disabled={!avecCassation} />}
+            </Field>
           </Rubrique>
 
           <Pleine>

@@ -172,7 +172,10 @@ export interface EntreeMandat {
   typeMandat: string;
   referenceMandat: string;
   dateSignatureMandat: string;
-  dateExpirationMandat: string;
+  /** Calculée par le serveur (signature + 6 mois) : envoyée à titre indicatif seulement, jamais retenue telle quelle. */
+  dateExpirationMandat?: string | null;
+  /** Date de sortie effective d'un prévenu qui n'ira pas jusqu'au jugement. */
+  dateSortieDetentionProvisoire?: string | null;
 
   objetsPersonnels?: string | null;
   autoritePenitentiaire?: string | null;
@@ -184,15 +187,18 @@ export interface EntreeMandat {
   tribunalJugement?: string | null;
   motifJugement?: string | null;
   peinePrononcee?: string | null;
+  dateSortieExecutionPeine?: string | null;
 
   dateAppel?: string | null;
   tribunalAppel?: string | null;
   decisionAppel?: string | null;
+  dateSortieAppel?: string | null;
   observationsAppel?: string | null;
 
   dateCassation?: string | null;
   tribunalCassation?: string | null;
   decisionCassation?: string | null;
+  dateSortieCassation?: string | null;
   observationsCassation?: string | null;
 }
 

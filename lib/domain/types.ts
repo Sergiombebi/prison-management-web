@@ -136,8 +136,15 @@ export interface Mandas {
   typeMandat: string | null;
   referenceMandat: string | null;
   dateSignatureMandat: string | null;
-  /** Colonne `DateExpirationMandat` en base — renommée côté domaine. */
+  /**
+   * Colonne `DateExpirationMandat` en base — renommée côté domaine. Calculée par
+   * le serveur (signature + 6 mois), non modifiable : sert uniquement d'alerte
+   * « mandats expirés », ce n'est PAS la date de sortie réelle du détenu — voir
+   * `dateSortieEffective` pour celle-ci.
+   */
   dateSortieMandat: string | null;
+  /** Date de sortie effective d'un prévenu qui n'ira pas jusqu'au jugement (relaxe, non-lieu…). */
+  dateSortieDetentionProvisoire: string | null;
   observationsStatut: string | null;
   objetsPersonnels: string | null;
   autoritePenitentiaire: string | null;
@@ -150,18 +157,32 @@ export interface Mandas {
   tribunalJugement: string | null;
   motifJugement: string | null;
   peinePrononcee: string | null;
+  /** Date de sortie d'un condamné en exécution de peine. */
+  dateSortieExecutionPeine: string | null;
 
   // Appel
   dateAppel: string | null;
   tribunalAppel: string | null;
   decisionAppel: string | null;
+  /** Date de sortie une fois la décision d'appel connue. */
+  dateSortieAppel: string | null;
   observationsAppel: string | null;
 
   // Cassation
   dateCassation: string | null;
   tribunalCassation: string | null;
   decisionCassation: string | null;
+  /** Date de sortie une fois la décision de cassation connue. */
+  dateSortieCassation: string | null;
   observationsCassation: string | null;
+
+  /**
+   * Date de sortie « active » du détenu sur ce mandat, calculée par le serveur à
+   * chaque lecture (jamais stockée) : elle suit la cascade détention provisoire →
+   * exécution de peine → appel → cassation, en retombant sur l'étage précédent
+   * tant que l'étage suivant n'a pas sa propre date de sortie renseignée.
+   */
+  dateSortieEffective: string | null;
 }
 
 export interface Cellule {

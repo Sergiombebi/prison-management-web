@@ -66,7 +66,10 @@ export function construireMandat(f: FormData): EntreeMandat {
     typeMandat: texte(f, "type_mandat"),
     referenceMandat: texte(f, "reference_mandat"),
     dateSignatureMandat: texte(f, "date_signature_mandat"),
-    dateExpirationMandat: texte(f, "date_expiration_mandat"),
+    // Calculée côté serveur (signature + 6 mois) : le champ est en lecture seule
+    // dans les formulaires, sa valeur n'est envoyée qu'à titre indicatif.
+    dateExpirationMandat: optionnel(f, "date_expiration_mandat"),
+    dateSortieDetentionProvisoire: optionnel(f, "date_sortie_detention_provisoire"),
     objetsPersonnels: optionnel(f, "objets_personnels"),
     autoritePenitentiaire: optionnel(f, "autorite_penitentiaire"),
     etatPhysiqueArrivee: optionnel(f, "etat_physique_arrivee"),
@@ -76,13 +79,16 @@ export function construireMandat(f: FormData): EntreeMandat {
     tribunalJugement: optionnel(f, "tribunal_jugement"),
     motifJugement: optionnel(f, "motif_jugement"),
     peinePrononcee: optionnel(f, "peine_prononcee"),
+    dateSortieExecutionPeine: optionnel(f, "date_sortie_execution_peine"),
     dateAppel: optionnel(f, "date_appel"),
     tribunalAppel: optionnel(f, "tribunal_appel"),
     decisionAppel: optionnel(f, "decision_appel"),
+    dateSortieAppel: optionnel(f, "date_sortie_appel"),
     observationsAppel: optionnel(f, "observations_appel"),
     dateCassation: optionnel(f, "date_cassation"),
     tribunalCassation: optionnel(f, "tribunal_cassation"),
     decisionCassation: optionnel(f, "decision_cassation"),
+    dateSortieCassation: optionnel(f, "date_sortie_cassation"),
     observationsCassation: optionnel(f, "observations_cassation"),
   };
 }

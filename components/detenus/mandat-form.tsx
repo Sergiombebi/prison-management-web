@@ -34,17 +34,31 @@ const EFFET: Record<string, string> = {
  * Mêmes rubriques conditionnelles que la fiche d'enregistrement : le statut pénal
  * choisi commande les champs devenus obligatoires.
  */
+/** Date d'expiration du mandat : toujours signature + 6 mois, jamais saisie à la main. */
+function ajouterMois(dateIso: string, mois: number): string {
+  if (!dateIso) return "";
+  const d = new Date(dateIso);
+  if (Number.isNaN(d.getTime())) return "";
+  d.setMonth(d.getMonth() + mois);
+  return d.toISOString().slice(0, 10);
+}
+
 export function MandatForm({ mandat }: { mandat: MandatDetaille }) {
   const [etat, action, enCours] = useActionState<EtatMandat, FormData>(faireEvoluerMandat, {});
   const [statutPenal, setStatutPenal] = useState(mandat.typeStatutPenal ?? "");
+  const [dateSignature, setDateSignature] = useState("");
 
   const avecJugement = ["Exécution de peine", "Appellant", "Cassationnaire"].includes(statutPenal);
-  const avecAppel = statutPenal === "Appellant";
+  // Un cassationnaire est nécessairement passé par l'appel : la rubrique Appel
+  // reste donc ouverte en plus de la Cassation, pas à sa place.
+  const avecAppel = statutPenal === "Appellant" || statutPenal === "Cassationnaire";
   const avecCassation = statutPenal === "Cassationnaire";
 
   const v = (champ: string, initial: string | null | undefined) =>
     etat.valeurs?.[champ] ?? initial ?? "";
   const err = (champ: string) => etat.erreurs?.[champ]?.[0];
+
+  const dateExpirationCalculee = ajouterMois(dateSignature || v("date_signature_mandat", mandat.dateSignatureMandat?.slice(0, 10)), 6);
 
   return (
     <form action={action} className="flex flex-col gap-4">
@@ -118,10 +132,45 @@ export function MandatForm({ mandat }: { mandat: MandatDetaille }) {
           {(p) => <Input {...p} name="autorite_signataire" defaultValue={v("autorite_signataire", mandat.autoriteSignataire)} />}
         </Field>
         <Field label="Date de signature" requis erreur={err("date_signature_mandat")}>
-          {(p) => <Input {...p} type="date" name="date_signature_mandat" defaultValue={v("date_signature_mandat", mandat.dateSignatureMandat?.slice(0, 10))} />}
+          {(p) => (
+            <Input
+              {...p}
+              type="date"
+              name="date_signature_mandat"
+              value={dateSignature || v("date_signature_mandat", mandat.dateSignatureMandat?.slice(0, 10))}
+              onChange={(e) => setDateSignature(e.target.value)}
+            />
+          )}
         </Field>
-        <Field label="Date d’expiration" requis erreur={err("date_expiration_mandat")}>
-          {(p) => <Input {...p} type="date" name="date_expiration_mandat" defaultValue={v("date_expiration_mandat", mandat.dateSortieMandat?.slice(0, 10))} />}
+        <Field
+          label="Date d’expiration"
+          aide="Calculée automatiquement (signature + 6 mois) : sert d’alerte « mandats expirés », pas de date de sortie."
+          erreur={err("date_expiration_mandat")}
+        >
+          {(p) => (
+            <Input
+              {...p}
+              type="date"
+              name="date_expiration_mandat"
+              value={dateExpirationCalculee}
+              readOnly
+              className="cursor-not-allowed bg-sunken text-muted"
+            />
+          )}
+        </Field>
+        <Field
+          label="Date de sortie"
+          aide="Facultative : sortie d’un prévenu qui n’ira pas jusqu’au jugement (relaxe, non-lieu…)."
+          erreur={err("date_sortie_detention_provisoire")}
+        >
+          {(p) => (
+            <Input
+              {...p}
+              type="date"
+              name="date_sortie_detention_provisoire"
+              defaultValue={v("date_sortie_detention_provisoire", mandat.dateSortieDetentionProvisoire?.slice(0, 10))}
+            />
+          )}
         </Field>
         <Pleine>
           <Field label="Motif de détention" requis erreur={err("motif_detention")}>
@@ -174,6 +223,21 @@ export function MandatForm({ mandat }: { mandat: MandatDetaille }) {
               {(p) => <Textarea {...p} name="peine_prononcee" rows={2} defaultValue={v("peine_prononcee", mandat.peinePrononcee)} disabled={!avecJugement} />}
             </Field>
           </Pleine>
+          <Field
+            label="Date de sortie"
+            aide="Facultative : sortie du condamné une fois sa peine purgée."
+            erreur={err("date_sortie_execution_peine")}
+          >
+            {(p) => (
+              <Input
+                {...p}
+                type="date"
+                name="date_sortie_execution_peine"
+                defaultValue={v("date_sortie_execution_peine", mandat.dateSortieExecutionPeine?.slice(0, 10))}
+                disabled={!avecJugement}
+              />
+            )}
+          </Field>
         </Rubrique>
 
         <Rubrique ouverte={avecAppel} titre="Appel">
@@ -183,11 +247,30 @@ export function MandatForm({ mandat }: { mandat: MandatDetaille }) {
           <Field label="Juridiction d’appel" requis={avecAppel} erreur={err("tribunal_appel")}>
             {(p) => <Input {...p} name="tribunal_appel" defaultValue={v("tribunal_appel", mandat.tribunalAppel ?? "Cour d’Appel du Centre")} disabled={!avecAppel} />}
           </Field>
-          <Pleine>
-            <Field label="Décision en appel" requis={avecAppel} erreur={err("decision_appel")}>
-              {(p) => <Input {...p} name="decision_appel" defaultValue={v("decision_appel", mandat.decisionAppel)} disabled={!avecAppel} />}
-            </Field>
-          </Pleine>
+          <Field
+            label="Décision en appel"
+            requis={avecCassation}
+            aide={avecAppel && !avecCassation ? "Facultative tant que la décision n’est pas tombée." : undefined}
+            erreur={err("decision_appel")}
+          >
+            {(p) => <Input {...p} name="decision_appel" defaultValue={v("decision_appel", mandat.decisionAppel)} disabled={!avecAppel} />}
+          </Field>
+          <Field
+            label="Date de sortie"
+            requis={avecCassation}
+            aide="Devient la date de sortie active une fois la décision d’appel connue."
+            erreur={err("date_sortie_appel")}
+          >
+            {(p) => (
+              <Input
+                {...p}
+                type="date"
+                name="date_sortie_appel"
+                defaultValue={v("date_sortie_appel", mandat.dateSortieAppel?.slice(0, 10))}
+                disabled={!avecAppel}
+              />
+            )}
+          </Field>
         </Rubrique>
 
         <Rubrique ouverte={avecCassation} titre="Cassation">
@@ -197,11 +280,28 @@ export function MandatForm({ mandat }: { mandat: MandatDetaille }) {
           <Field label="Juridiction" requis={avecCassation} erreur={err("tribunal_cassation")}>
             {(p) => <Input {...p} name="tribunal_cassation" defaultValue={v("tribunal_cassation", mandat.tribunalCassation ?? "Cour Suprême")} disabled={!avecCassation} />}
           </Field>
-          <Pleine>
-            <Field label="Décision de cassation" requis={avecCassation} erreur={err("decision_cassation")}>
-              {(p) => <Input {...p} name="decision_cassation" defaultValue={v("decision_cassation", mandat.decisionCassation)} disabled={!avecCassation} />}
-            </Field>
-          </Pleine>
+          <Field
+            label="Décision de cassation"
+            aide="Facultative : renseignée une fois la décision tombée."
+            erreur={err("decision_cassation")}
+          >
+            {(p) => <Input {...p} name="decision_cassation" defaultValue={v("decision_cassation", mandat.decisionCassation)} disabled={!avecCassation} />}
+          </Field>
+          <Field
+            label="Date de sortie"
+            aide="Devient la date de sortie active une fois la décision de cassation connue."
+            erreur={err("date_sortie_cassation")}
+          >
+            {(p) => (
+              <Input
+                {...p}
+                type="date"
+                name="date_sortie_cassation"
+                defaultValue={v("date_sortie_cassation", mandat.dateSortieCassation?.slice(0, 10))}
+                disabled={!avecCassation}
+              />
+            )}
+          </Field>
         </Rubrique>
 
         <Pleine>

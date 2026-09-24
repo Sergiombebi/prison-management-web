@@ -310,6 +310,7 @@ export interface MandasApi {
   reference_mandat: string | null;
   date_signature_mandat: string | null;
   date_expiration_mandat: string | null;
+  date_sortie_detention_provisoire: string | null;
   observations_statut: string | null;
   objets_personnels: string | null;
   autorite_penitentiaire: string | null;
@@ -319,14 +320,18 @@ export interface MandasApi {
   tribunal_jugement: string | null;
   motif_jugement: string | null;
   peine_prononcee: string | null;
+  date_sortie_execution_peine: string | null;
   date_appel: string | null;
   tribunal_appel: string | null;
   decision_appel: string | null;
+  date_sortie_appel: string | null;
   observations_appel: string | null;
   date_cassation: string | null;
   tribunal_cassation: string | null;
   decision_cassation: string | null;
+  date_sortie_cassation: string | null;
   observations_cassation: string | null;
+  date_sortie_effective: string | null;
   est_actif: boolean;
 }
 
@@ -821,6 +826,7 @@ export function versMandas(m: MandasApi): Mandas {
     referenceMandat: m.reference_mandat,
     dateSignatureMandat: m.date_signature_mandat,
     dateSortieMandat: m.date_expiration_mandat,
+    dateSortieDetentionProvisoire: m.date_sortie_detention_provisoire,
     observationsStatut: m.observations_statut,
     objetsPersonnels: m.objets_personnels,
     autoritePenitentiaire: m.autorite_penitentiaire,
@@ -831,14 +837,18 @@ export function versMandas(m: MandasApi): Mandas {
     tribunalJugement: m.tribunal_jugement,
     motifJugement: m.motif_jugement,
     peinePrononcee: m.peine_prononcee,
+    dateSortieExecutionPeine: m.date_sortie_execution_peine,
     dateAppel: m.date_appel,
     tribunalAppel: m.tribunal_appel,
     decisionAppel: m.decision_appel,
+    dateSortieAppel: m.date_sortie_appel,
     observationsAppel: m.observations_appel,
     dateCassation: m.date_cassation,
     tribunalCassation: m.tribunal_cassation,
     decisionCassation: m.decision_cassation,
+    dateSortieCassation: m.date_sortie_cassation,
     observationsCassation: m.observations_cassation,
+    dateSortieEffective: m.date_sortie_effective,
   };
 }
 
@@ -1070,7 +1080,9 @@ export function versCorpsMandat(e: EntreeMandat): Record<string, unknown> {
     type_mandat: e.typeMandat,
     reference_mandat: e.referenceMandat,
     date_signature_mandat: e.dateSignatureMandat,
+    // Calculée côté serveur (signature + 6 mois) : envoyée à titre indicatif, jamais retenue telle quelle.
     date_expiration_mandat: e.dateExpirationMandat,
+    date_sortie_detention_provisoire: e.dateSortieDetentionProvisoire,
     objets_personnels: e.objetsPersonnels,
     autorite_penitentiaire: e.autoritePenitentiaire,
     etat_physique_arrivee: e.etatPhysiqueArrivee,
@@ -1080,13 +1092,16 @@ export function versCorpsMandat(e: EntreeMandat): Record<string, unknown> {
     tribunal_jugement: e.tribunalJugement,
     motif_jugement: e.motifJugement,
     peine_prononcee: e.peinePrononcee,
+    date_sortie_execution_peine: e.dateSortieExecutionPeine,
     date_appel: e.dateAppel,
     tribunal_appel: e.tribunalAppel,
     decision_appel: e.decisionAppel,
+    date_sortie_appel: e.dateSortieAppel,
     observations_appel: e.observationsAppel,
     date_cassation: e.dateCassation,
     tribunal_cassation: e.tribunalCassation,
     decision_cassation: e.decisionCassation,
+    date_sortie_cassation: e.dateSortieCassation,
     observations_cassation: e.observationsCassation,
   };
   return sansVides(corps);

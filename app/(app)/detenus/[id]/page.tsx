@@ -790,7 +790,8 @@ function CarteMandat({ mandat: m, modifiable }: { mandat: MandatDetaille; modifi
       </ol>
       <dl className="mt-5 grid gap-x-6 gap-y-3 border-t border-hairline pt-4 text-sm sm:grid-cols-3">
         <DataPair label="Signé le">{formatDate(m.dateSignatureMandat)}</DataPair>
-        <DataPair label="Expire le">{formatDate(m.dateSortieMandat)}</DataPair>
+        <DataPair label="Expiration (alerte)">{formatDate(m.dateSortieMandat)}</DataPair>
+        <DataPair label="Date de sortie">{ouVide(m.dateSortieEffective && formatDate(m.dateSortieEffective))}</DataPair>
         <DataPair label="Autorité pénitentiaire">{ouVide(m.autoritePenitentiaire)}</DataPair>
         <DataPair label="État physique à l’arrivée">{ouVide(m.etatPhysiqueArrivee)}</DataPair>
         <DataPair label="Objets personnels" className="sm:col-span-2">
