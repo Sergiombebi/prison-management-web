@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import type { DetenuResume } from "@/lib/domain/types";
+import type { DetenuOption } from "@/lib/domain/types";
 import { enregistrerEvacuation, type EtatEvacuation } from "@/app/(app)/sante/evacuations/actions";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
@@ -14,7 +14,7 @@ export function FormulaireEvacuation({
   detenus,
   detenuInitial,
 }: {
-  detenus: DetenuResume[];
+  detenus: DetenuOption[];
   detenuInitial?: number;
 }) {
   const [etat, envoyer, enCours] = useActionState<EtatEvacuation, FormData>(enregistrerEvacuation, {});

@@ -32,7 +32,7 @@ export default async function SanctionsPage(props: PageProps<"/discipline/sancti
     // registre. Un manque doit rester local au bloc qui s'en sert.
     optionnel(() => api.listTypesSanction(), []),
     optionnel(() => api.listCellules(), []),
-    optionnel(() => api.listDetenus({ parPage: 1000, tri: "nom" }), null),
+    optionnel(() => api.listOptionsDetenus(), null),
     getProfil(),
   ]);
 
@@ -155,7 +155,7 @@ export default async function SanctionsPage(props: PageProps<"/discipline/sancti
           <Panel variante="eleve" titre="Nouvelle sanction" className="xl:sticky xl:top-20">
             {detenus ? (
               <FormulaireSanction
-                detenus={detenus.items}
+                detenus={detenus}
                 types={types}
                 cellules={cellules}
                 detenuInitial={Number.isFinite(detenuInitial) ? detenuInitial : undefined}

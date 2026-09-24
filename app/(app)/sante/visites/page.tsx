@@ -23,7 +23,7 @@ export default async function VisitesPage(props: PageProps<"/sante/visites">) {
   const [visites, detenus, profil, parametres] = await Promise.all([
     api.listVisites(),
     // Domaine voisin (GET /detenus) : un droit manquant ne doit coûter que le sélecteur.
-    optionnel(() => api.listDetenus({ parPage: 1000, tri: "nom" }), null),
+    optionnel(() => api.listOptionsDetenus(), null),
     getProfil(),
     api.getParametres(),
   ]);
@@ -98,7 +98,7 @@ export default async function VisitesPage(props: PageProps<"/sante/visites">) {
             corpsClassName="xl:min-h-0 xl:flex-1 xl:overflow-y-auto"
           >
             {detenus ? (
-              <FormulaireVisite detenus={detenus.items} detenuInitial={detenuInitial} parametres={parametres} />
+              <FormulaireVisite detenus={detenus} detenuInitial={detenuInitial} parametres={parametres} />
             ) : (
               <SansDroit
                 compact

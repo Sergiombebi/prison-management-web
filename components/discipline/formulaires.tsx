@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import type { EtatAction } from "@/lib/api/actions";
-import type { Cellule, DetenuResume, TypeSanction } from "@/lib/domain/types";
+import type { Cellule, DetenuOption, DetenuResume, TypeSanction } from "@/lib/domain/types";
 import { pluriel } from "@/lib/format";
 import { affecterDetenu, creerCellule, prononcerSanction } from "@/app/(app)/discipline/actions";
 import { Button, ButtonLink } from "@/components/ui/button";
@@ -126,7 +126,7 @@ export function FormulaireAffectation({
   detenuInitial,
   celluleInitiale,
 }: {
-  detenus: DetenuResume[];
+  detenus: DetenuOption[];
   /** `null` : la source ne sait pas dire qui est logé — liste unique. */
   nonLoges: DetenuResume[] | null;
   cellules: Cellule[];
@@ -135,7 +135,7 @@ export function FormulaireAffectation({
 }) {
   const { etat, envoyer, enCours, v, err } = useFormulaire(affecterDetenu);
   const idsNonLoges = new Set(nonLoges?.map((d) => d.id));
-  const option = (d: DetenuResume) => (
+  const option = (d: DetenuOption | DetenuResume) => (
     <option key={d.id} value={d.id}>
       {d.nom} — {d.numeroEcrou}
       {d.cellule ? ` (actuellement ${libelleCellule(d.cellule)})` : ""}
@@ -208,7 +208,7 @@ export function FormulaireSanction({
   cellules,
   detenuInitial,
 }: {
-  detenus: DetenuResume[];
+  detenus: DetenuOption[];
   types: TypeSanction[];
   cellules: Cellule[];
   detenuInitial?: number;

@@ -114,7 +114,7 @@ export function AttestationOfficielle({
 
           <p className="mt-3 text-[13px] uppercase tracking-[0.25em] text-[#8a6d2f]">{parametres.nomPrison}</p>
 
-          <h2 className="mt-4 text-[clamp(24px,4.2vw,36px)] print:text-[34px] font-bold uppercase tracking-[0.12em] text-[#5b4514]">
+          <h2 className="mt-4 text-[clamp(24px,4.2vw,36px)] print:text-[34px] font-bold uppercase leading-tight tracking-[0.12em] text-[#5b4514]">
             Attestation de détention
           </h2>
           <div className="mt-3 flex items-center gap-3 text-[#8a6d2f]" aria-hidden>

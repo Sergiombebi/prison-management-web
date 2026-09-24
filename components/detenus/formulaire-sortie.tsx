@@ -3,7 +3,7 @@
 import { useActionState, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import type { MandatDetaille } from "@/lib/api";
-import type { DetenuResume, Parametres, TypeSortie } from "@/lib/domain/types";
+import type { DetenuOption, Parametres, TypeSortie } from "@/lib/domain/types";
 import { formatDate } from "@/lib/format";
 import type { EtatSortie } from "@/app/(app)/detenus/liberation/actions";
 import { Button } from "@/components/ui/button";
@@ -36,7 +36,7 @@ export function FormulaireSortie({
 }: {
   type: TypeSortie;
   action: (p: EtatSortie, f: FormData) => Promise<EtatSortie>;
-  detenus: DetenuResume[];
+  detenus: DetenuOption[];
   /** Détenu choisi dans l'URL — nécessaire pour proposer ses mandats. */
   detenuId?: number;
   /** Mandats non levés du détenu choisi, échus compris (libération normale uniquement). */

@@ -61,7 +61,6 @@ Le jour où l'API répond, on change une variable d'environnement. Zéro composa
 
 ### Hors v1
 - Génération PDF réelle des états (le desktop utilise `DocumentGenerator` + templates `.txt`)
-- Upload et stockage des photos (face / profil)
 - Session persistée, refresh token, gestion fine des permissions par rôle
 - Mode hors-ligne, temps réel, notifications
 - Anglais (les chaînes sont centralisées, la bascule reste possible)

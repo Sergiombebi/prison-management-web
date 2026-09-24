@@ -167,6 +167,11 @@ export interface Mandas {
   /** Date de sortie une fois la décision d'appel connue. */
   dateSortieAppel: string | null;
   observationsAppel: string | null;
+  /**
+   * Alerte non bloquante calculée par le serveur : l'appel dépasse le délai
+   * habituel de 10 jours après le jugement. N'empêche jamais l'enregistrement.
+   */
+  appelHorsDelai?: boolean;
 
   // Cassation
   dateCassation: string | null;
@@ -194,6 +199,27 @@ export interface Cellule {
   effectifTheorique: number;
   /** Nombre de détenus réellement affectés — calculé côté serveur. */
   effectifReel: number;
+}
+
+/**
+ * Vue minimale d'un détenu — alimente les listes déroulantes de sélection
+ * (formulaires de santé, discipline, sorties…), sans charger tout `DetenuResume`.
+ * Inclut la cellule (pas de relation supplémentaire par détenu côté API, un seul
+ * eager load pour toute la liste) : nécessaire au ticket imprimé après une visite.
+ */
+export interface DetenuOption {
+  id: number;
+  numeroEcrou: string;
+  nom: string;
+  cellule: { numero: string; bloc: string | null } | null;
+}
+
+/** Vue minimale d'une cellule — alimente les listes déroulantes d'affectation. */
+export interface CelluleOption {
+  id: number;
+  numero: string;
+  bloc: string | null;
+  capaciteMax: number;
 }
 
 export interface Affectation {

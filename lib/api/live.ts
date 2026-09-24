@@ -12,6 +12,7 @@
 
 import "server-only";
 
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import type {
   Affectation,
@@ -82,6 +83,11 @@ async function requete<T>(
 
   const jeton = await getJeton();
 
+  // Sans timeout, un fichier lourd ou une API qui ne répond plus bloquerait la requête
+  // indéfiniment sans aucun retour pour l'utilisateur.
+  const controleur = new AbortController();
+  const delai = setTimeout(() => controleur.abort(), 20_000);
+
   let reponse: Response;
   try {
     reponse = await fetch(url, {
@@ -93,13 +99,23 @@ async function requete<T>(
         ...init.headers,
       },
       cache: "no-store",
+      signal: controleur.signal,
     });
-  } catch {
+  } catch (e) {
+    if (e instanceof Error && e.name === "AbortError") {
+      throw new ApiErreur(
+        `L'API n'a pas répondu à temps (${url.pathname}). Réessayez.`,
+        0,
+        "RESEAU",
+      );
+    }
     throw new ApiErreur(
       `Le serveur de l'API est injoignable (${url.origin}). Vérifiez qu'il est démarré.`,
       0,
       "RESEAU",
     );
+  } finally {
+    clearTimeout(delai);
   }
 
   if (reponse.status === 401 && redigerSur401) {
@@ -147,22 +163,32 @@ interface MetaPagination {
 }
 
 /**
- * Parcourt toutes les pages d'une liste. Le plafond évite une boucle sans fin si
- * l'API renvoyait un `last_page` incohérent ; il reste large pour un établissement.
+ * Parcourt toutes les pages d'une liste. La première page indique combien de pages
+ * restent à charger ; le reste part en parallèle plutôt qu'en boucle séquentielle.
+ * Le plafond évite une explosion de requêtes simultanées si l'API renvoyait un
+ * `last_page` incohérent ; il reste large pour un établissement.
  */
 async function toutesLesPages<T>(
   chemin: string,
   query: Record<string, unknown> = {},
   maxPages = 50,
 ): Promise<T[]> {
-  const tous: T[] = [];
-  for (let page = 1; page <= maxPages; page += 1) {
-    const corps = await requete<{ data: T[]; meta?: MetaPagination }>(chemin, {
-      query: { ...query, page },
-    });
-    tous.push(...(corps?.data ?? []));
-    if (!corps?.meta || page >= corps.meta.last_page) break;
-  }
+  const premiere = await requete<{ data: T[]; meta?: MetaPagination }>(chemin, {
+    query: { ...query, page: 1 },
+  });
+  const tous: T[] = [...(premiere?.data ?? [])];
+  if (!premiere?.meta) return tous;
+
+  const dernierePage = Math.min(premiere.meta.last_page, maxPages);
+  if (dernierePage <= 1) return tous;
+
+  const pagesRestantes = await Promise.all(
+    Array.from({ length: dernierePage - 1 }, (_, i) => i + 2).map((page) =>
+      requete<{ data: T[] }>(chemin, { query: { ...query, page } }),
+    ),
+  );
+  for (const corps of pagesRestantes) tous.push(...(corps?.data ?? []));
+
   return tous;
 }
 
@@ -326,6 +352,8 @@ export interface MandasApi {
   decision_appel: string | null;
   date_sortie_appel: string | null;
   observations_appel: string | null;
+  /** Alerte non bloquante : voir Mandas::getAppelHorsDelaiAttribute() côté API. */
+  appel_hors_delai?: boolean;
   date_cassation: string | null;
   tribunal_cassation: string | null;
   decision_cassation: string | null;
@@ -843,6 +871,7 @@ export function versMandas(m: MandasApi): Mandas {
     decisionAppel: m.decision_appel,
     dateSortieAppel: m.date_sortie_appel,
     observationsAppel: m.observations_appel,
+    appelHorsDelai: m.appel_hors_delai ?? false,
     dateCassation: m.date_cassation,
     tribunalCassation: m.tribunal_cassation,
     decisionCassation: m.decision_cassation,
@@ -1194,6 +1223,18 @@ export const liveApi: ApiClient = {
     };
   },
 
+  async listOptionsDetenus() {
+    const corps = await requete<{
+      data: { id: number; numero_ecrou: string; nom: string; cellule: { numero: string; bloc: string | null } | null }[];
+    }>("/detenus/options");
+    return (corps?.data ?? []).map((d) => ({
+      id: d.id,
+      numeroEcrou: d.numero_ecrou,
+      nom: d.nom,
+      cellule: d.cellule,
+    }));
+  },
+
   async getDossierDetenu(id): Promise<DossierDetenu | null> {
     const [corps, affectationsApi, sortiesApi, suivisApi, visitesApi, evacuationsApi, prescriptionsApi] = await Promise.all([
       requete<{ data: DetenuDetailApi } | null>(`/detenus/${id}`, { nullSur404: true }),
@@ -1394,6 +1435,18 @@ export const liveApi: ApiClient = {
 
   async listCellules() {
     return (await toutesLesPages<CelluleApi>("/cellules")).map(versCellule);
+  },
+
+  async listOptionsCellules() {
+    const corps = await requete<{ data: { id: number; numero: string; bloc: string | null; capacite_max: number }[] }>(
+      "/cellules/options",
+    );
+    return (corps?.data ?? []).map((c) => ({
+      id: c.id,
+      numero: c.numero,
+      bloc: c.bloc,
+      capaciteMax: c.capacite_max,
+    }));
   },
 
   async getCellule(id) {
@@ -1851,3 +1904,9 @@ export const liveApi: ApiClient = {
   listMandats: async () => nonLivre("GET /mandats"),
   listMandatsExpires: async () => nonLivre("GET /mandats/expires"),
 };
+
+// `generateMetadata` et le composant de la fiche détenu appellent tous deux
+// `getDossierDetenu(id)` : le réseau est déjà dédupliqué par le cache `fetch` de Next
+// (même URL, même options), mais pas le travail JS (mapping, tri) qui suit. `cache()`
+// mémoïse l'appel complet pour la durée du rendu du serveur.
+liveApi.getDossierDetenu = cache(liveApi.getDossierDetenu);

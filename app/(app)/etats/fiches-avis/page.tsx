@@ -24,7 +24,7 @@ export default async function FichesAvisPage(props: PageProps<"/etats/fiches-avi
   // Produire un état suppose de lire le registre, qui relève d'une autre permission :
   // un compte « états » sans « détenus » voit l'écran, pas le choix des détenus.
   const [detenus, parametres, dossier] = await Promise.all([
-    optionnel(() => api.listDetenus({ parPage: 1000, tri: "nom" }), null),
+    optionnel(() => api.listOptionsDetenus(), null),
     api.getParametres(),
     Number.isFinite(detenuId) && detenuId > 0
       ? optionnel(() => api.getDossierDetenu(detenuId), null)
@@ -64,7 +64,7 @@ export default async function FichesAvisPage(props: PageProps<"/etats/fiches-avi
               <Field label="Détenu" requis>
                 {(p) => (
                   <Select {...p} name="detenu" defaultValue={dossier ? String(dossier.detenu.id) : ""} placeholder="Sélectionner un détenu…">
-                    {detenus.items.map((d) => (
+                    {detenus.map((d) => (
                       <option key={d.id} value={d.id}>
                         {d.nom} — {d.numeroEcrou}
                       </option>

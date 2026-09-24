@@ -21,7 +21,7 @@ export default async function EvacuationsPage(props: PageProps<"/sante/evacuatio
   const sp = await props.searchParams;
   const [evacuations, detenus, profil] = await Promise.all([
     api.listEvacuations(),
-    optionnel(() => api.listDetenus({ parPage: 1000, tri: "nom" }), null),
+    optionnel(() => api.listOptionsDetenus(), null),
     getProfil(),
   ]);
 
@@ -86,7 +86,7 @@ export default async function EvacuationsPage(props: PageProps<"/sante/evacuatio
             corpsClassName="xl:min-h-0 xl:flex-1 xl:overflow-y-auto"
           >
             {detenus ? (
-              <FormulaireEvacuation detenus={detenus.items} detenuInitial={detenuInitial} />
+              <FormulaireEvacuation detenus={detenus} detenuInitial={detenuInitial} />
             ) : (
               <SansDroit
                 compact

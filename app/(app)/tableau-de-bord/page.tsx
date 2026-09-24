@@ -167,8 +167,8 @@ export default async function TableauDeBordPage() {
         )}
       </section>
 
-      {/* Indicateurs clés — quatre cartes, chacune avec sa tendance */}
-      <StatGrid colonnes={4}>
+      {/* Indicateurs clés — six cartes, chacune avec sa tendance */}
+      <StatGrid colonnes={6}>
         <Stat
           style={{ ["--i" as string]: 0 }}
           icone="detenus"
@@ -210,6 +210,24 @@ export default async function TableauDeBordPage() {
           nombre={tb.visitesAujourdhui}
           contexte="Parloirs enregistrés aujourd’hui"
           href="/sante/visites?periode=aujourdhui"
+        />
+        <Stat
+          style={{ ["--i" as string]: 4 }}
+          icone="scale"
+          label="Sanctions en cours"
+          nombre={tb.sanctionsEnCours}
+          signal={tb.sanctionsEnCours > 0 ? "attention" : "positif"}
+          contexte={tb.sanctionsEnCours > 0 ? "Mesures disciplinaires actives" : "Aucune sanction active"}
+          href="/discipline/sanctions?statut=en-cours"
+        />
+        <Stat
+          style={{ ["--i" as string]: 5 }}
+          icone="clock"
+          label="Traitements à renouveler"
+          nombre={tb.traitementsARenouveler}
+          signal={tb.traitementsARenouveler > 0 ? "attention" : "positif"}
+          contexte={tb.traitementsARenouveler > 0 ? "Échéance sous 3 jours" : "Aucune échéance proche"}
+          href="/sante/traitements"
         />
       </StatGrid>
 

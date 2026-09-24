@@ -39,6 +39,7 @@ const DOMAINE_DE: Record<keyof ApiClient, DomaineApi> = {
   changerMonMotDePasse: "auth",
   getTableauDeBord: "tableauDeBord",
   listDetenus: "detenus",
+  listOptionsDetenus: "detenus",
   getDossierDetenu: "detenus",
   // Volontairement rattaché à « sante », pas « detenus » : c'est justement ce qui
   // permet à ce module de rester en direct même quand detenus ne l'est pas.
@@ -65,6 +66,7 @@ const DOMAINE_DE: Record<keyof ApiClient, DomaineApi> = {
   // il suit donc le domaine « detenus », pas « mandats ».
   listParCategorie: "detenus",
   listCellules: "discipline",
+  listOptionsCellules: "discipline",
   getCellule: "discipline",
   creerCellule: "discipline",
   majCellule: "discipline",

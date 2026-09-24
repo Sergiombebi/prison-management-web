@@ -21,7 +21,7 @@ export default async function AffectationsPage(props: PageProps<"/discipline/aff
     tenter(() => api.listAffectations()),
     // Domaines voisins : gérer les affectations n'ouvre ni les cellules ni le registre.
     optionnel(() => api.listCellules(), []),
-    optionnel(() => api.listDetenus({ parPage: 1000, tri: "nom" }), null),
+    optionnel(() => api.listOptionsDetenus(), null),
   ]);
 
   const nombre = (cle: string) => {
@@ -101,7 +101,7 @@ export default async function AffectationsPage(props: PageProps<"/discipline/aff
         <Panel variante="eleve" titre="Affecter à une cellule" className="lg:sticky lg:top-20">
           {detenus ? (
             <FormulaireAffectation
-              detenus={detenus.items}
+              detenus={detenus}
               nonLoges={nonLoges.ok ? nonLoges.donnees : null}
               cellules={cellules}
               detenuInitial={nombre("detenu")}

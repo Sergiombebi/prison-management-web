@@ -103,6 +103,9 @@ export function DetenuForm({ edition }: { edition?: EditionDetenu } = {}) {
   // envoi, React vide les champs fichier, l'affichage doit suivre.
   const [choix, setChoix] = useState<{ pour: EtatEnregistrement; noms: Record<string, string> }>({ pour: {}, noms: {} });
   const fichiers = choix.pour === etat ? choix.noms : {};
+  // L'API rejette un fichier de plus de 8 Mo : autant prévenir avant l'envoi plutôt
+  // que de laisser échouer la soumission sans que l'utilisateur comprenne pourquoi.
+  const [erreursFichier, setErreursFichier] = useState<Record<string, string>>({});
   const [dateNaissance, setDateNaissance] = useState(edition?.initial.date_naissance ?? "");
   const [statutPenal, setStatutPenal] = useState("");
   const [dateIncarceration, setDateIncarceration] = useState("");
@@ -486,8 +489,8 @@ export function DetenuForm({ edition }: { edition?: EditionDetenu } = {}) {
                 <Field
                   key={nom}
                   label={libelle}
-                  aide={actuelle && !choisi ? "Photo actuelle conservée si aucun fichier n’est choisi" : "JPG ou PNG, 8 Mo maximum"}
-                  erreur={err(nom)}
+                  aide={actuelle && !choisi ? "Photo actuelle conservée si aucun fichier n’est choisi" : "JPG, PNG ou WebP, 8 Mo maximum"}
+                  erreur={erreursFichier[nom] ?? err(nom)}
                 >
                   {(p) => (
                     <label
@@ -518,6 +521,18 @@ export function DetenuForm({ edition }: { edition?: EditionDetenu } = {}) {
                         className="sr-only"
                         onChange={(e) => {
                           const fichier = e.target.files?.[0];
+                          if (fichier && fichier.size > 8 * 1024 * 1024) {
+                            setErreursFichier((prec) => ({ ...prec, [nom]: "Fichier trop volumineux (8 Mo maximum)." }));
+                            e.target.value = "";
+                            setChoix({ pour: etat, noms: { ...fichiers, [nom]: "" } });
+                            return;
+                          }
+                          setErreursFichier((prec) => {
+                            if (!(nom in prec)) return prec;
+                            const reste = { ...prec };
+                            delete reste[nom];
+                            return reste;
+                          });
                           setChoix({ pour: etat, noms: { ...fichiers, [nom]: fichier?.name ?? "" } });
                         }}
                       />

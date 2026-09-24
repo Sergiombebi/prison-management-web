@@ -2,7 +2,7 @@
 
 import { useActionState, useRef, useState } from "react";
 import type { EtatAction } from "@/lib/api/actions";
-import type { DetenuResume, Parametres } from "@/lib/domain/types";
+import type { DetenuOption, Parametres } from "@/lib/domain/types";
 import {
   DUREES_VISITE,
   LIENS_PARENTE,
@@ -42,7 +42,7 @@ function ChampDetenu({
   initial,
   label,
 }: {
-  detenus: DetenuResume[];
+  detenus: DetenuOption[];
   valeur?: string;
   erreur?: string;
   initial?: number;
@@ -89,7 +89,7 @@ const CHAMPS_ETAPE_VISITE = new Set([
 ]);
 
 /** Reconstruit le ticket à partir des valeurs saisies : la visite créée n'est pas rechargée. */
-function ticketDepuisEtat(etat: EtatVisite, detenus: DetenuResume[]): DonneesTicket | null {
+function ticketDepuisEtat(etat: EtatVisite, detenus: DetenuOption[]): DonneesTicket | null {
   if (!etat.ok || !etat.visiteId || !etat.valeurs) return null;
   const val = etat.valeurs;
   const detenu = detenus.find((d) => d.id === Number(val.detenu_id));
@@ -125,7 +125,7 @@ export function FormulaireConsultation({
   detenus,
   detenuInitial,
 }: {
-  detenus: DetenuResume[];
+  detenus: DetenuOption[];
   detenuInitial?: number;
 }) {
   const { etat, envoyer, enCours, v, err } = useFormulaire(enregistrerConsultation);
@@ -208,7 +208,7 @@ export function FormulaireVisite({
   detenuInitial,
   parametres,
 }: {
-  detenus: DetenuResume[];
+  detenus: DetenuOption[];
   detenuInitial?: number;
   parametres: Parametres;
 }) {

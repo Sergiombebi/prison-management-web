@@ -27,7 +27,7 @@ export default async function SuiviMedicalPage(props: PageProps<"/sante/suivi-me
     api.listSuivisMedicaux(),
     // Domaine voisin : sans droit sur le registre, le formulaire se prive de son
     // sélecteur plutôt que de faire tomber tout l'écran.
-    optionnel(() => api.listDetenus({ parPage: 1000, tri: "nom" }), null),
+    optionnel(() => api.listOptionsDetenus(), null),
     getProfil(),
   ]);
 
@@ -111,7 +111,7 @@ export default async function SuiviMedicalPage(props: PageProps<"/sante/suivi-me
             corpsClassName="xl:min-h-0 xl:flex-1 xl:overflow-y-auto"
           >
             {detenus ? (
-              <FormulaireConsultation detenus={detenus.items} detenuInitial={detenuInitial} />
+              <FormulaireConsultation detenus={detenus} detenuInitial={detenuInitial} />
             ) : (
               <SansDroit
                 compact

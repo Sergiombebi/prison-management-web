@@ -250,6 +250,15 @@ export function MandatForm({ detenuId, mandat }: { detenuId: number; mandat?: Ma
         </Rubrique>
 
         <Rubrique ouverte={avecAppel} titre="Appel">
+          {mandat?.appelHorsDelai && (
+            <Pleine>
+              <p className="flex items-start gap-2 rounded-lg border border-danger/30 bg-danger-soft px-3 py-2.5 text-sm text-danger">
+                <Icon name="alert" size={15} className="mt-0.5 shrink-0" />
+                L’appel dépasse le délai habituel de 10 jours après le jugement. Ce n’est qu’une
+                alerte : l’enregistrement reste possible.
+              </p>
+            </Pleine>
+          )}
           <Field label="Date de l’appel" requis={avecAppel} erreur={err("date_appel")}>
             {(p) => <Input {...p} type="date" name="date_appel" defaultValue={v("date_appel", mandat?.dateAppel?.slice(0, 10))} disabled={!avecAppel} />}
           </Field>
@@ -280,6 +289,19 @@ export function MandatForm({ detenuId, mandat }: { detenuId: number; mandat?: Ma
               />
             )}
           </Field>
+          <Pleine>
+            <Field label="Observations" erreur={err("observations_appel")}>
+              {(p) => (
+                <Textarea
+                  {...p}
+                  name="observations_appel"
+                  rows={2}
+                  defaultValue={v("observations_appel", mandat?.observationsAppel)}
+                  disabled={!avecAppel}
+                />
+              )}
+            </Field>
+          </Pleine>
         </Rubrique>
 
         <Rubrique ouverte={avecCassation} titre="Cassation">
@@ -311,6 +333,19 @@ export function MandatForm({ detenuId, mandat }: { detenuId: number; mandat?: Ma
               />
             )}
           </Field>
+          <Pleine>
+            <Field label="Observations" erreur={err("observations_cassation")}>
+              {(p) => (
+                <Textarea
+                  {...p}
+                  name="observations_cassation"
+                  rows={2}
+                  defaultValue={v("observations_cassation", mandat?.observationsCassation)}
+                  disabled={!avecCassation}
+                />
+              )}
+            </Field>
+          </Pleine>
         </Rubrique>
 
         <Pleine>

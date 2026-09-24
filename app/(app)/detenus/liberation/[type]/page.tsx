@@ -70,7 +70,7 @@ export default async function LiberationPage(props: PageProps<"/detenus/liberati
     api.listSorties(typeSortie),
     // Le registre relève d'une autre permission que l'enregistrement des sorties :
     // sans lui, le formulaire perd son sélecteur, pas la page son historique.
-    optionnel(() => api.listDetenus({ parPage: 1000, tri: "nom" }), null),
+    optionnel(() => api.listOptionsDetenus(), null),
     api.getParametres(),
     // Une libération normale porte sur un mandat précis : il faut ceux du détenu choisi
     choisi && typeSortie === "LiberationNormale"
@@ -162,7 +162,7 @@ export default async function LiberationPage(props: PageProps<"/detenus/liberati
             <FormulaireSortie
               type={typeSortie}
               action={consignerSortie.bind(null, typeSortie)}
-              detenus={detenus.items}
+              detenus={detenus}
               detenuId={choisi}
               mandats={dossier ? dossier.mandats.filter((m) => m.ouvert) : null}
               grave={config.grave}

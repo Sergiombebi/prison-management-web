@@ -328,6 +328,19 @@ export const mockApi: ApiClient = {
     return { items: items.slice(debut, debut + parPage), total, page, parPage };
   },
 
+  async listOptionsDetenus() {
+    await attendre();
+    return fx.detenus
+      .filter((d) => d.statut === "Present")
+      .map((d) => ({
+        id: d.id,
+        numeroEcrou: d.numeroEcrou,
+        nom: d.nom,
+        cellule: resumer(d.id).cellule,
+      }))
+      .sort((a, b) => a.nom.localeCompare(b.nom, "fr"));
+  },
+
   async getDossierDetenu(id) {
     await attendre();
     if (!fx.detenus.some((d) => d.id === id)) return null;
@@ -417,6 +430,16 @@ export const mockApi: ApiClient = {
   async listCellules() {
     await attendre();
     return [...fx.cellules];
+  },
+
+  async listOptionsCellules() {
+    await attendre();
+    return fx.cellules.map((c) => ({
+      id: c.id,
+      numero: c.numero,
+      bloc: c.bloc,
+      capaciteMax: c.capaciteMax,
+    }));
   },
 
   async creerCellule() {

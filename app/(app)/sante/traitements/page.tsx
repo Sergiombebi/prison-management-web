@@ -21,7 +21,7 @@ export default async function TraitementsPage(props: PageProps<"/sante/traitemen
   const sp = await props.searchParams;
   const [prescriptions, detenus, profil] = await Promise.all([
     api.listPrescriptions(),
-    optionnel(() => api.listDetenus({ parPage: 1000, tri: "nom" }), null),
+    optionnel(() => api.listOptionsDetenus(), null),
     getProfil(),
   ]);
 
@@ -95,7 +95,7 @@ export default async function TraitementsPage(props: PageProps<"/sante/traitemen
             corpsClassName="xl:min-h-0 xl:flex-1 xl:overflow-y-auto"
           >
             {detenus ? (
-              <FormulairePrescription detenus={detenus.items} detenuInitial={detenuInitial} />
+              <FormulairePrescription detenus={detenus} detenuInitial={detenuInitial} />
             ) : (
               <SansDroit
                 compact

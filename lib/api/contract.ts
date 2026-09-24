@@ -13,6 +13,8 @@ import type {
   Affectation,
   CategoriePenale,
   Cellule,
+  CelluleOption,
+  DetenuOption,
   DetenuResume,
   EntreeParametres,
   EntreeProfil,
@@ -390,6 +392,12 @@ export interface ApiClient {
 
   /** GET /detenus?page=&search=&categorie_penale= */
   listDetenus(filtre?: FiltreDetenus): Promise<PageResultat<DetenuResume>>;
+  /**
+   * GET /detenus/options — liste minimale (id, numéro d'écrou, nom) de tous les détenus
+   * présents, sans pagination. Alimente les listes déroulantes de sélection : à préférer à
+   * `listDetenus({ parPage: ... })` qui doit parcourir toutes les pages de `/detenus`.
+   */
+  listOptionsDetenus(): Promise<DetenuOption[]>;
   /** GET /detenus/{id} — fiche complète avec ses mandats */
   getDossierDetenu(id: number): Promise<DossierDetenu | null>;
   /**
@@ -444,6 +452,8 @@ export interface ApiClient {
 
   /** GET /cellules — occupation calculée par le serveur */
   listCellules(): Promise<Cellule[]>;
+  /** GET /cellules/options — liste minimale de toutes les cellules, sans pagination */
+  listOptionsCellules(): Promise<CelluleOption[]>;
   /** GET /cellules/{id} */
   getCellule(id: number): Promise<Cellule | null>;
   /** POST /cellules */
