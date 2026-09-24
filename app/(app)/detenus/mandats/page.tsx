@@ -137,6 +137,21 @@ export default async function MandatsPage(props: PageProps<"/detenus/mandats">) 
                 </span>
               ),
             },
+            {
+              cle: "actions",
+              titre: "",
+              align: "droite",
+              rendu: (m) => (
+                <ButtonLink
+                  href={`/detenus/${m.detenuId}/mandats/${m.id}`}
+                  taille="sm"
+                  icone="edit"
+                  title="Faire évoluer ce mandat"
+                  aria-label="Faire évoluer ce mandat"
+                  className="w-8 rounded-full border-0 bg-accent-soft px-0 text-accent shadow-none hover:bg-accent/20"
+                />
+              ),
+            },
           ]}
           vide={
             <EmptyState

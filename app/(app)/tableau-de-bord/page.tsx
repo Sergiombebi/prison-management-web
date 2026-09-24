@@ -263,7 +263,7 @@ export default async function TableauDeBordPage() {
         <div id="liberables" className="scroll-mt-20">
           <Panel
             titre="Libérables ce mois"
-            sousTitre="Mandats arrivant à échéance d’ici la fin du mois"
+            sousTitre="Détenus dont la date de sortie connue tombe avant la fin du mois"
             flush
             variante="eleve"
             className="reveal"
@@ -273,14 +273,14 @@ export default async function TableauDeBordPage() {
                 compact
                 icone="calendar"
                 titre="Aucun détenu libérable ce mois-ci"
-                texte="Aucun mandat actif n’arrive à échéance avant la fin du mois."
+                texte="Aucun mandat actif n’a de date de sortie connue avant la fin du mois."
               />
             ) : (
               <ul className="divide-y divide-hairline">
                 {tb.liberablesCeMois.slice(0, 7).map((l) => {
-                  const jours = joursRestants(l.dateExpiration) ?? 0;
+                  const jours = joursRestants(l.dateSortie) ?? 0;
                   return (
-                    <li key={`${l.numeroEcrou}-${l.dateExpiration}`}>
+                    <li key={`${l.numeroEcrou}-${l.dateSortie}`}>
                       <Link
                         href={`/detenus?recherche=${encodeURIComponent(l.numeroEcrou)}`}
                         className="group flex items-center gap-4 px-4 py-2.5 transition-colors hover:bg-raised"
@@ -311,7 +311,7 @@ export default async function TableauDeBordPage() {
                           </p>
                         </div>
                         <p className="tnum hidden shrink-0 text-xs text-muted sm:block">
-                          échéance {formatDate(l.dateExpiration)}
+                          sortie {formatDate(l.dateSortie)}
                         </p>
                         <Icon
                           name="arrowRight"

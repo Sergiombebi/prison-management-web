@@ -437,7 +437,7 @@ describe("versTableauDeBord", () => {
       effectifs_par_categorie: categories,
       population_derniers_mois: [{ label: "Sept.", population: 15 }],
       liberables_ce_mois: [
-        { numero_ecrou: "E-1", nom: "Nkolo", date_incarceration: "2026-01-10", date_expiration: null, statut: null },
+        { numero_ecrou: "E-1", nom: "Nkolo", date_incarceration: "2026-01-10", date_sortie: null, statut: null },
       ],
     }) as TableauDeBordApi;
 
@@ -458,7 +458,7 @@ describe("versTableauDeBord", () => {
       numeroEcrou: "E-1",
       nom: "Nkolo",
       dateIncarceration: "2026-01-10",
-      dateExpiration: "",
+      dateSortie: "",
       statut: "",
     });
   });

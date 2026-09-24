@@ -427,7 +427,8 @@ export interface LiberableProchain {
   numeroEcrou: string;
   nom: string;
   dateIncarceration: string;
-  dateExpiration: string;
+  /** Date de sortie effective calculée (cascade détention provisoire → exécution de peine → appel → cassation), pas l'alerte d'expiration. */
+  dateSortie: string;
   statut: string;
 }
 

@@ -448,7 +448,7 @@ export interface TableauDeBordApi {
     numero_ecrou: string;
     nom: string;
     date_incarceration: string | null;
-    date_expiration: string | null;
+    date_sortie: string | null;
     statut: string | null;
   }>;
 }
@@ -759,7 +759,7 @@ export function versTableauDeBord(d: TableauDeBordApi): TableauDeBord {
       numeroEcrou: l.numero_ecrou,
       nom: l.nom,
       dateIncarceration: l.date_incarceration ?? "",
-      dateExpiration: l.date_expiration ?? "",
+      dateSortie: l.date_sortie ?? "",
       statut: l.statut ?? "",
     })),
   };

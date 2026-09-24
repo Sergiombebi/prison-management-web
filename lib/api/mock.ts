@@ -202,20 +202,22 @@ export const mockApi: ApiClient = {
       ]),
     ) as Record<CategoriePenale, number>;
 
+    // La date de sortie EFFECTIVE (calculée, jamais l'alerte dateSortieMandat)
+    // pilote ce widget, comme côté API.
     const liberables = fx.mandats
       .filter((m) => {
-        if (!m.dateSortieMandat) return false;
-        const d = new Date(m.dateSortieMandat);
+        if (!m.dateSortieEffective) return false;
+        const d = new Date(m.dateSortieEffective);
         return d >= maintenant && d <= finMois;
       })
-      .sort((a, b) => a.dateSortieMandat!.localeCompare(b.dateSortieMandat!))
+      .sort((a, b) => a.dateSortieEffective!.localeCompare(b.dateSortieEffective!))
       .map((m) => {
         const d = fx.detenus.find((x) => x.id === m.detenuId)!;
         return {
           numeroEcrou: d.numeroEcrou,
           nom: d.nom,
           dateIncarceration: m.dateIncarceration,
-          dateExpiration: m.dateSortieMandat!,
+          dateSortie: m.dateSortieEffective!,
           statut: m.typeStatutPenal ?? "",
         };
       });
@@ -251,8 +253,8 @@ export const mockApi: ApiClient = {
         (v) => new Date(v.dateVisite).toDateString() === maintenant.toDateString(),
       ).length,
       sortiesPrevuesMoisProchain: fx.mandats.filter((m) => {
-        if (!m.dateSortieMandat) return false;
-        const d = new Date(m.dateSortieMandat);
+        if (!m.dateSortieEffective) return false;
+        const d = new Date(m.dateSortieEffective);
         return d >= debutMoisProchain && d <= finMoisProchain;
       }).length,
       mandatsExpires: fx.mandats.filter((m) => !fx.estMandatActif(m)).length,
