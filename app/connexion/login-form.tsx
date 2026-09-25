@@ -4,7 +4,7 @@ import { useActionState, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
 import { Icon } from "@/components/ui/icon";
-import { t } from "@/lib/i18n/fr";
+import { useT } from "@/components/layout/i18n-provider";
 import { connecter, type EtatConnexion } from "./actions";
 
 export interface AideConnexion {
@@ -24,6 +24,7 @@ export function LoginForm({
   /** Information non bloquante, ex. « votre session a expiré ». */
   avis?: string;
 }) {
+  const t = useT();
   const [etat, action, enCours] = useActionState<EtatConnexion, FormData>(connecter, {});
   const [visible, setVisible] = useState(false);
 
@@ -85,7 +86,7 @@ export function LoginForm({
             >
               <Icon name={visible ? "eyeOff" : "eye"} size={15} />
               <span className="sr-only">
-                {visible ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                {visible ? t.connexion.masquerMotDePasse : t.connexion.afficherMotDePasse}
               </span>
             </button>
           </div>

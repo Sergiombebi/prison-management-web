@@ -10,7 +10,7 @@ import {
 } from "@/lib/domain/referentiels";
 import { VIDE, formatDate, formatNombre, pluriel, tronquer } from "@/lib/format";
 import { filtresActifs, hrefAvec, param, paramEntier } from "@/lib/url";
-import { t } from "@/lib/i18n/fr";
+import { getT } from "@/lib/i18n/server";
 import { Page, PageHeader } from "@/components/layout/page";
 import { DataTable } from "@/components/data/data-table";
 import { FilterBar } from "@/components/data/filter-bar";
@@ -28,6 +28,7 @@ const PAR_PAGE = 20;
 const ORDRE: CategoriePenale[] = ["Prevenu", "Condamne", "Appellant", "Cassationnaire", "Dpac"];
 
 export default async function MandatsPage(props: PageProps<"/detenus/mandats">) {
+  const t = await getT();
   const sp = await props.searchParams;
   // Le compteur par catégorie vient du tableau de bord, derrière sa propre
   // permission : sans elle, la carte s'affiche sans chiffre plutôt que pas du tout.

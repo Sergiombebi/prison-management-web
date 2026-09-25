@@ -5,12 +5,11 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { initiales, pluriel } from "@/lib/format";
-import { t } from "@/lib/i18n/fr";
 import { estAdministrateur, modulesAccordes } from "@/lib/domain/modules";
 import {
-  MODULES_ADMIN,
-  MODULES_PRINCIPAUX,
-  MODULE_ACCUEIL,
+  construireModuleAccesRefuse,
+  construireModuleAccueil,
+  construireModules,
   filAriane,
   lienActif,
   moduleDe,
@@ -21,7 +20,9 @@ import { pageDArrivee } from "@/lib/acces";
 import type { ProfilSession } from "@/lib/session";
 import { Icon, IconTile } from "@/components/ui/icon";
 import { PaletteToggle, ThemeToggle } from "./theme-toggle";
+import { LangToggle } from "./lang-toggle";
 import { CommandPalette } from "./command-palette";
+import { useT } from "./i18n-provider";
 
 export function AppShell({
   profil,
@@ -112,15 +113,19 @@ function Sidebar({
   onFermer: () => void;
   seDeconnecter: () => Promise<void>;
 }) {
-  const moduleCourant = moduleDe(pathname);
-  const lien = lienActif(pathname);
-  const autorises = MODULES_PRINCIPAUX.filter((m) => peutVoirModule(profil.permissions, m));
+  const t = useT();
+  const modules = construireModules(t);
+  const moduleAccueil = construireModuleAccueil(t);
+  const tousLesModules = [moduleAccueil, construireModuleAccesRefuse(t), ...modules];
+  const moduleCourant = moduleDe(pathname, tousLesModules);
+  const lien = lienActif(pathname, tousLesModules);
+  const autorises = modules.filter((m) => !m.administratif && peutVoirModule(profil.permissions, m));
   // Sans droit sur le tableau de bord, l'accueil condensé prend sa place en tête de
   // menu : personne ne doit se retrouver sans point de départ cliquable.
   const modulesPrincipaux = autorises.some((m) => m.id === "tableau-de-bord")
     ? autorises
-    : [MODULE_ACCUEIL, ...autorises];
-  const modulesAdmin = MODULES_ADMIN.filter((m) => peutVoirModule(profil.permissions, m));
+    : [moduleAccueil, ...autorises];
+  const modulesAdmin = modules.filter((m) => m.administratif && peutVoirModule(profil.permissions, m));
   const accueil = pageDArrivee(profil.permissions);
 
   return (
@@ -238,6 +243,10 @@ function Sidebar({
         <div className="mt-2 flex items-center justify-between px-1">
           <span className="text-2xs text-faint">Palette</span>
           <PaletteToggle />
+        </div>
+        <div className="mt-2 flex items-center justify-between px-1">
+          <span className="text-2xs text-faint">{t.nav.langue}</span>
+          <LangToggle />
         </div>
       </div>
     </aside>
@@ -377,7 +386,15 @@ function Topbar({
   permissions: string[];
   onOuvrirMenu: () => void;
 }) {
-  const miettes = filAriane(pathname);
+  const t = useT();
+  // L'accueil condensé et le refus d'accès n'ont pas de permission propre : absents
+  // de construireModules(), donc ajoutés ici pour que le fil d'Ariane les nomme au
+  // lieu de rester vide.
+  const miettes = filAriane(pathname, [
+    construireModuleAccueil(t),
+    construireModuleAccesRefuse(t),
+    ...construireModules(t),
+  ]);
   const [condense, setCondense] = useState(false);
 
   // La barre se resserre dès qu'on quitte le haut de page : plus de place au contenu

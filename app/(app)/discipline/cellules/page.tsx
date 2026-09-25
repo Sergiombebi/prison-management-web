@@ -6,7 +6,7 @@ import { TYPES_CELLULE } from "@/lib/domain/referentiels";
 import { formatNombre, ouVide, pluriel } from "@/lib/format";
 import { filtresActifs, hrefAvec, param } from "@/lib/url";
 import { cn } from "@/lib/cn";
-import { t } from "@/lib/i18n/fr";
+import { getT } from "@/lib/i18n/server";
 import { Page, PageHeader } from "@/components/layout/page";
 import { FilterBar } from "@/components/data/filter-bar";
 import { JaugeRadiale } from "@/components/data/charts";
@@ -31,6 +31,7 @@ function etatCellule(c: Cellule) {
 }
 
 export default async function CellulesPage(props: PageProps<"/discipline/cellules">) {
+  const t = await getT();
   const sp = await props.searchParams;
   const cellules = await api.listCellules();
   const selectionnee = cellules.find((c) => String(c.id) === param(sp, "modifier"));

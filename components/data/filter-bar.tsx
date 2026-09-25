@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRef, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { Icon } from "@/components/ui/icon";
-import { t } from "@/lib/i18n/fr";
+import { useT } from "@/components/layout/i18n-provider";
 
 /**
  * Barre de filtres — un formulaire GET ordinaire.
@@ -31,6 +31,7 @@ export function FilterBar({
   resultat?: string;
   className?: string;
 }) {
+  const t = useT();
   const ref = useRef<HTMLFormElement>(null);
 
   return (

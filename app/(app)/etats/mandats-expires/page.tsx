@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { api, type MandatDetaille } from "@/lib/api";
 import { formatDate, formatNombre, joursRestants, pluriel, tronquer } from "@/lib/format";
 import { cn } from "@/lib/cn";
-import { t } from "@/lib/i18n/fr";
+import { getT } from "@/lib/i18n/server";
 import { Page, PageHeader } from "@/components/layout/page";
 import { DataTable } from "@/components/data/data-table";
 import { Stat, StatGrid } from "@/components/data/stat";
@@ -13,6 +13,7 @@ import { EmptyState, Ecrou, Panel } from "@/components/ui/surface";
 export const metadata: Metadata = { title: "Mandats expirés" };
 
 export default async function MandatsExpiresPage() {
+  const t = await getT();
   const mandats = await api.listMandatsExpires();
 
   const depassement = (m: MandatDetaille) => -(joursRestants(m.dateSortieMandat) ?? 0);

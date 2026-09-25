@@ -9,9 +9,13 @@
  * transverses (tableau de bord général, édition d'états, administration) ne
  * s'attribuent pas : seul l'administrateur les détient, et leurs permissions
  * suffisent à les filtrer.
+ *
+ * Les libellés dépendent de la langue : `construireModules()` prend le
+ * dictionnaire de messages en paramètre plutôt qu'une constante figée à
+ * l'import, pour rester correct quelle que soit la locale de la requête.
  */
 
-import { t } from "@/lib/i18n/fr";
+import type { Messages } from "@/lib/i18n/fr";
 import { moduleMetier } from "@/lib/domain/modules";
 
 export type IconName =
@@ -60,302 +64,190 @@ export interface ModuleNav {
   permissionRequise: string | string[];
 }
 
-export const MODULES: ModuleNav[] = [
-  {
-    id: "tableau-de-bord",
-    href: "/tableau-de-bord",
-    label: t.modules.tableauDeBord,
-    icone: "dashboard",
-    description: "Situation de l'établissement au jour d'aujourd'hui",
-    racines: ["/tableau-de-bord"],
-    permissionRequise: "tableau_bord.consulter",
-  },
-  {
-    id: "detenus",
-    href: moduleMetier("detenus").accueil,
-    label: t.modules.detenus,
-    icone: "detenus",
-    description: "Écrou, mandats et procédures de sortie",
-    racines: ["/detenus"],
-    permissionRequise: moduleMetier("detenus").permissions,
-    groupes: [
-      {
-        label: "Fichiers des détenus",
-        liens: [
-          {
-            href: "/detenus/apercu",
-            label: "Vue d’ensemble",
-            description: "Situation du registre d'écrou aujourd'hui",
-          },
-          {
-            href: "/detenus",
-            label: "Liste des détenus",
-            description: "Registre d'écrou de l'établissement",
-          },
-          {
-            href: "/detenus/nouveau",
-            label: "Nouvel enregistrement",
-            description: "Fiche d'enregistrement d'un détenu entrant",
-          },
-        ],
-      },
-      {
-        label: "Gestion des mandats",
-        liens: [
-          {
-            href: "/detenus/mandats",
-            label: "Tous les mandats",
-            description: "Mandats de dépôt, gardes à vue et arrêtés",
-          },
-          {
-            href: "/detenus/mandats/prevenus",
-            label: "Prévenus",
-            description: "Détenus dont tous les mandats actifs sont provisoires",
-          },
-          {
-            href: "/detenus/mandats/condamnes",
-            label: "Condamnés",
-            description: "Détenus avec un unique mandat d'exécution de peine",
-          },
-          {
-            href: "/detenus/mandats/appellants",
-            label: "Appellants",
-            description: "Détenus dont une décision est frappée d'appel",
-          },
-          {
-            href: "/detenus/mandats/cassationnaires",
-            label: "Cassationnaires",
-            description: "Détenus ayant formé un pourvoi en cassation",
-          },
-          {
-            href: "/detenus/mandats/dpac",
-            label: "DPAC",
-            description:
-              "Détenus cumulant plusieurs mandats actifs dont une exécution de peine",
-          },
-        ],
-      },
-      {
-        label: "Libération",
-        liens: [
-          {
-            href: "/detenus/liberation/normale",
-            label: "Libération normale",
-            description: "Levée d'écrou à l'expiration du titre de détention",
-          },
-          {
-            href: "/detenus/liberation/transfert",
-            label: "Transfert",
-            description: "Transfèrement vers un autre établissement",
-          },
-          {
-            href: "/detenus/liberation/evasion",
-            label: "Évasion",
-            description: "Constat d'évasion et avis aux autorités ampliataires",
-          },
-          {
-            href: "/detenus/liberation/deces",
-            label: "Décès",
-            description: "Constat de décès en détention",
-          },
-        ],
-      },
-    ],
-  },
-  {
-    id: "discipline",
-    href: moduleMetier("discipline").accueil,
-    label: t.modules.discipline,
-    icone: "discipline",
-    description: "Logement, affectations et sanctions disciplinaires",
-    racines: ["/discipline"],
-    permissionRequise: moduleMetier("discipline").permissions,
-    groupes: [
-      {
-        label: "Discipline",
-        liens: [
-          {
-            href: "/discipline",
-            label: "Vue d’ensemble",
-            description: "Occupation des cellules et mesures en cours",
-          },
-          {
-            href: "/discipline/cellules",
-            label: "Logement & cellules",
-            description: "Capacités, effectifs et taux d'occupation par cellule",
-          },
-          {
-            href: "/discipline/affectations",
-            label: "Affectations",
-            description: "Attribution des détenus aux cellules",
-          },
-          {
-            href: "/discipline/sanctions",
-            label: "Sanctions",
-            description: "Fautes constatées et sanctions prononcées",
-          },
-        ],
-      },
-    ],
-  },
-  {
-    id: "suivi-medical",
-    href: moduleMetier("sante").accueil,
-    label: t.modules.suiviMedical,
-    icone: "sante",
-    description: "Consultations, diagnostics et traitements prescrits",
-    racines: ["/sante/suivi-medical", "/sante/evacuations", "/sante/traitements"],
-    permissionRequise: moduleMetier("sante").permissions,
-    groupes: [
-      {
-        label: "Suivi médical",
-        liens: [
-          {
-            href: "/sante/suivi-medical/apercu",
-            label: "Vue d’ensemble",
-            description: "Activité de l'infirmerie aujourd'hui",
-          },
-          {
-            href: "/sante/suivi-medical",
-            label: "Consultations",
-            description: "Historique des consultations",
-          },
-          {
-            href: "/sante/traitements",
-            label: "Traitements",
-            description: "Prescriptions en cours, terminées et arrêtées",
-          },
-          {
-            href: "/sante/evacuations",
-            label: "Évacuations sanitaires",
-            description: "Détenus évacués vers une structure hospitalière extérieure",
-          },
-        ],
-      },
-    ],
-  },
-  {
-    id: "visites",
-    href: moduleMetier("visites").accueil,
-    label: t.modules.visites,
-    icone: "door",
-    description: "Parloirs, visiteurs et contrôles de sécurité",
-    racines: ["/sante/visites"],
-    permissionRequise: moduleMetier("visites").permissions,
-    groupes: [
-      {
-        label: "Visites",
-        liens: [
-          {
-            href: "/sante/visites/apercu",
-            label: "Vue d’ensemble",
-            description: "Parloirs du jour et affluence de la semaine",
-          },
-          {
-            href: "/sante/visites",
-            label: "Registre des visites",
-            description: "Toutes les visites enregistrées",
-          },
-        ],
-      },
-    ],
-  },
-  {
-    id: "etats",
-    href: "/etats/fiches-avis",
-    label: t.modules.etats,
-    icone: "etats",
-    description: "Fiches, extraits de registre et états statistiques",
-    racines: ["/etats"],
-    permissionRequise: "etats.consulter",
-    groupes: [
-      {
-        label: "Édition d'états",
-        liens: [
-          {
-            href: "/etats/fiches-avis",
-            label: "Fiches & avis divers",
-            description: "Fiche signalétique, extrait de registre, attestations",
-          },
-          {
-            href: "/etats/categories",
-            label: "Dossier par catégorie",
-            description: "État nominatif par catégorie pénale",
-          },
-          {
-            href: "/etats/mandats-expires",
-            label: "Mandats expirés",
-            description: "Titres de détention dont la validité est dépassée",
-          },
-          {
-            href: "/etats/remises-de-peine",
-            label: "Remises de peine",
-            description: "Réductions de peine accordées",
-          },
-        ],
-      },
-    ],
-  },
-  {
-    id: "administration",
-    href: "/administration/personnel",
-    label: t.modules.administration,
-    icone: "administration",
-    administratif: true,
-    description: "Comptes du personnel et paramètres de l'établissement",
-    racines: ["/administration"],
-    permissionRequise: ["administration.personnel.gerer", "administration.parametres.gerer"],
-    groupes: [
-      {
-        label: "Administration",
-        liens: [
-          {
-            href: "/administration/personnel",
-            label: "Personnel",
-            description: "Comptes utilisateurs et accès aux modules",
-          },
-          {
-            href: "/administration/parametres",
-            label: "Paramètres",
-            description:
-              "En-têtes des états, logo, âge de majorité, autorités ampliataires",
-          },
-        ],
-      },
-    ],
-  },
-];
+/** Les modules métier et transverses affichés dans la sidebar, dans la langue de `t`. */
+export function construireModules(t: Messages): ModuleNav[] {
+  const nav = t.navigation;
 
-export const MODULES_PRINCIPAUX = MODULES.filter((m) => !m.administratif);
-export const MODULES_ADMIN = MODULES.filter((m) => m.administratif);
+  return [
+    {
+      id: "tableau-de-bord",
+      href: "/tableau-de-bord",
+      label: t.modules.tableauDeBord,
+      icone: "dashboard",
+      description: nav.tableauDeBord.description,
+      racines: ["/tableau-de-bord"],
+      permissionRequise: "tableau_bord.consulter",
+    },
+    {
+      id: "detenus",
+      href: moduleMetier("detenus").accueil,
+      label: t.modules.detenus,
+      icone: "detenus",
+      description: nav.detenus.description,
+      racines: ["/detenus"],
+      permissionRequise: moduleMetier("detenus").permissions,
+      groupes: [
+        {
+          label: nav.detenus.groupeFichiers,
+          liens: [
+            { href: "/detenus/apercu", ...nav.detenus.apercu },
+            { href: "/detenus", ...nav.detenus.liste },
+            { href: "/detenus/nouveau", ...nav.detenus.nouveau },
+          ],
+        },
+        {
+          label: nav.detenus.groupeMandats,
+          liens: [
+            { href: "/detenus/mandats", ...nav.detenus.tousLesMandats },
+            { href: "/detenus/mandats/prevenus", ...nav.detenus.prevenus },
+            { href: "/detenus/mandats/condamnes", ...nav.detenus.condamnes },
+            { href: "/detenus/mandats/appellants", ...nav.detenus.appellants },
+            { href: "/detenus/mandats/cassationnaires", ...nav.detenus.cassationnaires },
+            { href: "/detenus/mandats/dpac", ...nav.detenus.dpac },
+          ],
+        },
+        {
+          label: nav.detenus.groupeLiberation,
+          liens: [
+            { href: "/detenus/liberation/normale", ...nav.detenus.liberationNormale },
+            { href: "/detenus/liberation/transfert", ...nav.detenus.transfert },
+            { href: "/detenus/liberation/evasion", ...nav.detenus.evasion },
+            { href: "/detenus/liberation/deces", ...nav.detenus.deces },
+          ],
+        },
+      ],
+    },
+    {
+      id: "discipline",
+      href: moduleMetier("discipline").accueil,
+      label: t.modules.discipline,
+      icone: "discipline",
+      description: nav.discipline.description,
+      racines: ["/discipline"],
+      permissionRequise: moduleMetier("discipline").permissions,
+      groupes: [
+        {
+          label: nav.discipline.groupe,
+          liens: [
+            { href: "/discipline", ...nav.discipline.apercu },
+            { href: "/discipline/cellules", ...nav.discipline.cellules },
+            { href: "/discipline/affectations", ...nav.discipline.affectations },
+            { href: "/discipline/sanctions", ...nav.discipline.sanctions },
+          ],
+        },
+      ],
+    },
+    {
+      id: "suivi-medical",
+      href: moduleMetier("sante").accueil,
+      label: t.modules.suiviMedical,
+      icone: "sante",
+      description: nav.suiviMedical.description,
+      racines: ["/sante/suivi-medical", "/sante/evacuations", "/sante/traitements"],
+      permissionRequise: moduleMetier("sante").permissions,
+      groupes: [
+        {
+          label: nav.suiviMedical.groupe,
+          liens: [
+            { href: "/sante/suivi-medical/apercu", ...nav.suiviMedical.apercu },
+            { href: "/sante/suivi-medical", ...nav.suiviMedical.consultations },
+            { href: "/sante/traitements", ...nav.suiviMedical.traitements },
+            { href: "/sante/evacuations", ...nav.suiviMedical.evacuations },
+          ],
+        },
+      ],
+    },
+    {
+      id: "visites",
+      href: moduleMetier("visites").accueil,
+      label: t.modules.visites,
+      icone: "door",
+      description: nav.visites.description,
+      racines: ["/sante/visites"],
+      permissionRequise: moduleMetier("visites").permissions,
+      groupes: [
+        {
+          label: nav.visites.groupe,
+          liens: [
+            { href: "/sante/visites/apercu", ...nav.visites.apercu },
+            { href: "/sante/visites", ...nav.visites.registre },
+          ],
+        },
+      ],
+    },
+    {
+      id: "etats",
+      href: "/etats/fiches-avis",
+      label: t.modules.etats,
+      icone: "etats",
+      description: nav.etats.description,
+      racines: ["/etats"],
+      permissionRequise: "etats.consulter",
+      groupes: [
+        {
+          label: nav.etats.groupe,
+          liens: [
+            { href: "/etats/fiches-avis", ...nav.etats.fichesAvis },
+            { href: "/etats/categories", ...nav.etats.categories },
+            { href: "/etats/mandats-expires", ...nav.etats.mandatsExpires },
+            { href: "/etats/remises-de-peine", ...nav.etats.remisesDePeine },
+          ],
+        },
+      ],
+    },
+    {
+      id: "administration",
+      href: "/administration/personnel",
+      label: t.modules.administration,
+      icone: "administration",
+      administratif: true,
+      description: nav.administration.description,
+      racines: ["/administration"],
+      permissionRequise: ["administration.personnel.gerer", "administration.parametres.gerer"],
+      groupes: [
+        {
+          label: nav.administration.groupe,
+          liens: [
+            { href: "/administration/personnel", ...nav.administration.personnel },
+            { href: "/administration/parametres", ...nav.administration.parametres },
+          ],
+        },
+      ],
+    },
+  ];
+}
 
 /**
  * Hall d'accueil des comptes qui ont plusieurs modules sans être administrateurs.
  *
- * Hors de `MODULES` à dessein : il n'exige aucune permission, et il ne doit
+ * Hors de `construireModules()` à dessein : il n'exige aucune permission, et il ne doit
  * apparaître dans la sidebar que lorsque le tableau de bord n'y est pas — jamais
  * les deux, qui seraient deux « accueils » concurrents.
  */
-export const MODULE_ACCUEIL: ModuleNav = {
-  id: "accueil",
-  href: "/accueil",
-  label: "Accueil",
-  icone: "dashboard",
-  description: "Vos modules et vos indicateurs du jour",
-  racines: ["/accueil"],
-  permissionRequise: [],
-};
+export function construireModuleAccueil(t: Messages): ModuleNav {
+  return {
+    id: "accueil",
+    href: "/accueil",
+    label: t.navigation.accueil.label,
+    icone: "dashboard",
+    description: t.navigation.accueil.description,
+    racines: ["/accueil"],
+    permissionRequise: [],
+  };
+}
 
 /** Refus d'accès : absent de la sidebar, mais nommé dans le fil d'Ariane. */
-export const MODULE_ACCES_REFUSE: ModuleNav = {
-  id: "acces-refuse",
-  href: "/acces-refuse",
-  label: "Accès refusé",
-  icone: "administration",
-  description: "Accès manquant pour l'écran demandé",
-  racines: ["/acces-refuse"],
-  permissionRequise: [],
-};
+export function construireModuleAccesRefuse(t: Messages): ModuleNav {
+  return {
+    id: "acces-refuse",
+    href: "/acces-refuse",
+    label: t.navigation.accesRefuse.label,
+    icone: "administration",
+    description: t.navigation.accesRefuse.description,
+    racines: ["/acces-refuse"],
+    permissionRequise: [],
+  };
+}
 
 /** Un module s'affiche dès que l'une de ses permissions requises est accordée. */
 export function peutVoirModule(permissions: string[], module: ModuleNav): boolean {
@@ -365,26 +257,22 @@ export function peutVoirModule(permissions: string[], module: ModuleNav): boolea
   return requises.some((cle) => permissions.includes(cle));
 }
 
-/** Tous les liens à plat — utilisé pour retrouver le titre d'une route. */
-const TOUS_LES_LIENS: LienNav[] = MODULES.flatMap((m) =>
-  (m.groupes ?? []).flatMap((g) => g.liens),
-);
-
-/** Le module auquel appartient un chemin. */
-export function moduleDe(pathname: string): ModuleNav | undefined {
-  const couvre = (m: ModuleNav) =>
-    m.racines.some((r) => pathname === r || pathname.startsWith(`${r}/`));
-
-  // Écrans sans permission propre : absents de MODULES, donc traités à part pour
-  // que le fil d'Ariane les nomme au lieu de rester vide.
-  return [MODULE_ACCUEIL, MODULE_ACCES_REFUSE].find(couvre) ?? MODULES.find(couvre);
+/**
+ * Le module auquel appartient un chemin. `modules` doit inclure les modules de
+ * `construireModules()` et, si pertinent pour l'écran appelant, l'accueil et le
+ * refus d'accès — ces deux derniers sont traités à part de la sidebar (voir
+ * plus haut) mais doivent rester trouvables pour que le fil d'Ariane les nomme.
+ */
+export function moduleDe(pathname: string, modules: ModuleNav[]): ModuleNav | undefined {
+  return modules.find((m) => m.racines.some((r) => pathname === r || pathname.startsWith(`${r}/`)));
 }
 
 /** Le lien de sous-navigation correspondant le plus précisément au chemin. */
-export function lienActif(pathname: string): LienNav | undefined {
-  return TOUS_LES_LIENS.filter(
-    (l) => pathname === l.href || pathname.startsWith(`${l.href}/`),
-  ).sort((a, b) => b.href.length - a.href.length)[0];
+export function lienActif(pathname: string, modules: ModuleNav[]): LienNav | undefined {
+  const tousLesLiens = modules.flatMap((m) => (m.groupes ?? []).flatMap((g) => g.liens));
+  return tousLesLiens
+    .filter((l) => pathname === l.href || pathname.startsWith(`${l.href}/`))
+    .sort((a, b) => b.href.length - a.href.length)[0];
 }
 
 export interface Miette {
@@ -393,14 +281,14 @@ export interface Miette {
 }
 
 /** Fil d'Ariane : module → groupe → écran courant. */
-export function filAriane(pathname: string): Miette[] {
-  const mod = moduleDe(pathname);
+export function filAriane(pathname: string, modules: ModuleNav[]): Miette[] {
+  const mod = moduleDe(pathname, modules);
   if (!mod) return [];
 
   const miettes: Miette[] = [{ label: mod.label, href: mod.href }];
   if (!mod.groupes) return miettes;
 
-  const lien = lienActif(pathname);
+  const lien = lienActif(pathname, modules);
   if (!lien) return miettes;
 
   const groupe = mod.groupes.find((g) => g.liens.includes(lien));

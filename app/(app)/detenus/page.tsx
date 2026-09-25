@@ -5,7 +5,7 @@ import type { CategoriePenale, DetenuResume, Sexe } from "@/lib/domain/types";
 import { LIBELLE_CATEGORIE } from "@/lib/domain/referentiels";
 import { formatDate, formatNombre, initiales, joursRestants, ouVide, pluriel, tronquer } from "@/lib/format";
 import { filtresActifs, hrefAvec, param, paramEntier } from "@/lib/url";
-import { t } from "@/lib/i18n/fr";
+import { getT } from "@/lib/i18n/server";
 import { cn } from "@/lib/cn";
 import { Page, PageHeader } from "@/components/layout/page";
 import { DataTable, type Colonne } from "@/components/data/data-table";
@@ -22,6 +22,7 @@ export const metadata: Metadata = { title: "Liste des détenus" };
 const CHEMIN = "/detenus";
 
 export default async function DetenusPage(props: PageProps<"/detenus">) {
+  const t = await getT();
   const sp = await props.searchParams;
 
   // L'API impose 10 par page et n'expose ni tri, ni filtre par sexe, ni échéance de

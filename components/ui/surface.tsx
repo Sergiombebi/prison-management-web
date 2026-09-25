@@ -1,7 +1,7 @@
 import type { CSSProperties, ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { Icon, IconTile, type NomIcone } from "./icon";
-import { t } from "@/lib/i18n/fr";
+import type { Messages } from "@/lib/i18n/fr";
 
 type VarianteSurface = "plat" | "eleve" | "verre";
 
@@ -128,7 +128,7 @@ export function EmptyState({
 }
 
 /** Bandeau signalant un écran dont la structure existe mais pas encore les données. */
-export function ChantierNotice({ points }: { points: string[] }) {
+export function ChantierNotice({ points, t }: { points: string[]; t: Pick<Messages, "etats"> }) {
   return (
     <div className="relative overflow-hidden rounded-lg border border-dashed border-rule bg-raised px-4 py-3.5 shadow-e1">
       <div className="flex items-start gap-3">

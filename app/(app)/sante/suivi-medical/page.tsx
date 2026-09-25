@@ -5,7 +5,7 @@ import type { SuiviMedical } from "@/lib/domain/types";
 import { TYPES_CONSULTATION } from "@/lib/domain/referentiels";
 import { formatDate, formatNombre, ouVide, pluriel, tronquer } from "@/lib/format";
 import { filtresActifs, param } from "@/lib/url";
-import { t } from "@/lib/i18n/fr";
+import { getT } from "@/lib/i18n/server";
 import { getProfil, peut } from "@/lib/session";
 import { Page, PageHeader } from "@/components/layout/page";
 import { DataTable } from "@/components/data/data-table";
@@ -22,6 +22,7 @@ export const metadata: Metadata = { title: "Suivi médical" };
 const CHEMIN = "/sante/suivi-medical";
 
 export default async function SuiviMedicalPage(props: PageProps<"/sante/suivi-medical">) {
+  const t = await getT();
   const sp = await props.searchParams;
   const [suivis, detenus, profil] = await Promise.all([
     api.listSuivisMedicaux(),

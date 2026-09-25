@@ -4,7 +4,7 @@ import { useState } from "react";
 import type { Parametres, Visite } from "@/lib/domain/types";
 import { ticketDepuisVisite } from "@/lib/domain/ticket";
 import { formatDate } from "@/lib/format";
-import { t } from "@/lib/i18n/fr";
+import { useT } from "@/components/layout/i18n-provider";
 import { DataTable } from "@/components/data/data-table";
 import { PaginationLocale } from "@/components/data/pagination-locale";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +20,7 @@ const PAR_PAGE = 10;
  * l'API pour changer de page.
  */
 export function VisitesTable({ visites, parametres }: { visites: Visite[]; parametres: Parametres }) {
+  const t = useT();
   const [page, setPage] = useState(1);
   const pages = Math.max(1, Math.ceil(visites.length / PAR_PAGE));
   const pageCourante = Math.min(page, pages);

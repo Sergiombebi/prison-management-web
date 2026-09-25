@@ -11,7 +11,7 @@ import {
 } from "@/lib/domain/referentiels";
 import { formatDate, joursRestants, pluriel, tronquer } from "@/lib/format";
 import { cn } from "@/lib/cn";
-import { t } from "@/lib/i18n/fr";
+import { getT } from "@/lib/i18n/server";
 import { Page, PageHeader } from "@/components/layout/page";
 import { DataTable } from "@/components/data/data-table";
 import { ButtonLink } from "@/components/ui/button";
@@ -50,6 +50,7 @@ async function chargerCategorie(categorie: CategoriePenale) {
 }
 
 export default async function CategoriePage(props: PageProps<"/detenus/mandats/[categorie]">) {
+  const t = await getT();
   const { categorie: slug } = await props.params;
   const categorie = SLUG_CATEGORIE[slug];
   if (!categorie) notFound();

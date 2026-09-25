@@ -2,10 +2,10 @@ import Link from "next/link";
 import { cn } from "@/lib/cn";
 import { formatNombre } from "@/lib/format";
 import { Icon } from "@/components/ui/icon";
-import { t } from "@/lib/i18n/fr";
+import { getT } from "@/lib/i18n/server";
 
 /** Pagination par liens : l'état vit dans l'URL, il survit au rafraîchissement et se partage. */
-export function Pagination({
+export async function Pagination({
   page,
   parPage,
   total,
@@ -16,6 +16,7 @@ export function Pagination({
   total: number;
   href: (page: number) => string;
 }) {
+  const t = await getT();
   const pages = Math.max(1, Math.ceil(total / parPage));
   const debut = total === 0 ? 0 : (page - 1) * parPage + 1;
   const fin = Math.min(total, page * parPage);

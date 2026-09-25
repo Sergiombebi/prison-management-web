@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { api, ApiErreur } from "@/lib/api";
 import { aAcces, pageDArrivee } from "@/lib/acces";
 import { ouvrirSession } from "@/lib/session";
-import { t } from "@/lib/i18n/fr";
+import { getT } from "@/lib/i18n/server";
 
 export interface EtatConnexion {
   erreur?: string;
@@ -32,6 +32,7 @@ export async function connecter(
   const motDePasse = String(formData.get("motDePasse") ?? "");
 
   if (!identifiant || !motDePasse) {
+    const t = await getT();
     return { erreur: t.connexion.erreurChampsRequis, identifiant };
   }
 

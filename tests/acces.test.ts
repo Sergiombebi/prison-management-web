@@ -21,7 +21,8 @@ import {
   type CleModule,
 } from "@/lib/domain/modules";
 import { permissionsDuCookie } from "@/lib/session-cookies";
-import { MODULES, peutVoirModule } from "@/lib/navigation";
+import { construireModules, peutVoirModule } from "@/lib/navigation";
+import { fr } from "@/lib/i18n/fr";
 import { PERMISSIONS } from "@/lib/domain/referentiels";
 
 /*
@@ -251,6 +252,8 @@ describe("libelleExigence", () => {
 });
 
 describe("cohérence avec la navigation", () => {
+  const MODULES = construireModules(fr);
+
   it("n’affiche jamais un module que l’on ne pourrait pas ouvrir", () => {
     for (const profil of [AGENT_REGISTRE, SURVEILLANT, MEDECIN, ADMIN, []]) {
       for (const mod of MODULES) {

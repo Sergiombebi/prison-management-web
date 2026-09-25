@@ -4,8 +4,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/cn";
 import { Icon, type NomIcone } from "@/components/ui/icon";
-import { MODULES } from "@/lib/navigation";
+import { construireModules } from "@/lib/navigation";
 import { aAcces } from "@/lib/acces";
+import { useT } from "./i18n-provider";
 
 interface Commande {
   id: string;
@@ -17,18 +18,20 @@ interface Commande {
 }
 
 /** À plat : chaque écran de l'application devient une commande. */
-const COMMANDES: Commande[] = MODULES.flatMap((m) =>
-  (m.groupes ?? [{ label: m.label, liens: [{ href: m.href, label: m.label }] }]).flatMap((g) =>
-    g.liens.map((l) => ({
-      id: l.href,
-      label: l.label,
-      groupe: m.label,
-      href: l.href,
-      icone: m.icone,
-      motsCles: l.description,
-    })),
-  ),
-);
+function construireCommandes(modules: ReturnType<typeof construireModules>): Commande[] {
+  return modules.flatMap((m) =>
+    (m.groupes ?? [{ label: m.label, liens: [{ href: m.href, label: m.label }] }]).flatMap((g) =>
+      g.liens.map((l) => ({
+        id: l.href,
+        label: l.label,
+        groupe: m.label,
+        href: l.href,
+        icone: m.icone,
+        motsCles: l.description,
+      })),
+    ),
+  );
+}
 
 function normaliser(s: string) {
   return s
@@ -45,6 +48,7 @@ function normaliser(s: string) {
  * à maintenir.
  */
 export function CommandPalette({ permissions }: { permissions: string[] }) {
+  const t = useT();
   const router = useRouter();
   const dialogue = useRef<HTMLDialogElement>(null);
   const champ = useRef<HTMLInputElement>(null);
@@ -52,11 +56,13 @@ export function CommandPalette({ permissions }: { permissions: string[] }) {
   const [requete, setRequete] = useState("");
   const [index, setIndex] = useState(0);
 
+  const commandes = useMemo(() => construireCommandes(construireModules(t)), [t]);
+
   // La palette ne propose que des écrans ouverts à ce compte : proposer une porte
   // fermée puis refuser l'entrée serait la pire des deux situations.
   const autorisees = useMemo(
-    () => COMMANDES.filter((c) => aAcces(permissions, c.href)),
-    [permissions],
+    () => commandes.filter((c) => aAcces(permissions, c.href)),
+    [commandes, permissions],
   );
 
   const resultats = useMemo(() => {

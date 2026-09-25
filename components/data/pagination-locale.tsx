@@ -3,7 +3,7 @@
 import { cn } from "@/lib/cn";
 import { formatNombre } from "@/lib/format";
 import { Icon } from "@/components/ui/icon";
-import { t } from "@/lib/i18n/fr";
+import { useT } from "@/components/layout/i18n-provider";
 
 /**
  * Pagination pilotée en mémoire (`onChange`), pour une liste déjà entièrement chargée
@@ -20,6 +20,7 @@ export function PaginationLocale({
   total: number;
   onChange: (page: number) => void;
 }) {
+  const t = useT();
   const pages = Math.max(1, Math.ceil(total / parPage));
   const debut = total === 0 ? 0 : (page - 1) * parPage + 1;
   const fin = Math.min(total, page * parPage);

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { api } from "@/lib/api";
 import { getProfil, peut } from "@/lib/session";
 import { pluriel } from "@/lib/format";
-import { t } from "@/lib/i18n/fr";
+import { getT } from "@/lib/i18n/server";
 import { Page, PageHeader } from "@/components/layout/page";
 import { ButtonLink } from "@/components/ui/button";
 import { EmptyState, Panel } from "@/components/ui/surface";
@@ -12,6 +12,7 @@ import { majTypeSanction } from "../../actions";
 export const metadata: Metadata = { title: "Types de sanction" };
 
 export default async function TypesSanctionPage() {
+  const t = await getT();
   const profil = await getProfil();
   const retour = (
     <ButtonLink href="/discipline/sanctions" variante="discret" icone="arrowLeft" transitionTypes={["nav-back"]}>

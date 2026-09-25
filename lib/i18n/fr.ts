@@ -38,6 +38,8 @@ export const fr = {
     themeClair: "Clair",
     themeSombre: "Sombre",
     themeSysteme: "Système",
+    monAccueil: "Mon accueil",
+    langue: "Langue",
   },
 
   actions: {
@@ -138,6 +140,10 @@ export const fr = {
     sessionInvalide: "Votre session n’est plus valide. Reconnectez-vous.",
     droitsModifies:
       "Vos droits d’accès ont été modifiés. Reconnectez-vous pour en tenir compte.",
+    accesJournalise: "Accès journalisé : tout usage est tracé.",
+    piedDePage: "Ministère de la Justice · Administration pénitentiaire",
+    afficherMotDePasse: "Afficher le mot de passe",
+    masquerMotDePasse: "Masquer le mot de passe",
   },
 
   mockBanner: {
@@ -148,9 +154,82 @@ export const fr = {
     texteHybride:
       "Certains modules utilisent l'API réelle, les autres des données fictives générées localement.",
   },
-} as const;
+
+  /** Arborescence de navigation : `lib/navigation.ts` construit MODULES à partir de ceci. */
+  navigation: {
+    tableauDeBord: {
+      description: "Situation de l'établissement au jour d'aujourd'hui",
+    },
+    detenus: {
+      description: "Écrou, mandats et procédures de sortie",
+      groupeFichiers: "Fichiers des détenus",
+      apercu: { label: "Vue d’ensemble", description: "Situation du registre d'écrou aujourd'hui" },
+      liste: { label: "Liste des détenus", description: "Registre d'écrou de l'établissement" },
+      nouveau: { label: "Nouvel enregistrement", description: "Fiche d'enregistrement d'un détenu entrant" },
+      groupeMandats: "Gestion des mandats",
+      tousLesMandats: { label: "Tous les mandats", description: "Mandats de dépôt, gardes à vue et arrêtés" },
+      prevenus: { label: "Prévenus", description: "Détenus dont tous les mandats actifs sont provisoires" },
+      condamnes: { label: "Condamnés", description: "Détenus avec un unique mandat d'exécution de peine" },
+      appellants: { label: "Appellants", description: "Détenus dont une décision est frappée d'appel" },
+      cassationnaires: { label: "Cassationnaires", description: "Détenus ayant formé un pourvoi en cassation" },
+      dpac: {
+        label: "DPAC",
+        description: "Détenus cumulant plusieurs mandats actifs dont une exécution de peine",
+      },
+      groupeLiberation: "Libération",
+      liberationNormale: {
+        label: "Libération normale",
+        description: "Levée d'écrou à l'expiration du titre de détention",
+      },
+      transfert: { label: "Transfert", description: "Transfèrement vers un autre établissement" },
+      evasion: { label: "Évasion", description: "Constat d'évasion et avis aux autorités ampliataires" },
+      deces: { label: "Décès", description: "Constat de décès en détention" },
+    },
+    discipline: {
+      description: "Logement, affectations et sanctions disciplinaires",
+      groupe: "Discipline",
+      apercu: { label: "Vue d’ensemble", description: "Occupation des cellules et mesures en cours" },
+      cellules: { label: "Logement & cellules", description: "Capacités, effectifs et taux d'occupation par cellule" },
+      affectations: { label: "Affectations", description: "Attribution des détenus aux cellules" },
+      sanctions: { label: "Sanctions", description: "Fautes constatées et sanctions prononcées" },
+    },
+    suiviMedical: {
+      description: "Consultations, diagnostics et traitements prescrits",
+      groupe: "Suivi médical",
+      apercu: { label: "Vue d’ensemble", description: "Activité de l'infirmerie aujourd'hui" },
+      consultations: { label: "Consultations", description: "Historique des consultations" },
+      traitements: { label: "Traitements", description: "Prescriptions en cours, terminées et arrêtées" },
+      evacuations: {
+        label: "Évacuations sanitaires",
+        description: "Détenus évacués vers une structure hospitalière extérieure",
+      },
+    },
+    visites: {
+      description: "Parloirs, visiteurs et contrôles de sécurité",
+      groupe: "Visites",
+      apercu: { label: "Vue d’ensemble", description: "Parloirs du jour et affluence de la semaine" },
+      registre: { label: "Registre des visites", description: "Toutes les visites enregistrées" },
+    },
+    etats: {
+      description: "Fiches, extraits de registre et états statistiques",
+      groupe: "Édition d'états",
+      fichesAvis: { label: "Fiches & avis divers", description: "Fiche signalétique, extrait de registre, attestations" },
+      categories: { label: "Dossier par catégorie", description: "État nominatif par catégorie pénale" },
+      mandatsExpires: { label: "Mandats expirés", description: "Titres de détention dont la validité est dépassée" },
+      remisesDePeine: { label: "Remises de peine", description: "Réductions de peine accordées" },
+    },
+    administration: {
+      description: "Comptes du personnel et paramètres de l'établissement",
+      groupe: "Administration",
+      personnel: { label: "Personnel", description: "Comptes utilisateurs et accès aux modules" },
+      parametres: {
+        label: "Paramètres",
+        description: "En-têtes des états, logo, âge de majorité, autorités ampliataires",
+      },
+    },
+    accueil: { label: "Accueil", description: "Vos modules et vos indicateurs du jour" },
+    accesRefuse: { label: "Accès refusé", description: "Accès manquant pour l'écran demandé" },
+  },
+};
 
 export type Messages = typeof fr;
-
-/** Point d'entrée unique — à faire dépendre de la locale le jour venu. */
-export const t = fr;

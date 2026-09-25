@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { api } from "@/lib/api";
 import type { DetenuResume } from "@/lib/domain/types";
-import { t } from "@/lib/i18n/fr";
+import { getT } from "@/lib/i18n/server";
 import { Page, PageHeader } from "@/components/layout/page";
 import { ButtonLink } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
@@ -51,6 +51,7 @@ function valeursInitiales(d: DetenuResume): Record<string, string> {
 }
 
 export default async function ModifierDetenuPage(props: PageProps<"/detenus/[id]/modifier">) {
+  const t = await getT();
   const { id } = await props.params;
   const numero = Number.parseInt(id, 10);
   if (!Number.isFinite(numero)) notFound();

@@ -5,7 +5,7 @@ import { optionnel } from "@/lib/api/disponibilite";
 import { ETATS_A_GENERER, LIBELLE_CATEGORIE, LIBELLE_TYPE_SORTIE } from "@/lib/domain/referentiels";
 import { formatDate, formatDateLongue, ouVide } from "@/lib/format";
 import { param } from "@/lib/url";
-import { t } from "@/lib/i18n/fr";
+import { getT } from "@/lib/i18n/server";
 import { Page, PageHeader } from "@/components/layout/page";
 import { AttestationOfficielle, DocumentOfficiel, LigneDocument } from "@/components/etats/document";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ import { SansDroit } from "@/components/ui/en-attente-api";
 export const metadata: Metadata = { title: "Fiches & avis divers" };
 
 export default async function FichesAvisPage(props: PageProps<"/etats/fiches-avis">) {
+  const t = await getT();
   const sp = await props.searchParams;
   const etat = param(sp, "etat");
   const detenuId = Number(param(sp, "detenu"));

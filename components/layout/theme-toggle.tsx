@@ -3,17 +3,20 @@
 import { useEffect, useSyncExternalStore } from "react";
 import { cn } from "@/lib/cn";
 import { Icon, type NomIcone } from "@/components/ui/icon";
-import { t } from "@/lib/i18n/fr";
+import { useT } from "./i18n-provider";
+import type { Messages } from "@/lib/i18n/fr";
 
 type Choix = "light" | "dark" | "system";
 
 const CLE = "sgp-theme";
 
-const OPTIONS: Array<{ valeur: Choix; icone: NomIcone; label: string }> = [
-  { valeur: "light", icone: "sun", label: t.nav.themeClair },
-  { valeur: "system", icone: "monitor", label: t.nav.themeSysteme },
-  { valeur: "dark", icone: "moon", label: t.nav.themeSombre },
-];
+function optionsTheme(t: Messages): Array<{ valeur: Choix; icone: NomIcone; label: string }> {
+  return [
+    { valeur: "light", icone: "sun", label: t.nav.themeClair },
+    { valeur: "system", icone: "monitor", label: t.nav.themeSysteme },
+    { valeur: "dark", icone: "moon", label: t.nav.themeSombre },
+  ];
+}
 
 /** Script bloquant injecté dans <head> : fixe le thème avant la première peinture. */
 export const SCRIPT_THEME = `(function(){try{var c=localStorage.getItem('${CLE}')||'system';var d=c==='dark'||(c==='system'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.dataset.theme=d?'dark':'light';}catch(e){}})();`;
@@ -51,6 +54,8 @@ function appliquer(choix: Choix) {
 }
 
 export function ThemeToggle({ className }: { className?: string }) {
+  const t = useT();
+  const OPTIONS = optionsTheme(t);
   // Côté serveur on ne connaît pas le choix : « système » par défaut
   const choix = useSyncExternalStore(abonner, lireChoix, () => "system" as Choix);
 

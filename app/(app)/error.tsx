@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { ACCUEIL } from "@/lib/acces";
-import { t } from "@/lib/i18n/fr";
+import { useT } from "@/components/layout/i18n-provider";
 
 export default function Erreur({
   error,
@@ -13,6 +13,8 @@ export default function Erreur({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const t = useT();
+
   useEffect(() => {
     console.error(error);
   }, [error]);
@@ -41,7 +43,7 @@ export default function Erreur({
           droit, et proposer une porte fermée après une erreur enfermerait
           l'utilisateur dans une boucle d'écrans d'erreur.
         */}
-        <ButtonLink href={ACCUEIL}>Mon accueil</ButtonLink>
+        <ButtonLink href={ACCUEIL}>{t.nav.monAccueil}</ButtonLink>
       </div>
     </div>
   );

@@ -5,7 +5,7 @@ import type { CategoriePenale } from "@/lib/domain/types";
 import { CATEGORIE_SLUG, LIBELLE_CATEGORIE, SLUG_CATEGORIE } from "@/lib/domain/referentiels";
 import { formatDate, ouVide, pluriel } from "@/lib/format";
 import { param } from "@/lib/url";
-import { t } from "@/lib/i18n/fr";
+import { getT } from "@/lib/i18n/server";
 import { Page, PageHeader } from "@/components/layout/page";
 import { DocumentOfficiel } from "@/components/etats/document";
 import { PrintButton } from "@/components/ui/client-actions";
@@ -22,6 +22,7 @@ const TITRES: Record<CategoriePenale, string> = {
 };
 
 export default async function CategoriesEtatPage(props: PageProps<"/etats/categories">) {
+  const t = await getT();
   const sp = await props.searchParams;
   const categorie = SLUG_CATEGORIE[param(sp, "categorie") ?? ""] ?? "Prevenu";
 

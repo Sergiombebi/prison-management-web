@@ -1,14 +1,19 @@
 import type { Metadata } from "next";
 import { modeDe } from "@/lib/api";
-import { t } from "@/lib/i18n/fr";
+import { getT } from "@/lib/i18n/server";
 import { param } from "@/lib/url";
 import { PaletteToggle, ThemeToggle } from "@/components/layout/theme-toggle";
+import { LangToggle } from "@/components/layout/lang-toggle";
 import { Armoiries } from "@/components/ui/armoiries";
 import { LoginForm, type AideConnexion } from "./login-form";
 
-export const metadata: Metadata = { title: t.connexion.titre };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  return { title: t.connexion.titre };
+}
 
 export default async function ConnexionPage(props: PageProps<"/connexion">) {
+  const t = await getT();
   const sp = await props.searchParams;
 
   // Identifiants affichés sous le formulaire : jamais en production
@@ -89,6 +94,7 @@ export default async function ConnexionPage(props: PageProps<"/connexion">) {
         </div>
 
         <div className="flex items-center gap-3">
+          <LangToggle />
           <PaletteToggle />
           <ThemeToggle />
         </div>
@@ -118,13 +124,13 @@ export default async function ConnexionPage(props: PageProps<"/connexion">) {
           >
             {t.app.nomComplet}
             <br />
-            Accès journalisé : tout usage est tracé.
+            {t.connexion.accesJournalise}
           </p>
         </div>
       </main>
 
       <footer className="relative z-10 px-5 py-5 text-center text-2xs text-[color:var(--sgp-connexion-ink-faible)] sm:px-10">
-        © {new Date().getFullYear()} {t.app.nom} · Ministère de la Justice · Administration pénitentiaire
+        © {new Date().getFullYear()} {t.app.nom} · {t.connexion.piedDePage}
       </footer>
     </div>
   );

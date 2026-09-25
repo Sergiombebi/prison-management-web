@@ -1,8 +1,9 @@
 import { DataTableSkeleton } from "@/components/data/data-table";
-import { t } from "@/lib/i18n/fr";
+import { getT } from "@/lib/i18n/server";
 
 /** Squelette générique : même géométrie qu'un écran de liste, pour que rien ne saute. */
-export default function Chargement() {
+export default async function Chargement() {
+  const t = await getT();
   return (
     <div
       role="status"

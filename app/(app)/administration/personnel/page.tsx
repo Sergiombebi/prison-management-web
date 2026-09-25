@@ -9,7 +9,7 @@ import {
 import { formatNombre, formatRelatif, initiales } from "@/lib/format";
 import { hrefAvec, param } from "@/lib/url";
 import { getProfil, peut } from "@/lib/session";
-import { t } from "@/lib/i18n/fr";
+import { getT } from "@/lib/i18n/server";
 import { Page, PageHeader } from "@/components/layout/page";
 import { DataTable } from "@/components/data/data-table";
 import { Stat, StatGrid } from "@/components/data/stat";
@@ -28,6 +28,7 @@ export const metadata: Metadata = { title: "Personnel" };
 const CHEMIN = "/administration/personnel";
 
 export default async function PersonnelPage(props: PageProps<"/administration/personnel">) {
+  const t = await getT();
   const profil = await getProfil();
 
   if (!profil || !peut(profil.permissions, "administration.personnel.gerer")) {

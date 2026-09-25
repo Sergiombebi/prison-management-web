@@ -5,7 +5,7 @@ import { optionnel } from "@/lib/api/disponibilite";
 import type { DetenuResume } from "@/lib/domain/types";
 import { formatNombre, initiales, pluriel } from "@/lib/format";
 import { hrefAvec, paramEntier } from "@/lib/url";
-import { t } from "@/lib/i18n/fr";
+import { getT } from "@/lib/i18n/server";
 import { Page, PageHeader } from "@/components/layout/page";
 import { DataTable, type Colonne } from "@/components/data/data-table";
 import { Pagination } from "@/components/data/pagination";
@@ -22,6 +22,7 @@ export async function generateMetadata(props: PageProps<"/discipline/cellules/[i
 }
 
 export default async function CelluleDetenusPage(props: PageProps<"/discipline/cellules/[id]">) {
+  const t = await getT();
   const { id } = await props.params;
   const sp = await props.searchParams;
   const celluleId = Number(id);

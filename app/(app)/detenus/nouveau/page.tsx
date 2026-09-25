@@ -2,13 +2,14 @@ import type { Metadata } from "next";
 import { Page, PageHeader } from "@/components/layout/page";
 import { ButtonLink } from "@/components/ui/button";
 import { EmptyState, Panel } from "@/components/ui/surface";
-import { t } from "@/lib/i18n/fr";
+import { getT } from "@/lib/i18n/server";
 import { getProfil, peut } from "@/lib/session";
 import { DetenuForm } from "./detenu-form";
 
 export const metadata: Metadata = { title: "Nouvel enregistrement" };
 
 export default async function NouveauDetenuPage() {
+  const t = await getT();
   const profil = await getProfil();
   const retour = (
     <ButtonLink href="/detenus" variante="discret" icone="arrowLeft" transitionTypes={["nav-back"]}>

@@ -3,7 +3,7 @@ import { api } from "@/lib/api";
 import { optionnel, tenter } from "@/lib/api/disponibilite";
 import { formatDate, initiales, pluriel } from "@/lib/format";
 import { param } from "@/lib/url";
-import { t } from "@/lib/i18n/fr";
+import { getT } from "@/lib/i18n/server";
 import { Page, PageHeader } from "@/components/layout/page";
 import { Badge } from "@/components/ui/badge";
 import { EnAttenteApi, SansDroit } from "@/components/ui/en-attente-api";
@@ -14,6 +14,7 @@ import { FormulaireAffectation } from "@/components/discipline/formulaires";
 export const metadata: Metadata = { title: "Affectations" };
 
 export default async function AffectationsPage(props: PageProps<"/discipline/affectations">) {
+  const t = await getT();
   const sp = await props.searchParams;
   const [nonLoges, affectations, cellules, detenus] = await Promise.all([
     // Ces deux listes n'existent pas encore partout : elles ne doivent pas bloquer la saisie

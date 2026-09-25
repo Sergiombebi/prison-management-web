@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { t } from "@/lib/i18n/fr";
+import { getT } from "@/lib/i18n/server";
 import { Page, PageHeader } from "@/components/layout/page";
 import { ChantierNotice, EmptyState, Panel } from "@/components/ui/surface";
 
@@ -7,7 +7,9 @@ export const metadata: Metadata = { title: "Remises de peine" };
 
 const COLONNES = ["Détenu", "Peine initiale", "Remise accordée", "Texte de référence", "Date d’effet", "Nouvelle date de libération"];
 
-export default function RemisesDePeinePage() {
+export default async function RemisesDePeinePage() {
+  const t = await getT();
+
   return (
     <Page className="print:p-0">
       <PageHeader
@@ -16,7 +18,7 @@ export default function RemisesDePeinePage() {
         description="Réductions de peine accordées par décret de grâce ou décision individuelle, et recalcul de la date de libération."
       />
 
-      <ChantierNotice points={["GET /remises-de-peine", "POST /remises-de-peine", "GET /textes-de-grace"]} />
+      <ChantierNotice t={t} points={["GET /remises-de-peine", "POST /remises-de-peine", "GET /textes-de-grace"]} />
 
       <Panel variante="eleve" titre="Remises accordées" flush className="overflow-hidden">
         <div className="overflow-x-auto">
