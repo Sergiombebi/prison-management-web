@@ -8,6 +8,7 @@ import { formatDate } from "@/lib/format";
 import type { EtatSortie } from "@/app/(app)/detenus/liberation/actions";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
+import { SelectDetenu } from "@/components/ui/select-detenu";
 import { RetourAction } from "@/components/ui/retour-action";
 import { AvisEvasionModal } from "@/components/detenus/avis-evasion";
 import { BulletinModal } from "@/components/detenus/bulletin-transferement";
@@ -28,17 +29,17 @@ const CHAMPS: Record<TypeSortie, Array<{ nom: string; label: string; requis: boo
 export function FormulaireSortie({
   type,
   action,
-  detenus,
   detenuId,
+  detenuInitial,
   mandats,
   grave,
   parametres,
 }: {
   type: TypeSortie;
   action: (p: EtatSortie, f: FormData) => Promise<EtatSortie>;
-  detenus: DetenuOption[];
   /** Détenu choisi dans l'URL — nécessaire pour proposer ses mandats. */
   detenuId?: number;
+  detenuInitial?: DetenuOption | null;
   /** Mandats non levés du détenu choisi, échus compris (libération normale uniquement). */
   mandats: MandatDetaille[] | null;
   grave: boolean;
@@ -74,25 +75,18 @@ export function FormulaireSortie({
         erreur={err("detenu_id")}
       >
         {(p) => (
-          <Select
+          <SelectDetenu
             {...p}
             // Remonter le champ quand la sélection change par l'URL
             key={choisi ?? "aucun"}
             name="detenu_id"
-            required
-            defaultValue={choisi ?? ""}
-            placeholder="Sélectionner un détenu…"
-            onChange={(e) => {
+            requis
+            initial={etat.ok ? null : (detenuInitial ?? null)}
+            onSelection={(d) => {
               // La libération porte sur un mandat précis : il faut charger ceux du détenu
-              if (liberation) router.replace(`${chemin}?detenu=${e.target.value}`, { scroll: false });
+              if (liberation) router.replace(`${chemin}?detenu=${d ? d.id : ""}`, { scroll: false });
             }}
-          >
-            {detenus.map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.nom} — {d.numeroEcrou}
-              </option>
-            ))}
-          </Select>
+          />
         )}
       </Field>
 

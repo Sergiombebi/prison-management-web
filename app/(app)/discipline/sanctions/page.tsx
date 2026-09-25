@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { api } from "@/lib/api";
 import { optionnel, tenter } from "@/lib/api/disponibilite";
+import { resoudreDetenuInitial } from "@/lib/api/detenu-initial";
 import type { Sanction } from "@/lib/domain/types";
 import { formatDate, formatNombre, pluriel, tronquer } from "@/lib/format";
 import { filtresActifs, param } from "@/lib/url";
@@ -25,7 +26,9 @@ const CHEMIN = "/discipline/sanctions";
 export default async function SanctionsPage(props: PageProps<"/discipline/sanctions">) {
   const t = await getT();
   const sp = await props.searchParams;
-  const [chargement, types, cellules, detenus, profil] = await Promise.all([
+  const detenuInitialId = Number.parseInt(param(sp, "detenu") ?? "", 10);
+
+  const [chargement, types, cellules, profil, detenuInitial] = await Promise.all([
     // La liste n'est pas encore exposée par l'API : elle ne doit pas bloquer la saisie
     tenter(() => api.listSanctions()),
     // Trois domaines voisins, chacun derrière sa propre permission : consulter les
@@ -33,14 +36,13 @@ export default async function SanctionsPage(props: PageProps<"/discipline/sancti
     // registre. Un manque doit rester local au bloc qui s'en sert.
     optionnel(() => api.listTypesSanction(), []),
     optionnel(() => api.listCellules(), []),
-    optionnel(() => api.listOptionsDetenus(), null),
     getProfil(),
+    resoudreDetenuInitial(Number.isFinite(detenuInitialId) ? detenuInitialId : undefined),
   ]);
 
   const recherche = (param(sp, "recherche") ?? "").toLowerCase();
   const statut = param(sp, "statut") ?? "tous";
   const type = param(sp, "type") ?? "tous";
-  const detenuInitial = Number.parseInt(param(sp, "detenu") ?? "", 10);
 
   const sanctions = chargement.ok ? chargement.donnees : [];
   const filtrees = sanctions.filter(
@@ -154,13 +156,8 @@ export default async function SanctionsPage(props: PageProps<"/discipline/sancti
 
         {profil && peut(profil.permissions, "discipline.sanctions.creer") && (
           <Panel variante="eleve" titre="Nouvelle sanction" className="xl:sticky xl:top-20">
-            {detenus ? (
-              <FormulaireSanction
-                detenus={detenus}
-                types={types}
-                cellules={cellules}
-                detenuInitial={Number.isFinite(detenuInitial) ? detenuInitial : undefined}
-              />
+            {peut(profil.permissions, "detenus.consulter") ? (
+              <FormulaireSanction types={types} cellules={cellules} detenuInitial={detenuInitial} />
             ) : (
               <SansDroit
                 compact

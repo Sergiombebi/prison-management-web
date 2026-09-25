@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { api } from "@/lib/api";
-import { optionnel } from "@/lib/api/disponibilite";
+import { resoudreDetenuInitial } from "@/lib/api/detenu-initial";
 import type { SuiviMedical } from "@/lib/domain/types";
 import { TYPES_CONSULTATION } from "@/lib/domain/referentiels";
 import { formatDate, formatNombre, ouVide, pluriel, tronquer } from "@/lib/format";
@@ -24,18 +24,16 @@ const CHEMIN = "/sante/suivi-medical";
 export default async function SuiviMedicalPage(props: PageProps<"/sante/suivi-medical">) {
   const t = await getT();
   const sp = await props.searchParams;
-  const [suivis, detenus, profil] = await Promise.all([
+  const detenuBrut = Number.parseInt(param(sp, "detenu") ?? "", 10);
+
+  const [suivis, profil, detenuInitial] = await Promise.all([
     api.listSuivisMedicaux(),
-    // Domaine voisin : sans droit sur le registre, le formulaire se prive de son
-    // sélecteur plutôt que de faire tomber tout l'écran.
-    optionnel(() => api.listOptionsDetenus(), null),
     getProfil(),
+    resoudreDetenuInitial(Number.isFinite(detenuBrut) ? detenuBrut : undefined),
   ]);
 
   const recherche = (param(sp, "recherche") ?? "").toLowerCase();
   const type = param(sp, "type") ?? "tous";
-  const detenuBrut = Number.parseInt(param(sp, "detenu") ?? "", 10);
-  const detenuInitial = Number.isFinite(detenuBrut) ? detenuBrut : undefined;
   const filtres = suivis.filter(
     (s) =>
       (type === "tous" || s.typeConsultation === type) &&
@@ -111,8 +109,8 @@ export default async function SuiviMedicalPage(props: PageProps<"/sante/suivi-me
             className="xl:sticky xl:top-20 xl:flex xl:max-h-[calc(100vh-7rem)] xl:flex-col"
             corpsClassName="xl:min-h-0 xl:flex-1 xl:overflow-y-auto"
           >
-            {detenus ? (
-              <FormulaireConsultation detenus={detenus} detenuInitial={detenuInitial} />
+            {peut(profil.permissions, "detenus.consulter") ? (
+              <FormulaireConsultation detenuInitial={detenuInitial} />
             ) : (
               <SansDroit
                 compact

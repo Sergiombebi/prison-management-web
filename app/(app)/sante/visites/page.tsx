@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { api } from "@/lib/api";
-import { optionnel } from "@/lib/api/disponibilite";
+import { resoudreDetenuInitial } from "@/lib/api/detenu-initial";
 import { TYPES_VISITE } from "@/lib/domain/referentiels";
 import { formatNombre, pluriel } from "@/lib/format";
 import { filtresActifs, param } from "@/lib/url";
@@ -20,12 +20,13 @@ const CHEMIN = "/sante/visites";
 
 export default async function VisitesPage(props: PageProps<"/sante/visites">) {
   const sp = await props.searchParams;
-  const [visites, detenus, profil, parametres] = await Promise.all([
+  const detenuBrut = Number.parseInt(param(sp, "detenu") ?? "", 10);
+
+  const [visites, profil, parametres, detenuInitial] = await Promise.all([
     api.listVisites(),
-    // Domaine voisin (GET /detenus) : un droit manquant ne doit coûter que le sélecteur.
-    optionnel(() => api.listOptionsDetenus(), null),
     getProfil(),
     api.getParametres(),
+    resoudreDetenuInitial(Number.isFinite(detenuBrut) ? detenuBrut : undefined),
   ]);
 
   const maintenant = new Date();
@@ -35,8 +36,6 @@ export default async function VisitesPage(props: PageProps<"/sante/visites">) {
   const recherche = (param(sp, "recherche") ?? "").toLowerCase();
   const periode = param(sp, "periode") ?? "tous";
   const type = param(sp, "type") ?? "tous";
-  const detenuBrut = Number.parseInt(param(sp, "detenu") ?? "", 10);
-  const detenuInitial = Number.isFinite(detenuBrut) ? detenuBrut : undefined;
 
   const filtrees = visites.filter((v) => {
     const d = new Date(v.dateVisite);
@@ -97,8 +96,8 @@ export default async function VisitesPage(props: PageProps<"/sante/visites">) {
             className="xl:sticky xl:top-20 xl:flex xl:max-h-[calc(100vh-7rem)] xl:flex-col"
             corpsClassName="xl:min-h-0 xl:flex-1 xl:overflow-y-auto"
           >
-            {detenus ? (
-              <FormulaireVisite detenus={detenus} detenuInitial={detenuInitial} parametres={parametres} />
+            {peut(profil.permissions, "detenus.consulter") ? (
+              <FormulaireVisite detenuInitial={detenuInitial} parametres={parametres} />
             ) : (
               <SansDroit
                 compact

@@ -22,6 +22,7 @@ import type {
   EvacuationSanitaire,
   FiltreDetenus,
   Mandas,
+  PageOptionsDetenus,
   PageResultat,
   Parametres,
   Prescription,
@@ -393,11 +394,13 @@ export interface ApiClient {
   /** GET /detenus?page=&search=&categorie_penale= */
   listDetenus(filtre?: FiltreDetenus): Promise<PageResultat<DetenuResume>>;
   /**
-   * GET /detenus/options — liste minimale (id, numéro d'écrou, nom) de tous les détenus
-   * présents, sans pagination. Alimente les listes déroulantes de sélection : à préférer à
-   * `listDetenus({ parPage: ... })` qui doit parcourir toutes les pages de `/detenus`.
+   * GET /detenus/options?recherche=&decalage= — liste minimale (id, numéro d'écrou, nom) de
+   * détenus présents, par pages de 20 (triés par nom sans terme, par pertinence du nom/numéro
+   * d'écrou avec un terme). `decalage` charge la page suivante (`aPlus` dit s'il y en a une) :
+   * la population entière reste accessible, sans jamais tout charger d'un coup. Alimente les
+   * listes déroulantes de sélection d'un détenu.
    */
-  listOptionsDetenus(): Promise<DetenuOption[]>;
+  listOptionsDetenus(recherche: string, decalage?: number): Promise<PageOptionsDetenus>;
   /** GET /detenus/{id} — fiche complète avec ses mandats */
   getDossierDetenu(id: number): Promise<DossierDetenu | null>;
   /**

@@ -4,18 +4,17 @@ import { useActionState } from "react";
 import type { DetenuOption } from "@/lib/domain/types";
 import { enregistrerEvacuation, type EtatEvacuation } from "@/app/(app)/sante/evacuations/actions";
 import { Button } from "@/components/ui/button";
-import { Field, Input, Select, Textarea } from "@/components/ui/field";
+import { Field, Input, Textarea } from "@/components/ui/field";
+import { SelectDetenu } from "@/components/ui/select-detenu";
 import { RetourAction } from "@/components/ui/retour-action";
 
 const aujourdhui = () => new Date().toISOString().slice(0, 10);
 
 /** Enregistre le départ d'un détenu en évacuation sanitaire. */
 export function FormulaireEvacuation({
-  detenus,
   detenuInitial,
 }: {
-  detenus: DetenuOption[];
-  detenuInitial?: number;
+  detenuInitial?: DetenuOption | null;
 }) {
   const [etat, envoyer, enCours] = useActionState<EtatEvacuation, FormData>(enregistrerEvacuation, {});
   // Le formulaire redémarre vierge après un enregistrement réussi : la saisie
@@ -28,21 +27,7 @@ export function FormulaireEvacuation({
       <RetourAction etat={etat} />
 
       <Field label="Détenu concerné" requis erreur={err("detenu_id")}>
-        {(p) => (
-          <Select
-            {...p}
-            name="detenu_id"
-            required
-            defaultValue={v("detenu_id") ?? (detenuInitial ? String(detenuInitial) : "")}
-            placeholder="Sélectionner un détenu…"
-          >
-            {detenus.map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.nom} — {d.numeroEcrou}
-              </option>
-            ))}
-          </Select>
-        )}
+        {(p) => <SelectDetenu {...p} name="detenu_id" requis initial={detenuInitial} />}
       </Field>
 
       <Field label="Date de départ" requis erreur={err("date_depart")}>

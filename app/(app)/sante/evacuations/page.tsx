@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { api } from "@/lib/api";
-import { optionnel } from "@/lib/api/disponibilite";
+import { resoudreDetenuInitial } from "@/lib/api/detenu-initial";
 import { formatNombre, pluriel } from "@/lib/format";
 import { filtresActifs, param } from "@/lib/url";
 import { getProfil, peut } from "@/lib/session";
@@ -19,16 +19,16 @@ const CHEMIN = "/sante/evacuations";
 
 export default async function EvacuationsPage(props: PageProps<"/sante/evacuations">) {
   const sp = await props.searchParams;
-  const [evacuations, detenus, profil] = await Promise.all([
+  const detenuBrut = Number.parseInt(param(sp, "detenu") ?? "", 10);
+
+  const [evacuations, profil, detenuInitial] = await Promise.all([
     api.listEvacuations(),
-    optionnel(() => api.listOptionsDetenus(), null),
     getProfil(),
+    resoudreDetenuInitial(Number.isFinite(detenuBrut) ? detenuBrut : undefined),
   ]);
 
   const recherche = (param(sp, "recherche") ?? "").toLowerCase();
   const statut = param(sp, "statut") ?? "tous";
-  const detenuBrut = Number.parseInt(param(sp, "detenu") ?? "", 10);
-  const detenuInitial = Number.isFinite(detenuBrut) ? detenuBrut : undefined;
 
   const filtrees = evacuations.filter(
     (e) =>
@@ -85,8 +85,8 @@ export default async function EvacuationsPage(props: PageProps<"/sante/evacuatio
             className="xl:sticky xl:top-20 xl:flex xl:max-h-[calc(100vh-7rem)] xl:flex-col"
             corpsClassName="xl:min-h-0 xl:flex-1 xl:overflow-y-auto"
           >
-            {detenus ? (
-              <FormulaireEvacuation detenus={detenus} detenuInitial={detenuInitial} />
+            {peut(profil.permissions, "detenus.consulter") ? (
+              <FormulaireEvacuation detenuInitial={detenuInitial} />
             ) : (
               <SansDroit
                 compact

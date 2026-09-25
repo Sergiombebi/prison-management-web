@@ -84,9 +84,12 @@ async function requete<T>(
   const jeton = await getJeton();
 
   // Sans timeout, un fichier lourd ou une API qui ne répond plus bloquerait la requête
-  // indéfiniment sans aucun retour pour l'utilisateur.
+  // indéfiniment sans aucun retour pour l'utilisateur. 60s (au lieu de 20s) : en dev,
+  // `php artisan serve` traite les requêtes une par une, donc plusieurs appels
+  // simultanés depuis une même page peuvent légitimement mettre plus de 20s à sortir
+  // de la file d'attente — ce n'est pas encore un blocage réel à ce stade.
   const controleur = new AbortController();
-  const delai = setTimeout(() => controleur.abort(), 20_000);
+  const delai = setTimeout(() => controleur.abort(), 60_000);
 
   let reponse: Response;
   try {
@@ -1223,16 +1226,20 @@ export const liveApi: ApiClient = {
     };
   },
 
-  async listOptionsDetenus() {
+  async listOptionsDetenus(recherche: string, decalage = 0) {
     const corps = await requete<{
+      a_plus: boolean;
       data: { id: number; numero_ecrou: string; nom: string; cellule: { numero: string; bloc: string | null } | null }[];
-    }>("/detenus/options");
-    return (corps?.data ?? []).map((d) => ({
-      id: d.id,
-      numeroEcrou: d.numero_ecrou,
-      nom: d.nom,
-      cellule: d.cellule,
-    }));
+    }>("/detenus/options", { query: { recherche, decalage: decalage || undefined } });
+    return {
+      items: (corps?.data ?? []).map((d) => ({
+        id: d.id,
+        numeroEcrou: d.numero_ecrou,
+        nom: d.nom,
+        cellule: d.cellule,
+      })),
+      aPlus: corps?.a_plus ?? false,
+    };
   },
 
   async getDossierDetenu(id): Promise<DossierDetenu | null> {

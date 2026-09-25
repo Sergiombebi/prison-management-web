@@ -214,6 +214,13 @@ export interface DetenuOption {
   cellule: { numero: string; bloc: string | null } | null;
 }
 
+/** Page de `DetenuOption` : pas de total (coûteux à calculer côté API pour un simple
+ * combobox), juste de quoi savoir s'il reste une page à charger. */
+export interface PageOptionsDetenus {
+  items: DetenuOption[];
+  aPlus: boolean;
+}
+
 /** Vue minimale d'une cellule — alimente les listes déroulantes d'affectation. */
 export interface CelluleOption {
   id: number;

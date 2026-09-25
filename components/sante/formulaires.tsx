@@ -14,6 +14,7 @@ import {
 import { enregistrerConsultation, enregistrerVisite, type EtatVisite } from "@/app/(app)/sante/actions";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
+import { SelectDetenu } from "@/components/ui/select-detenu";
 import { RetourAction } from "@/components/ui/retour-action";
 import { TicketModal } from "@/components/sante/ticket-visite";
 import type { DonneesTicket } from "@/lib/domain/ticket";
@@ -36,35 +37,19 @@ function useFormulaire<E extends EtatAction>(action: (p: Awaited<E>, f: FormData
 }
 
 function ChampDetenu({
-  detenus,
-  valeur,
+  onSelection,
   erreur,
   initial,
   label,
 }: {
-  detenus: DetenuOption[];
-  valeur?: string;
+  onSelection?: (d: DetenuOption | null) => void;
   erreur?: string;
-  initial?: number;
+  initial?: DetenuOption | null;
   label: string;
 }) {
   return (
     <Field label={label} requis erreur={erreur}>
-      {(p) => (
-        <Select
-          {...p}
-          name="detenu_id"
-          required
-          defaultValue={valeur ?? (initial ? String(initial) : "")}
-          placeholder="Sélectionner un détenu…"
-        >
-          {detenus.map((d) => (
-            <option key={d.id} value={d.id}>
-              {d.nom} — {d.numeroEcrou}
-            </option>
-          ))}
-        </Select>
-      )}
+      {(p) => <SelectDetenu {...p} name="detenu_id" requis initial={initial} onSelection={onSelection} />}
     </Field>
   );
 }
@@ -89,10 +74,9 @@ const CHAMPS_ETAPE_VISITE = new Set([
 ]);
 
 /** Reconstruit le ticket à partir des valeurs saisies : la visite créée n'est pas rechargée. */
-function ticketDepuisEtat(etat: EtatVisite, detenus: DetenuOption[]): DonneesTicket | null {
+function ticketDepuisEtat(etat: EtatVisite, detenu: DetenuOption | null): DonneesTicket | null {
   if (!etat.ok || !etat.visiteId || !etat.valeurs) return null;
   const val = etat.valeurs;
-  const detenu = detenus.find((d) => d.id === Number(val.detenu_id));
   return {
     id: etat.visiteId,
     detenuNom: detenu?.nom ?? "",
@@ -122,18 +106,16 @@ function Etapes({ actuelle, total }: { actuelle: number; total: number }) {
 // ---------------------------------------------------------------------------
 
 export function FormulaireConsultation({
-  detenus,
   detenuInitial,
 }: {
-  detenus: DetenuOption[];
-  detenuInitial?: number;
+  detenuInitial?: DetenuOption | null;
 }) {
   const { etat, envoyer, enCours, v, err } = useFormulaire(enregistrerConsultation);
 
   return (
     <form action={envoyer} className="flex flex-col gap-4">
       <RetourAction etat={etat} />
-      <ChampDetenu label="Détenu" detenus={detenus} valeur={v("detenu_id")} erreur={err("detenu_id")} initial={detenuInitial} />
+      <ChampDetenu label="Détenu" erreur={err("detenu_id")} initial={detenuInitial} />
 
       <div className="grid grid-cols-2 gap-3">
         <Field label="Date" requis erreur={err("date_consultation")}>
@@ -204,12 +186,10 @@ export function FormulaireConsultation({
 // ---------------------------------------------------------------------------
 
 export function FormulaireVisite({
-  detenus,
   detenuInitial,
   parametres,
 }: {
-  detenus: DetenuOption[];
-  detenuInitial?: number;
+  detenuInitial?: DetenuOption | null;
   parametres: Parametres;
 }) {
   const { etat, envoyer, enCours, v: vBrute, err } = useFormulaire<EtatVisite>(enregistrerVisite);
@@ -219,6 +199,11 @@ export function FormulaireVisite({
   const forme = useRef<HTMLFormElement>(null);
   const [etape, setEtape] = useState<1 | 2>(1);
   const [ticketOuvert, setTicketOuvert] = useState(false);
+  // Le champ détenu vit dans le sous-arbre du <form>, remonté (via sa `key`) après un
+  // succès : son état interne se réinitialise tout seul. Celui-ci vit hors de ce
+  // sous-arbre — le ticket en a besoin après le remontage — donc il se réinitialise
+  // explicitement ci-dessous, en même temps que `etape`/`ticketOuvert`.
+  const [detenuChoisi, setDetenuChoisi] = useState<DetenuOption | null>(detenuInitial ?? null);
 
   // Une erreur sur un champ de l'étape 1 (ex. numéro de pièce déjà pris) doit
   // ramener dessus, sinon le message apparaît sans que le champ soit visible.
@@ -226,17 +211,19 @@ export function FormulaireVisite({
   // pendant le rendu plutôt que dans un effet : `etat` ne change qu'au retour
   // d'une soumission, jamais en continu.
   const [dernierEtat, setDernierEtat] = useState(etat);
+  // `setDetenuChoisi` ci-dessous ne prend effet qu'au rendu suivant : `detenuChoisi`
+  // désigne donc encore ici le détenu qui vient d'être soumis, dont le ticket a besoin.
+  const ticket = ticketDepuisEtat(etat, detenuChoisi);
   if (etat !== dernierEtat) {
     setDernierEtat(etat);
     if (etat.ok) {
       setEtape(1);
       setTicketOuvert(true);
+      setDetenuChoisi(detenuInitial ?? null);
     } else if (etat.erreurs && Object.keys(etat.erreurs).some((champ) => CHAMPS_ETAPE_VISITE.has(champ))) {
       setEtape(1);
     }
   }
-
-  const ticket = ticketDepuisEtat(etat, detenus);
 
   return (
     <>
@@ -245,7 +232,7 @@ export function FormulaireVisite({
       <Etapes actuelle={etape} total={2} />
 
       <div className={etape === 1 ? "flex flex-col gap-4" : "hidden"}>
-      <ChampDetenu label="Détenu visité" detenus={detenus} valeur={v("detenu_id")} erreur={err("detenu_id")} initial={detenuInitial} />
+      <ChampDetenu label="Détenu visité" onSelection={setDetenuChoisi} erreur={err("detenu_id")} initial={detenuInitial} />
 
       <div className="grid grid-cols-3 gap-3">
         <Field label="Date" requis erreur={err("date_visite")}>

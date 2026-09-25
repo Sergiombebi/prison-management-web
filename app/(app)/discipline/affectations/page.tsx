@@ -1,14 +1,17 @@
 import type { Metadata } from "next";
 import { api } from "@/lib/api";
 import { optionnel, tenter } from "@/lib/api/disponibilite";
-import { formatDate, initiales, pluriel } from "@/lib/format";
+import { resoudreDetenuInitial } from "@/lib/api/detenu-initial";
+import { pluriel } from "@/lib/format";
 import { param } from "@/lib/url";
+import { getProfil, peut } from "@/lib/session";
 import { getT } from "@/lib/i18n/server";
 import { Page, PageHeader } from "@/components/layout/page";
 import { Badge } from "@/components/ui/badge";
 import { EnAttenteApi, SansDroit } from "@/components/ui/en-attente-api";
-import { Avatar, EmptyState, Ecrou, Panel } from "@/components/ui/surface";
+import { EmptyState, Panel } from "@/components/ui/surface";
 import { AffectationsRecentes } from "@/components/discipline/affectations-recentes";
+import { DetenusNonLoges } from "@/components/discipline/detenus-non-loges";
 import { FormulaireAffectation } from "@/components/discipline/formulaires";
 
 export const metadata: Metadata = { title: "Affectations" };
@@ -16,19 +19,20 @@ export const metadata: Metadata = { title: "Affectations" };
 export default async function AffectationsPage(props: PageProps<"/discipline/affectations">) {
   const t = await getT();
   const sp = await props.searchParams;
-  const [nonLoges, affectations, cellules, detenus] = await Promise.all([
+  const nombre = (cle: string) => {
+    const n = Number.parseInt(param(sp, cle) ?? "", 10);
+    return Number.isFinite(n) ? n : undefined;
+  };
+
+  const [nonLoges, affectations, cellules, profil, detenuInitial] = await Promise.all([
     // Ces deux listes n'existent pas encore partout : elles ne doivent pas bloquer la saisie
     tenter(() => api.listDetenusNonLoges()),
     tenter(() => api.listAffectations()),
     // Domaines voisins : gérer les affectations n'ouvre ni les cellules ni le registre.
     optionnel(() => api.listCellules(), []),
-    optionnel(() => api.listOptionsDetenus(), null),
+    getProfil(),
+    resoudreDetenuInitial(nombre("detenu")),
   ]);
-
-  const nombre = (cle: string) => {
-    const n = Number.parseInt(param(sp, cle) ?? "", 10);
-    return Number.isFinite(n) ? n : undefined;
-  };
 
   return (
     <Page>
@@ -66,20 +70,7 @@ export default async function AffectationsPage(props: PageProps<"/discipline/aff
             ) : nonLoges.donnees.length === 0 ? (
               <EmptyState compact icone="check" titre="Tous les détenus sont logés" texte="Aucun détenu n’attend d’affectation." />
             ) : (
-              <ul className="stagger divide-y divide-hairline">
-                {nonLoges.donnees.map((d, i) => (
-                  <li key={d.id} style={{ ["--i" as string]: i }} className="flex items-center gap-3 px-4 py-2.5">
-                    <Avatar initiales={initiales(d.nom)} taille="sm" />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-ink">{d.nom}</p>
-                      <p className="text-xs text-muted">
-                        <Ecrou className="text-xs text-muted">{d.numeroEcrou}</Ecrou> · {d.sexe}
-                      </p>
-                    </div>
-                    <p className="hidden text-xs text-faint sm:block">écroué le {formatDate(d.mandatCourant?.dateIncarceration)}</p>
-                  </li>
-                ))}
-              </ul>
+              <DetenusNonLoges donnees={nonLoges.donnees} />
             )}
           </Panel>
 
@@ -100,12 +91,11 @@ export default async function AffectationsPage(props: PageProps<"/discipline/aff
         </div>
 
         <Panel variante="eleve" titre="Affecter à une cellule" className="lg:sticky lg:top-20">
-          {detenus ? (
+          {profil && peut(profil.permissions, "detenus.consulter") ? (
             <FormulaireAffectation
-              detenus={detenus}
               nonLoges={nonLoges.ok ? nonLoges.donnees : null}
               cellules={cellules}
-              detenuInitial={nombre("detenu")}
+              detenuInitial={detenuInitial}
               celluleInitiale={nombre("cellule")}
             />
           ) : (

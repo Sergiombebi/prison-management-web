@@ -7,6 +7,7 @@ import { pluriel } from "@/lib/format";
 import { affecterDetenu, creerCellule, prononcerSanction } from "@/app/(app)/discipline/actions";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
+import { SelectDetenu } from "@/components/ui/select-detenu";
 import { RetourAction } from "@/components/ui/retour-action";
 
 /*
@@ -120,27 +121,18 @@ export function FormulaireCellule({
 // ---------------------------------------------------------------------------
 
 export function FormulaireAffectation({
-  detenus,
   nonLoges,
   cellules,
   detenuInitial,
   celluleInitiale,
 }: {
-  detenus: DetenuOption[];
   /** `null` : la source ne sait pas dire qui est logé — liste unique. */
   nonLoges: DetenuResume[] | null;
   cellules: Cellule[];
-  detenuInitial?: number;
+  detenuInitial?: DetenuOption | null;
   celluleInitiale?: number;
 }) {
   const { etat, envoyer, enCours, v, err } = useFormulaire(affecterDetenu);
-  const idsNonLoges = new Set(nonLoges?.map((d) => d.id));
-  const option = (d: DetenuOption | DetenuResume) => (
-    <option key={d.id} value={d.id}>
-      {d.nom} — {d.numeroEcrou}
-      {d.cellule ? ` (actuellement ${libelleCellule(d.cellule)})` : ""}
-    </option>
-  );
 
   return (
     <form action={envoyer} className="flex flex-col gap-4">
@@ -148,27 +140,10 @@ export function FormulaireAffectation({
       <Field
         label="Détenu"
         requis
-        aide={nonLoges?.length ? "Les détenus non logés apparaissent en premier." : undefined}
+        aide={nonLoges?.length ? `${pluriel(nonLoges.length, "détenu")} sans cellule dans la liste ci-contre.` : undefined}
         erreur={err("detenu_id")}
       >
-        {(p) => (
-          <Select
-            {...p}
-            name="detenu_id"
-            required
-            defaultValue={v("detenu_id") ?? (detenuInitial ? String(detenuInitial) : "")}
-            placeholder="Sélectionner un détenu…"
-          >
-            {nonLoges && nonLoges.length > 0 ? (
-              <>
-                <optgroup label="Non logés">{nonLoges.map(option)}</optgroup>
-                <optgroup label="Réaffectation">{detenus.filter((d) => !idsNonLoges.has(d.id)).map(option)}</optgroup>
-              </>
-            ) : (
-              detenus.map(option)
-            )}
-          </Select>
-        )}
+        {(p) => <SelectDetenu {...p} name="detenu_id" requis initial={detenuInitial} />}
       </Field>
       <Field label="Cellule" requis erreur={err("cellule_id")}>
         {(p) => (
@@ -203,15 +178,13 @@ export function FormulaireAffectation({
 // ---------------------------------------------------------------------------
 
 export function FormulaireSanction({
-  detenus,
   types,
   cellules,
   detenuInitial,
 }: {
-  detenus: DetenuOption[];
   types: TypeSanction[];
   cellules: Cellule[];
-  detenuInitial?: number;
+  detenuInitial?: DetenuOption | null;
 }) {
   const { etat, envoyer, enCours, v, err } = useFormulaire(prononcerSanction);
   const aujourdhui = new Date().toISOString().slice(0, 10);
@@ -225,21 +198,7 @@ export function FormulaireSanction({
     <form action={envoyer} className="flex flex-col gap-4">
       <RetourAction etat={etat} />
       <Field label="Détenu" requis erreur={err("detenu_id")}>
-        {(p) => (
-          <Select
-            {...p}
-            name="detenu_id"
-            required
-            defaultValue={v("detenu_id") ?? (detenuInitial ? String(detenuInitial) : "")}
-            placeholder="Sélectionner un détenu…"
-          >
-            {detenus.map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.nom} — {d.numeroEcrou}
-              </option>
-            ))}
-          </Select>
-        )}
+        {(p) => <SelectDetenu {...p} name="detenu_id" requis initial={detenuInitial} />}
       </Field>
       <Field label="Type de sanction" requis erreur={err("type_sanction_id")}>
         {(p) => (

@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from "next";
+import { Suspense } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import { SCRIPT_PALETTE, SCRIPT_THEME } from "@/components/layout/theme-toggle";
 import { SCRIPT_VIEW_TRANSITION_GUARD } from "@/components/layout/view-transition-guard";
+import { BarreProgression } from "@/components/layout/barre-progression";
 import { I18nProvider } from "@/components/layout/i18n-provider";
 import { ToastProvider } from "@/components/ui/toast";
 import { getLocale, getT } from "@/lib/i18n/server";
@@ -51,6 +53,9 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         <script dangerouslySetInnerHTML={{ __html: SCRIPT_PALETTE }} />
       </head>
       <body className="min-h-full">
+        <Suspense fallback={null}>
+          <BarreProgression />
+        </Suspense>
         <I18nProvider messages={t} locale={locale}>
           <ToastProvider>{children}</ToastProvider>
         </I18nProvider>

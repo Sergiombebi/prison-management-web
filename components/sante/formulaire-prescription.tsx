@@ -4,18 +4,17 @@ import { useActionState } from "react";
 import type { DetenuOption } from "@/lib/domain/types";
 import { enregistrerPrescription, type EtatPrescription } from "@/app/(app)/sante/traitements/actions";
 import { Button } from "@/components/ui/button";
-import { Field, Input, Select, Textarea } from "@/components/ui/field";
+import { Field, Input, Textarea } from "@/components/ui/field";
+import { SelectDetenu } from "@/components/ui/select-detenu";
 import { RetourAction } from "@/components/ui/retour-action";
 
 const aujourdhui = () => new Date().toISOString().slice(0, 10);
 
 /** Prescrit un traitement à un détenu. */
 export function FormulairePrescription({
-  detenus,
   detenuInitial,
 }: {
-  detenus: DetenuOption[];
-  detenuInitial?: number;
+  detenuInitial?: DetenuOption | null;
 }) {
   const [etat, envoyer, enCours] = useActionState<EtatPrescription, FormData>(enregistrerPrescription, {});
   // Le formulaire redémarre vierge après un enregistrement réussi : la saisie
@@ -28,21 +27,7 @@ export function FormulairePrescription({
       <RetourAction etat={etat} />
 
       <Field label="Détenu concerné" requis erreur={err("detenu_id")}>
-        {(p) => (
-          <Select
-            {...p}
-            name="detenu_id"
-            required
-            defaultValue={v("detenu_id") ?? (detenuInitial ? String(detenuInitial) : "")}
-            placeholder="Sélectionner un détenu…"
-          >
-            {detenus.map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.nom} — {d.numeroEcrou}
-              </option>
-            ))}
-          </Select>
-        )}
+        {(p) => <SelectDetenu {...p} name="detenu_id" requis initial={detenuInitial} />}
       </Field>
 
       <Field label="Médicament" requis erreur={err("medicament")}>

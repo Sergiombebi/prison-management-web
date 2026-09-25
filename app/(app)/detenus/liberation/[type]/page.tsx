@@ -2,10 +2,12 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { api } from "@/lib/api";
 import { optionnel } from "@/lib/api/disponibilite";
+import { resoudreDetenuInitial } from "@/lib/api/detenu-initial";
 import type { SortieDetenu, TypeSortie } from "@/lib/domain/types";
 import { LIBELLE_TYPE_SORTIE, SLUG_TYPE_SORTIE } from "@/lib/domain/referentiels";
 import { formatDate, ouVide, pluriel } from "@/lib/format";
 import { param } from "@/lib/url";
+import { getProfil, peut } from "@/lib/session";
 import { cn } from "@/lib/cn";
 import { Page, PageHeader } from "@/components/layout/page";
 import { DataTable } from "@/components/data/data-table";
@@ -66,19 +68,25 @@ export default async function LiberationPage(props: PageProps<"/detenus/liberati
   const detenuId = Number.parseInt(param(sp, "detenu") ?? "", 10);
   const choisi = Number.isFinite(detenuId) ? detenuId : undefined;
 
-  const [sorties, detenus, parametres, dossier, cellules] = await Promise.all([
+  const [sorties, parametres, dossier, cellules, profil] = await Promise.all([
     api.listSorties(typeSortie),
-    // Le registre relève d'une autre permission que l'enregistrement des sorties :
-    // sans lui, le formulaire perd son sélecteur, pas la page son historique.
-    optionnel(() => api.listOptionsDetenus(), null),
     api.getParametres(),
     // Une libération normale porte sur un mandat précis : il faut ceux du détenu choisi
     choisi && typeSortie === "LiberationNormale"
       ? optionnel(() => api.getDossierDetenu(choisi), null)
-      : null,
+      : Promise.resolve(null),
     // Choix de la cellule disciplinaire à la réintégration d'un évadé repris
     typeSortie === "Evasion" ? optionnel(() => api.listCellules(), []) : Promise.resolve([]),
+    // Le registre relève d'une autre permission que l'enregistrement des sorties :
+    // sans lui, le formulaire perd son sélecteur, pas la page son historique.
+    getProfil(),
   ]);
+
+  // Le dossier ci-dessus (libération normale) donne déjà le détenu : pas d'appel en
+  // plus. Pour les autres types de sortie, un seul appel ciblé si un détenu est choisi.
+  const detenuInitial = dossier
+    ? { id: dossier.detenu.id, nom: dossier.detenu.nom, numeroEcrou: dossier.detenu.numeroEcrou, cellule: dossier.detenu.cellule }
+    : await resoudreDetenuInitial(typeSortie !== "LiberationNormale" ? choisi : undefined);
 
   return (
     // Le bulletin s'imprime depuis une modale portée hors de cette page : tout le reste est masqué sur papier
@@ -158,12 +166,12 @@ export default async function LiberationPage(props: PageProps<"/detenus/liberati
             </div>
           )}
           {typeSortie === "Evasion" && <AmpliationsInfo autorites={parametres.autoritesAmpliataires} />}
-          {detenus ? (
+          {profil && peut(profil.permissions, "detenus.consulter") ? (
             <FormulaireSortie
               type={typeSortie}
               action={consignerSortie.bind(null, typeSortie)}
-              detenus={detenus}
               detenuId={choisi}
+              detenuInitial={detenuInitial}
               mandats={dossier ? dossier.mandats.filter((m) => m.ouvert) : null}
               grave={config.grave}
               parametres={parametres}

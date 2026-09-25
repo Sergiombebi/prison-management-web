@@ -328,10 +328,15 @@ export const mockApi: ApiClient = {
     return { items: items.slice(debut, debut + parPage), total, page, parPage };
   },
 
-  async listOptionsDetenus() {
+  async listOptionsDetenus(recherche, decalage = 0) {
     await attendre();
-    return fx.detenus
-      .filter((d) => d.statut === "Present")
+    const terme = recherche.trim().toLowerCase();
+    const tous = fx.detenus
+      .filter(
+        (d) =>
+          d.statut === "Present" &&
+          (terme === "" || d.nom.toLowerCase().includes(terme) || d.numeroEcrou.toLowerCase().includes(terme)),
+      )
       .map((d) => ({
         id: d.id,
         numeroEcrou: d.numeroEcrou,
@@ -339,6 +344,10 @@ export const mockApi: ApiClient = {
         cellule: resumer(d.id).cellule,
       }))
       .sort((a, b) => a.nom.localeCompare(b.nom, "fr"));
+    return {
+      items: tous.slice(decalage, decalage + 20),
+      aPlus: tous.length > decalage + 20,
+    };
   },
 
   async getDossierDetenu(id) {
