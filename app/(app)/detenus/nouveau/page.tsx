@@ -6,26 +6,30 @@ import { getT } from "@/lib/i18n/server";
 import { getProfil, peut } from "@/lib/session";
 import { DetenuForm } from "./detenu-form";
 
-export const metadata: Metadata = { title: "Nouvel enregistrement" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  return { title: t.navigation.detenus.nouveau.label };
+}
 
 export default async function NouveauDetenuPage() {
   const t = await getT();
+  const fd = t.formulaireDetenu;
   const profil = await getProfil();
   const retour = (
     <ButtonLink href="/detenus" variante="discret" icone="arrowLeft" transitionTypes={["nav-back"]}>
-      Retour au registre
+      {fd.retourRegistre}
     </ButtonLink>
   );
 
   if (!profil || !peut(profil.permissions, "detenus.creer")) {
     return (
       <Page>
-        <PageHeader surtitre={t.modules.detenus} titre="Fiche d’enregistrement" actions={retour} />
+        <PageHeader surtitre={t.modules.detenus} titre={fd.ficheEnregistrement} actions={retour} />
         <Panel variante="eleve">
           <EmptyState
             icone="lock"
             titre={t.etats.horsPerimetre}
-            texte="L’écrou d’un détenu nécessite la permission dédiée."
+            texte={fd.permissionRequise}
           />
         </Panel>
       </Page>
@@ -36,8 +40,8 @@ export default async function NouveauDetenuPage() {
     <Page>
       <PageHeader
         surtitre={t.modules.detenus}
-        titre="Fiche d’enregistrement"
-        description="Identité du détenu entrant et titre de détention qui fonde son incarcération. Les champs marqués d’un astérisque sont obligatoires."
+        titre={fd.ficheEnregistrement}
+        description={fd.descriptionPage}
         actions={retour}
       />
       <DetenuForm />

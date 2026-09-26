@@ -1197,17 +1197,28 @@ export const liveApi: ApiClient = {
         ? CATEGORIE_SLUG[filtre.categorie]
         : undefined;
 
-    // Les écrans de saisie demandent « tous les détenus » pour une liste déroulante :
-    // l'API pagine à 10 sans option, on parcourt donc les pages.
+    // Certains écrans demandent un échantillon plus large que la page API (10) pour
+    // en tirer une liste triée (ex. « titres à surveiller »). `maxPages` borne le
+    // nombre de requêtes en parallèle à ce qui est effectivement demandé, jamais un
+    // grand défaut fixe - sur plusieurs milliers de détenus, un défaut généreux avait
+    // déjà déclenché une cinquantaine de requêtes simultanées pour une seule page.
+    // `total` reste celui de la page API (population réelle) : `tous.length` ne
+    // représenterait que l'échantillon chargé, pas le vrai total.
     if (filtre.parPage && filtre.parPage > PAGE_API_DETENUS) {
-      const tous = (
-        await toutesLesPages<DetenuListeApi>("/detenus", {
-          search: filtre.recherche,
-          categorie_penale: categorie,
-        })
-      ).map(versResume);
-      if (filtre.tri === "nom") tous.sort((a, b) => a.nom.localeCompare(b.nom, "fr"));
-      return { items: tous.slice(0, filtre.parPage), total: tous.length, page: 1, parPage: filtre.parPage };
+      const maxPages = Math.max(1, Math.ceil(filtre.parPage / PAGE_API_DETENUS));
+      const [tous, corps] = await Promise.all([
+        toutesLesPages<DetenuListeApi>(
+          "/detenus",
+          { search: filtre.recherche, categorie_penale: categorie },
+          maxPages,
+        ),
+        requete<{ meta: MetaPagination }>("/detenus", {
+          query: { search: filtre.recherche, categorie_penale: categorie, page: 1 },
+        }),
+      ]);
+      const items = tous.map(versResume);
+      if (filtre.tri === "nom") items.sort((a, b) => a.nom.localeCompare(b.nom, "fr"));
+      return { items: items.slice(0, filtre.parPage), total: corps?.meta?.total ?? items.length, page: 1, parPage: filtre.parPage };
     }
 
     const corps = await requete<{ data: DetenuListeApi[]; meta: MetaPagination }>("/detenus", {
@@ -1215,6 +1226,7 @@ export const liveApi: ApiClient = {
         page: filtre.page,
         search: filtre.recherche,
         categorie_penale: categorie,
+        sans_cellule: filtre.sansCellule ? 1 : undefined,
       },
     });
 
@@ -1584,7 +1596,12 @@ export const liveApi: ApiClient = {
   },
 
   async listDetenusNonLoges() {
-    const tous = await toutesLesPages<DetenuListeApi>("/detenus", { sans_cellule: 1 });
+    // Plafonné à 10 pages (100 détenus) : en fonctionnement normal, « sans cellule »
+    // ne concerne qu'une poignée d'arrivants en attente, jamais des milliers - la
+    // page qui l'affiche pagine elle-même par 10 (`DetenusNonLoges`). Un plafond
+    // évite qu'un jeu de données anormal (ex. génération de démonstration sans
+    // affectations) ne déclenche des dizaines de requêtes parallèles.
+    const tous = await toutesLesPages<DetenuListeApi>("/detenus", { sans_cellule: 1 }, 10);
     return tous.map(versResume);
   },
 

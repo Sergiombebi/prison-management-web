@@ -17,7 +17,7 @@ export function Page({ children, className }: { children: ReactNode; className?:
     >
       <div
         className={cn(
-          "mx-auto flex w-full max-w-[1480px] flex-col gap-5 px-4 pb-20 pt-6 sm:px-6 lg:px-8",
+          "flex w-full flex-col gap-5 px-4 pb-20 pt-6 sm:px-6 lg:px-8 2xl:px-12",
           className,
         )}
       >

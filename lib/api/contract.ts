@@ -14,7 +14,6 @@ import type {
   CategoriePenale,
   Cellule,
   CelluleOption,
-  DetenuOption,
   DetenuResume,
   EntreeParametres,
   EntreeProfil,

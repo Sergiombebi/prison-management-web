@@ -27,9 +27,13 @@ import { AreaChart, BarChart, BubbleChart } from "@/components/data/charts";
 import { EmptyState, Ecrou, Panel } from "@/components/ui/surface";
 import { Icon } from "@/components/ui/icon";
 import { ButtonLink } from "@/components/ui/button";
+import { getLocale, getT } from "@/lib/i18n/server";
 import { cn } from "@/lib/cn";
 
-export const metadata: Metadata = { title: "Tableau de bord" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  return { title: t.modules.tableauDeBord };
+}
 
 const ORDRE_CATEGORIES: CategoriePenale[] = [
   "Prevenu",
@@ -40,13 +44,14 @@ const ORDRE_CATEGORIES: CategoriePenale[] = [
 ];
 
 export default async function TableauDeBordPage() {
-  const profil = await getProfil();
+  const [profil, t, locale] = await Promise.all([getProfil(), getT(), getLocale()]);
   // Garde-fou : le proxy filtre déjà, mais cet écran reste la cible historique de
   // plusieurs liens. Sans droit, l'appel ci-dessous renverrait un 403 et l'écran
   // d'erreur générique — l'accueil condensé dit bien mieux ce qui est ouvert.
   if (profil && !peut(profil.permissions, "tableau_bord.consulter")) redirect(ACCUEIL);
 
   const tb = await api.getTableauDeBord();
+  const ct = t.ecranTableauDeBord;
 
   const ecart = tb.effectif - tb.effectifMoisPrecedent;
   const evolution = tb.effectifMoisPrecedent > 0 ? (ecart / tb.effectifMoisPrecedent) * 100 : 0;
@@ -61,7 +66,7 @@ export default async function TableauDeBordPage() {
   const courbe = points.some((v) => v > 0) ? points : undefined;
 
   const mouvements = [
-    { label: "Incarcérations", valeur: tb.mouvements.incarcerations, href: "/detenus/mandats" },
+    { label: ct.incarcerations, valeur: tb.mouvements.incarcerations, href: "/detenus/mandats" },
     { label: LIBELLE_TYPE_SORTIE.LiberationNormale, valeur: tb.mouvements.liberations, href: "/detenus/liberation/normale" },
     { label: LIBELLE_TYPE_SORTIE.Transfert, valeur: tb.mouvements.transferements, href: "/detenus/liberation/transfert" },
     { label: LIBELLE_TYPE_SORTIE.Evasion, valeur: tb.mouvements.evasions, href: "/detenus/liberation/evasion", accent: tb.mouvements.evasions > 0 },
@@ -72,27 +77,27 @@ export default async function TableauDeBordPage() {
   const pointsAttention = [
     tb.mandatsExpires > 0 && {
       ton: "critique" as const,
-      texte: `${pluriel(tb.mandatsExpires, "mandat expiré", "mandats expirés")} : titre de détention à régulariser`,
+      texte: `${pluriel(tb.mandatsExpires, ct.mandatExpireSingulier, ct.mandatsExpiresPluriel, locale)} : ${ct.titreARegulariser}`,
       href: "/etats/mandats-expires",
     },
     tb.tauxOccupation > 100 && {
       ton: "critique" as const,
-      texte: `Surpopulation : ${formatPourcent(tb.tauxOccupation)} de la capacité d’accueil`,
+      texte: `${ct.surpopulation} : ${formatPourcent(tb.tauxOccupation, 1, locale)} ${ct.deLaCapaciteAccueil}`,
       href: "/discipline/cellules",
     },
     tb.mouvements.evasions > 0 && {
       ton: "critique" as const,
-      texte: `${pluriel(tb.mouvements.evasions, "évasion")} enregistrée(s) sur les 30 derniers jours`,
+      texte: `${pluriel(tb.mouvements.evasions, ct.evasion, undefined, locale)} ${ct.enregistreesSur30j}`,
       href: "/detenus/liberation/evasion",
     },
     tb.liberablesCeMois.length > 0 && {
       ton: "attention" as const,
-      texte: `${pluriel(tb.liberablesCeMois.length, "détenu libérable", "détenus libérables")} d’ici la fin du mois`,
+      texte: `${pluriel(tb.liberablesCeMois.length, ct.detenuLiberableSingulier, ct.detenusLiberablesPluriel, locale)} ${ct.dIciFinMois}`,
       href: "#liberables",
     },
     tb.traitementsARenouveler > 0 && {
       ton: "attention" as const,
-      texte: `${pluriel(tb.traitementsARenouveler, "traitement à renouveler", "traitements à renouveler")} d’ici 3 jours`,
+      texte: `${pluriel(tb.traitementsARenouveler, ct.traitementARenouvelerSingulier, ct.traitementsARenouvelerPluriel, locale)} ${ct.dIci3Jours}`,
       href: "/sante/traitements",
     },
   ].filter(Boolean) as Array<{ ton: "critique" | "attention"; texte: string; href: string }>;
@@ -100,13 +105,13 @@ export default async function TableauDeBordPage() {
   return (
     <Page>
       <PageHeader
-        surtitre={formatDateLongue(new Date())}
+        surtitre={formatDateLongue(new Date(), locale)}
         titre={<Salutation prenom={profil?.prenom} />}
-        description="Situation de l’établissement et points qui demandent une action aujourd’hui."
+        description={ct.description}
         meta={
           <span className="inline-flex items-center gap-1.5">
             <Icon name="clock" size={12} />
-            Données arrêtées le {formatDateHeure(tb.genereLe)}
+            {ct.donneesArreteesLe} {formatDateHeure(tb.genereLe, locale)}
           </span>
         }
         actions={
@@ -116,7 +121,7 @@ export default async function TableauDeBordPage() {
             icone="plus"
             transitionTypes={["nav-forward"]}
           >
-            Nouvel enregistrement
+            {ct.nouvelEnregistrement}
           </ButtonLink>
         }
       />
@@ -124,12 +129,12 @@ export default async function TableauDeBordPage() {
       {/* Points d'attention */}
       <section aria-labelledby="attention-titre">
         <h2 id="attention-titre" className="sr-only">
-          Points d’attention
+          {ct.pointsAttentionTitre}
         </h2>
         {pointsAttention.length === 0 ? (
           <div className="flex items-center gap-2.5 rounded-lg border border-hairline bg-surface px-4 py-3 text-sm text-muted shadow-e1 animate-rise">
             <Icon name="check" size={16} className="text-success" />
-            Aucun point bloquant : pas de mandat expiré, pas de surpopulation, pas d’incident signalé.
+            {ct.aucunPointBloquant}
           </div>
         ) : (
           <ul className="stagger grid gap-3 md:grid-cols-2">
@@ -172,87 +177,89 @@ export default async function TableauDeBordPage() {
         <Stat
           style={{ ["--i" as string]: 0 }}
           icone="detenus"
-          label="Population détenue"
+          label={ct.populationDetenue}
           nombre={tb.effectif}
           delta={evolution}
-          deltaLibelle="vs mois dernier"
+          deltaLibelle={ct.vsMoisDernier}
           sparkline={courbe}
           href="/detenus"
+          locale={locale}
         />
         <Stat
           style={{ ["--i" as string]: 1 }}
           icone="cell"
-          label="Taux d’occupation"
+          label={ct.tauxOccupation}
           nombre={tb.tauxOccupation}
           decimales={1}
           unite="%"
           signal={tb.tauxOccupation > 100 ? "critique" : tb.tauxOccupation >= 90 ? "attention" : "neutre"}
           contexte={
             placesLibres >= 0
-              ? `${pluriel(placesLibres, "place libre", "places libres")} sur ${formatNombre(tb.capaciteTotale)}`
-              : `${formatNombre(-placesLibres)} au-delà de la capacité`
+              ? `${pluriel(placesLibres, ct.placeLibreSingulier, ct.placesLibresPluriel, locale)} ${t.tableau.surTotal} ${formatNombre(tb.capaciteTotale, locale)}`
+              : `${formatNombre(-placesLibres, locale)} ${ct.auDelaCapacite}`
           }
           href="/discipline/cellules"
+          locale={locale}
         />
         <Stat
           style={{ ["--i" as string]: 2 }}
           icone="file"
-          label="Mandats expirés"
+          label={ct.mandatsExpiresLabel}
           nombre={tb.mandatsExpires}
           signal={tb.mandatsExpires > 0 ? "critique" : "positif"}
-          contexte={tb.mandatsExpires > 0 ? "À régulariser sans délai" : "Aucun titre échu"}
+          contexte={tb.mandatsExpires > 0 ? ct.aRegulariserSansDelai : ct.aucunTitreEchu}
           href="/etats/mandats-expires"
         />
         <Stat
           style={{ ["--i" as string]: 3 }}
           icone="user"
-          label="Visites du jour"
+          label={ct.visitesDuJour}
           nombre={tb.visitesAujourdhui}
-          contexte="Parloirs enregistrés aujourd’hui"
+          contexte={ct.parloirsEnregistres}
           href="/sante/visites?periode=aujourdhui"
         />
         <Stat
           style={{ ["--i" as string]: 4 }}
           icone="scale"
-          label="Sanctions en cours"
+          label={ct.sanctionsEnCours}
           nombre={tb.sanctionsEnCours}
           signal={tb.sanctionsEnCours > 0 ? "attention" : "positif"}
-          contexte={tb.sanctionsEnCours > 0 ? "Mesures disciplinaires actives" : "Aucune sanction active"}
+          contexte={tb.sanctionsEnCours > 0 ? ct.mesuresDisciplinairesActives : ct.aucuneSanctionActive}
           href="/discipline/sanctions?statut=en-cours"
         />
         <Stat
           style={{ ["--i" as string]: 5 }}
           icone="clock"
-          label="Traitements à renouveler"
+          label={ct.traitementsARenouvelerLabel}
           nombre={tb.traitementsARenouveler}
           signal={tb.traitementsARenouveler > 0 ? "attention" : "positif"}
-          contexte={tb.traitementsARenouveler > 0 ? "Échéance sous 3 jours" : "Aucune échéance proche"}
+          contexte={tb.traitementsARenouveler > 0 ? ct.echeanceSous3Jours : ct.aucuneEcheanceProche}
           href="/sante/traitements"
         />
       </StatGrid>
 
       <div className="grid gap-3 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
         <Panel
-          titre="Évolution de la population"
-          sousTitre="Effectif en fin de mois, six derniers mois"
+          titre={ct.evolutionPopulation}
+          sousTitre={ct.effectifFinMois}
           variante="eleve"
           accent
           className="reveal"
         >
           <AreaChart
-            legende="Évolution de la population détenue sur six mois"
+            legende={ct.evolutionPopulationLegende}
             points={tb.populationDerniersMois.map((p) => ({ label: p.label, valeur: p.population }))}
           />
         </Panel>
 
         <Panel
-          titre="Répartition par catégorie pénale"
-          sousTitre="Calculée sur les mandats actifs, par détenu"
+          titre={ct.repartitionCategorie}
+          sousTitre={ct.calculeeSurMandats}
           variante="eleve"
           className="reveal"
         >
           <BubbleChart
-            legende="Répartition des détenus par catégorie pénale"
+            legende={ct.repartitionCategorieLegende}
             items={ORDRE_CATEGORIES.map((c) => ({
               label: LIBELLE_CATEGORIE[c],
               valeur: tb.effectifsParCategorie[c],
@@ -262,7 +269,7 @@ export default async function TableauDeBordPage() {
           />
           {tb.effectif - totalCategories > 0 && (
             <p className="mt-4 border-t border-hairline pt-3 text-xs text-muted">
-              {pluriel(tb.effectif - totalCategories, "détenu")} sans mandat actif — situation à vérifier.
+              {pluriel(tb.effectif - totalCategories, ct.detenuSingulier, ct.detenusPluriel, locale)} {ct.sansMandatActif}
             </p>
           )}
         </Panel>
@@ -270,18 +277,18 @@ export default async function TableauDeBordPage() {
 
       <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)]">
         <Panel
-          titre="Mouvements"
-          sousTitre="30 derniers jours"
+          titre={ct.mouvementsTitre}
+          sousTitre={ct.derniers30Jours}
           variante="eleve"
           className="reveal"
         >
-          <BarChart legende="Mouvements des 30 derniers jours" items={mouvements} />
+          <BarChart legende={ct.mouvementsLegende} items={mouvements} />
         </Panel>
 
         <div id="liberables" className="scroll-mt-20">
           <Panel
-            titre="Libérables ce mois"
-            sousTitre="Détenus dont la date de sortie connue tombe avant la fin du mois"
+            titre={ct.liberablesCeMois}
+            sousTitre={ct.dateSortieAvantFinMois}
             flush
             variante="eleve"
             className="reveal"
@@ -290,8 +297,8 @@ export default async function TableauDeBordPage() {
               <EmptyState
                 compact
                 icone="calendar"
-                titre="Aucun détenu libérable ce mois-ci"
-                texte="Aucun mandat actif n’a de date de sortie connue avant la fin du mois."
+                titre={ct.aucunDetenuLiberable}
+                texte={ct.aucunMandatDateConnue}
               />
             ) : (
               <ul className="divide-y divide-hairline">
@@ -318,18 +325,18 @@ export default async function TableauDeBordPage() {
                             {jours}
                           </span>
                           <span className="mt-0.5 text-2xs text-muted">
-                            {jours > 1 ? "jours" : "jour"}
+                            {jours > 1 ? ct.jours : ct.jour}
                           </span>
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-medium text-ink">{l.nom}</p>
                           <p className="text-xs text-muted">
                             <Ecrou className="text-xs text-muted">{l.numeroEcrou}</Ecrou> ·{" "}
-                            {l.statut || "Statut non renseigné"}
+                            {l.statut || ct.statutNonRenseigne}
                           </p>
                         </div>
                         <p className="tnum hidden shrink-0 text-xs text-muted sm:block">
-                          sortie {formatDate(l.dateSortie)}
+                          {ct.sortie} {formatDate(l.dateSortie, locale)}
                         </p>
                         <Icon
                           name="arrowRight"

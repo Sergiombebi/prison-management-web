@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
 import { cn } from "@/lib/cn";
+import type { Locale } from "@/lib/i18n/locale";
 import { Icon, IconTile, tonDe, type NomIcone } from "@/components/ui/icon";
 import { formatPourcent } from "@/lib/format";
 import { Compteur } from "./compteur";
@@ -79,7 +80,7 @@ function Sparkline({
 }
 
 /** Puce d'évolution : une flèche, un pourcentage, et la période de comparaison. */
-function Delta({ valeur, libelle }: { valeur: number; libelle?: string }) {
+function Delta({ valeur, libelle, locale = "fr" }: { valeur: number; libelle?: string; locale?: Locale }) {
   const hausse = valeur >= 0;
   return (
     <p className="mt-2 flex flex-wrap items-center gap-1.5 text-2xs">
@@ -90,7 +91,7 @@ function Delta({ valeur, libelle }: { valeur: number; libelle?: string }) {
         )}
       >
         <Icon name={hausse ? "arrowUp" : "arrowDown"} size={10} />
-        {formatPourcent(Math.abs(valeur), 1)}
+        {formatPourcent(Math.abs(valeur), 1, locale)}
       </span>
       {libelle && <span className="text-muted">{libelle}</span>}
     </p>
@@ -121,6 +122,7 @@ export function Stat({
   href,
   style,
   className,
+  locale = "fr",
 }: {
   label: string;
   icone?: NomIcone;
@@ -138,6 +140,7 @@ export function Stat({
   href?: string;
   style?: CSSProperties;
   className?: string;
+  locale?: Locale;
 }) {
   const couleurCourbe =
     signal === "critique"
@@ -184,7 +187,7 @@ export function Stat({
         {unite && <span className="text-md font-medium text-muted">{unite}</span>}
       </p>
 
-      {delta !== undefined && <Delta valeur={delta} libelle={deltaLibelle} />}
+      {delta !== undefined && <Delta valeur={delta} libelle={deltaLibelle} locale={locale} />}
 
       {contexte && (
         <p className={cn("mt-1.5 text-xs", SIGNAL_TEXTE[signal])}>{contexte}</p>

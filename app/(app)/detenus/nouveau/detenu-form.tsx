@@ -20,6 +20,8 @@ import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { FormSection, Pleine } from "@/components/ui/form-section";
 import { Icon } from "@/components/ui/icon";
 import { useToast } from "@/components/ui/toast";
+import { useT } from "@/components/layout/i18n-provider";
+import type { Messages } from "@/lib/i18n/fr";
 import type { VerificationIdentite } from "@/lib/api";
 import { enregistrerDetenu, restaurerDossier, verifierIdentite, type EtatEnregistrement } from "./actions";
 
@@ -32,18 +34,17 @@ export interface EditionDetenu {
   action: (precedent: EtatEnregistrement, formulaire: FormData) => Promise<EtatEnregistrement>;
 }
 
-const SECTIONS = [
-  { id: "identite", label: "Identité" },
-  { id: "filiation", label: "Filiation" },
-  { id: "origine", label: "Origine et papiers" },
-  { id: "contact", label: "Contact d’urgence" },
-  { id: "signalement", label: "Signalement" },
-  { id: "incarceration", label: "Incarcération" },
-  { id: "procedure", label: "Procédure" },
-] as const;
-
-/** Rubriques d'identité seules, pour la modification d'une fiche existante. */
-const SECTIONS_IDENTITE = SECTIONS.slice(0, 5);
+function construireSections(fd: Messages["formulaireDetenu"]) {
+  return [
+    { id: "identite", label: fd.sectionIdentite },
+    { id: "filiation", label: fd.sectionFiliation },
+    { id: "origine", label: fd.sectionOrigine },
+    { id: "contact", label: fd.sectionContact },
+    { id: "signalement", label: fd.sectionSignalement },
+    { id: "incarceration", label: fd.sectionIncarceration },
+    { id: "procedure", label: fd.sectionProcedure },
+  ] as const;
+}
 
 /**
  * Options d'une liste, complétées de la valeur enregistrée si elle n'y figure pas :
@@ -91,11 +92,15 @@ function ajouterMois(dateIso: string, mois: number): string {
 export function DetenuForm({ edition }: { edition?: EditionDetenu } = {}) {
   const router = useRouter();
   const { push } = useToast();
+  const t = useT();
+  const fd = t.formulaireDetenu;
   const [etat, action, enCours] = useActionState<EtatEnregistrement, FormData>(
     edition?.action ?? enregistrerDetenu,
     {},
   );
-  const sections = edition ? SECTIONS_IDENTITE : SECTIONS;
+  const toutesSections = construireSections(fd);
+  // Rubriques d'identité seules, pour la modification d'une fiche existante.
+  const sections = edition ? toutesSections.slice(0, 5) : toutesSections;
 
   const [sectionVisible, setSectionVisible] = useState<string>("identite");
   const [modifie, setModifie] = useState(false);
@@ -187,10 +192,10 @@ export function DetenuForm({ edition }: { edition?: EditionDetenu } = {}) {
             <Icon name="check" size={20} />
           </span>
           <div className="min-w-0">
-            <h2 className="text-md font-semibold text-ink">Détenu enregistré</h2>
+            <h2 className="text-md font-semibold text-ink">{fd.detenuEnregistre}</h2>
             <p className="mt-1 text-sm text-muted">
-              La fiche et son mandat ont été créés dans le registre.
-              {etat.photoIgnoree && " Les photographies n’ont pas pu être déposées : à ajouter depuis la fiche."}
+              {fd.ficheCreeeMessage}
+              {etat.photoIgnoree && fd.photosNonDeposeesSuffix}
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
               <Link
@@ -198,14 +203,14 @@ export function DetenuForm({ edition }: { edition?: EditionDetenu } = {}) {
                 className="inline-flex h-9 items-center gap-2 rounded-md bg-accent px-4 text-sm font-medium text-ink-inverse shadow-e2 transition-colors hover:bg-accent-hover"
               >
                 <Icon name="eye" size={15} />
-                Voir le dossier
+                {fd.voirDossier}
               </Link>
               <Link
                 href="/detenus/nouveau"
                 className="inline-flex h-9 items-center gap-2 rounded-md border border-hairline bg-surface px-4 text-sm text-ink shadow-e1 transition-colors hover:bg-raised"
               >
                 <Icon name="plus" size={15} />
-                Enregistrer un autre détenu
+                {fd.enregistrerAutre}
               </Link>
             </div>
           </div>
@@ -217,7 +222,7 @@ export function DetenuForm({ edition }: { edition?: EditionDetenu } = {}) {
   return (
     <div className="grid gap-8 lg:grid-cols-[210px_minmax(0,1fr)]">
       {/* Sommaire */}
-      <nav aria-label="Rubriques du formulaire" className="hidden lg:block" data-print-hide>
+      <nav aria-label={fd.rubriquesFormulaire} className="hidden lg:block" data-print-hide>
         <ol className="sticky top-24 flex flex-col rounded-lg border border-hairline bg-surface p-2 shadow-e1">
           {sections.map((s, i) => {
             const courant = sectionVisible === s.id;
@@ -252,9 +257,9 @@ export function DetenuForm({ edition }: { edition?: EditionDetenu } = {}) {
             <div className="flex items-start gap-3">
               <Icon name="alert" size={17} className="mt-0.5 shrink-0 text-warning" />
               <div className="min-w-0">
-                <p className="text-sm font-medium text-ink">Cette personne a déjà un dossier</p>
+                <p className="text-sm font-medium text-ink">{fd.personneADejaDossier}</p>
                 <p className="mt-1 text-sm text-muted">
-                  {messageConflit} Dossier n° {conflit.numero_ecrou} — {conflit.nom}.
+                  {messageConflit} {fd.dossierNumero} {conflit.numero_ecrou} — {conflit.nom}.
                 </p>
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   <Button
@@ -270,13 +275,13 @@ export function DetenuForm({ edition }: { edition?: EditionDetenu } = {}) {
                       router.push(`/detenus/${id}`);
                     }}
                   >
-                    Restaurer ce dossier
+                    {fd.restaurerCeDossier}
                   </Button>
                   <Link
                     href={`/detenus/${conflit.detenu_id}`}
                     className="text-sm text-accent-ink underline underline-offset-2"
                   >
-                    Consulter d’abord
+                    {fd.consulterDabord}
                   </Link>
                 </div>
               </div>
@@ -296,8 +301,7 @@ export function DetenuForm({ edition }: { edition?: EditionDetenu } = {}) {
             </p>
             {etat.detenuId && (
               <p className="mt-2 pl-[26px] text-muted">
-                La fiche du détenu a bien été créée. Corrigez le mandat ci-dessous : la reprise
-                n’enverra que celui-ci.
+                {fd.ficheCreeCorrigezMandat}
               </p>
             )}
           </div>
@@ -305,17 +309,16 @@ export function DetenuForm({ edition }: { edition?: EditionDetenu } = {}) {
 
         {etat.photoIgnoree && (
           <p className="rounded-lg border border-hairline bg-raised px-4 py-3 text-sm text-muted">
-            Les photographies n’ont pas pu être déposées (service de stockage indisponible).
-            L’enregistrement peut se poursuivre sans elles.
+            {fd.photosIndisponibles}
           </p>
         )}
 
         <fieldset disabled={Boolean(etat.detenuId)} className="contents">
-          <FormSection id="identite" numero="01" titre="Identité" description="Telle qu’elle figure sur le titre de détention.">
+          <FormSection id="identite" numero="01" titre={fd.sectionIdentite} description={fd.descriptionIdentite}>
             <Field
-              label="Numéro d’écrou (matricule)"
+              label={fd.numeroEcrouLabel}
               requis
-              aide="Unique dans l’établissement."
+              aide={fd.numeroEcrouAide}
               erreur={err("numero_ecrou") ?? (verifEcrou?.present ? verifEcrou.message : undefined)}
             >
               {(p) => (
@@ -330,12 +333,12 @@ export function DetenuForm({ edition }: { edition?: EditionDetenu } = {}) {
                 />
               )}
             </Field>
-            <Field label="Nom complet" requis erreur={err("nom")}>
+            <Field label={fd.nomComplet} requis erreur={err("nom")}>
               {(p) => <Input {...p} name="nom" defaultValue={v("nom")} autoComplete="off" />}
             </Field>
-            <Field label="Sexe" requis erreur={err("sexe")}>
+            <Field label={fd.sexeLabel} requis erreur={err("sexe")}>
               {(p) => (
-                <Select {...p} name="sexe" defaultValue={v("sexe") ?? ""} placeholder="Sélectionner…">
+                <Select {...p} name="sexe" defaultValue={v("sexe") ?? ""} placeholder={fd.selectionner}>
                   {SEXES.map((s) => (
                     <option key={s}>{s}</option>
                   ))}
@@ -343,10 +346,10 @@ export function DetenuForm({ edition }: { edition?: EditionDetenu } = {}) {
               )}
             </Field>
             <Field
-              label="Date de naissance"
+              label={fd.dateNaissanceLabel}
               requis
               erreur={err("date_naissance")}
-              aide={ageCalcule !== null ? `Âge calculé : ${ageCalcule} ans${ageCalcule < 18 ? " — mineur" : ""}` : undefined}
+              aide={ageCalcule !== null ? `${fd.ageCalculeLabel} ${ageCalcule} ${fd.ans}${ageCalcule < 18 ? fd.mineurSuffix : ""}` : undefined}
             >
               {(p) => (
                 <Input
@@ -359,73 +362,73 @@ export function DetenuForm({ edition }: { edition?: EditionDetenu } = {}) {
                 />
               )}
             </Field>
-            <Field label="Lieu de naissance" requis erreur={err("lieu_naissance")}>
+            <Field label={fd.lieuNaissanceLabel} requis erreur={err("lieu_naissance")}>
               {(p) => <Input {...p} name="lieu_naissance" defaultValue={v("lieu_naissance")} />}
             </Field>
-            <Field label="Nationalité" erreur={err("nationalite")}>
+            <Field label={fd.nationaliteLabel} erreur={err("nationalite")}>
               {(p) => <Input {...p} name="nationalite" defaultValue={v("nationalite") ?? (edition ? undefined : "Camerounaise")} />}
             </Field>
-            <Field label="Profession" requis erreur={err("profession")}>
+            <Field label={fd.professionLabel} requis erreur={err("profession")}>
               {(p) => <Input {...p} name="profession" defaultValue={v("profession")} />}
             </Field>
-            <Field label="Langue parlée" erreur={err("langue")}>
+            <Field label={fd.langueParleeLabel} erreur={err("langue")}>
               {(p) => <Input {...p} name="langue" defaultValue={v("langue")} />}
             </Field>
           </FormSection>
 
-          <FormSection id="filiation" numero="02" titre="Filiation et situation">
-            <Field label="Nom du père" requis erreur={err("nom_pere")}>
+          <FormSection id="filiation" numero="02" titre={fd.filiationTitre}>
+            <Field label={fd.nomPereLabel} requis erreur={err("nom_pere")}>
               {(p) => <Input {...p} name="nom_pere" defaultValue={v("nom_pere")} />}
             </Field>
-            <Field label="Nom de la mère" requis erreur={err("nom_mere")}>
+            <Field label={fd.nomMereLabel} requis erreur={err("nom_mere")}>
               {(p) => <Input {...p} name="nom_mere" defaultValue={v("nom_mere")} />}
             </Field>
-            <Field label="Situation matrimoniale" erreur={err("statut_matrimonial")}>
+            <Field label={fd.situationMatrimoniale} erreur={err("statut_matrimonial")}>
               {(p) => (
                 <Select {...p} name="statut_matrimonial" defaultValue={v("statut_matrimonial") ?? ""}>
-                  <option value="">Non renseignée</option>
+                  <option value="">{fd.nonRenseignee}</option>
                   {avecValeur(STATUTS_MATRIMONIAUX, v("statut_matrimonial")).map((s) => (
                     <option key={s}>{s}</option>
                   ))}
                 </Select>
               )}
             </Field>
-            <Field label="Nombre d’enfants" erreur={err("nombre_enfants")}>
+            <Field label={fd.nombreEnfants} erreur={err("nombre_enfants")}>
               {(p) => <Input {...p} name="nombre_enfants" type="number" min={0} max={99} inputMode="numeric" defaultValue={v("nombre_enfants")} />}
             </Field>
-            <Field label="Niveau d’études" erreur={err("niveau_etudes")}>
+            <Field label={fd.niveauEtudes} erreur={err("niveau_etudes")}>
               {(p) => (
                 <Select {...p} name="niveau_etudes" defaultValue={v("niveau_etudes") ?? ""}>
-                  <option value="">Non renseigné</option>
+                  <option value="">{fd.nonRenseigne}</option>
                   {avecValeur(NIVEAUX_ETUDES, v("niveau_etudes")).map((s) => (
                     <option key={s}>{s}</option>
                   ))}
                 </Select>
               )}
             </Field>
-            <Field label="Religion" erreur={err("religion")}>
+            <Field label={fd.religionLabel} erreur={err("religion")}>
               {(p) => <Input {...p} name="religion" defaultValue={v("religion")} />}
             </Field>
           </FormSection>
 
-          <FormSection id="origine" numero="03" titre="Origine et papiers">
-            <Field label="Département" erreur={err("departement")}>
+          <FormSection id="origine" numero="03" titre={fd.origineTitre}>
+            <Field label={fd.departementLabel} erreur={err("departement")}>
               {(p) => <Input {...p} name="departement" defaultValue={v("departement")} />}
             </Field>
-            <Field label="Arrondissement" erreur={err("arrondissement")}>
+            <Field label={fd.arrondissementLabel} erreur={err("arrondissement")}>
               {(p) => <Input {...p} name="arrondissement" defaultValue={v("arrondissement")} />}
             </Field>
-            <Field label="Ethnie" erreur={err("ethnie")}>
+            <Field label={fd.ethnieLabel} erreur={err("ethnie")}>
               {(p) => <Input {...p} name="ethnie" defaultValue={v("ethnie")} />}
             </Field>
             <Pleine>
-              <Field label="Résidence" erreur={err("residence")}>
+              <Field label={fd.residenceLabel} erreur={err("residence")}>
                 {(p) => <Input {...p} name="residence" defaultValue={v("residence")} />}
               </Field>
             </Pleine>
             <Field
-              label="Numéro de CNI"
-              aide="Sert à repérer une réincarcération."
+              label={fd.numeroCni}
+              aide={fd.numeroCniAide}
               erreur={err("numero_cni") ?? (verifCni?.present ? verifCni.message : undefined)}
             >
               {(p) => (
@@ -439,7 +442,7 @@ export function DetenuForm({ edition }: { edition?: EditionDetenu } = {}) {
                 />
               )}
             </Field>
-            <Field label="Numéro de passeport" erreur={err("numero_passeport")}>
+            <Field label={fd.numeroPasseport} erreur={err("numero_passeport")}>
               {(p) => <Input {...p} name="numero_passeport" defaultValue={v("numero_passeport")} className="font-mono" spellCheck={false} />}
             </Field>
           </FormSection>
@@ -447,26 +450,26 @@ export function DetenuForm({ edition }: { edition?: EditionDetenu } = {}) {
           <FormSection
             id="contact"
             numero="04"
-            titre="Contact d’urgence"
-            description="La personne à prévenir. C’est ce numéro qui apparaît dans le registre."
+            titre={fd.contactTitre}
+            description={fd.contactDescription}
           >
-            <Field label="Nom du proche" erreur={err("contact_urgence_nom")}>
+            <Field label={fd.nomProche} erreur={err("contact_urgence_nom")}>
               {(p) => <Input {...p} name="contact_urgence_nom" defaultValue={v("contact_urgence_nom")} />}
             </Field>
-            <Field label="Lien de parenté" erreur={err("contact_urgence_lien_parente")}>
+            <Field label={fd.lienParenteLabel} erreur={err("contact_urgence_lien_parente")}>
               {(p) => (
                 <Select {...p} name="contact_urgence_lien_parente" defaultValue={v("contact_urgence_lien_parente") ?? ""}>
-                  <option value="">Non renseigné</option>
+                  <option value="">{fd.nonRenseigne}</option>
                   {avecValeur(LIENS_PARENTE, v("contact_urgence_lien_parente")).map((l) => (
                     <option key={l}>{l}</option>
                   ))}
                 </Select>
               )}
             </Field>
-            <Field label="Téléphone" aide="Format : 6 99 99 99 99" erreur={err("contact_urgence_telephone")}>
+            <Field label={fd.telephoneLabel} aide={fd.telephoneAide} erreur={err("contact_urgence_telephone")}>
               {(p) => <Input {...p} name="contact_urgence_telephone" type="tel" inputMode="tel" defaultValue={v("contact_urgence_telephone")} />}
             </Field>
-            <Field label="Adresse" erreur={err("contact_urgence_adresse")}>
+            <Field label={fd.adresseLabel} erreur={err("contact_urgence_adresse")}>
               {(p) => <Input {...p} name="contact_urgence_adresse" defaultValue={v("contact_urgence_adresse")} />}
             </Field>
           </FormSection>
@@ -474,13 +477,13 @@ export function DetenuForm({ edition }: { edition?: EditionDetenu } = {}) {
           <FormSection
             id="signalement"
             numero="05"
-            titre="Signalement"
-            description="Les photographies sont déposées sur le service de stockage avant l’enregistrement."
+            titre={fd.signalementTitre}
+            description={fd.signalementDescription}
           >
             {(
               [
-                ["photo_face", "Photo de face"],
-                ["photo_profil", "Photo de profil"],
+                ["photo_face", fd.photoFace],
+                ["photo_profil", fd.photoProfil],
               ] as const
             ).map(([nom, libelle]) => {
               const actuelle = edition?.photos[nom === "photo_face" ? "face" : "profil"];
@@ -489,7 +492,7 @@ export function DetenuForm({ edition }: { edition?: EditionDetenu } = {}) {
                 <Field
                   key={nom}
                   label={libelle}
-                  aide={actuelle && !choisi ? "Photo actuelle conservée si aucun fichier n’est choisi" : "JPG, PNG ou WebP, 8 Mo maximum"}
+                  aide={actuelle && !choisi ? fd.photoActuelleConservee : fd.formatPhotoAide}
                   erreur={erreursFichier[nom] ?? err(nom)}
                 >
                   {(p) => (
@@ -510,7 +513,7 @@ export function DetenuForm({ edition }: { edition?: EditionDetenu } = {}) {
                           className={choisi ? "text-accent" : "text-faint transition-colors group-hover:text-accent"}
                         />
                         <span className="max-w-full truncate">
-                          {choisi ?? (actuelle ? "Remplacer la photo" : "Choisir un fichier")}
+                          {choisi ?? (actuelle ? fd.remplacerPhoto : fd.choisirFichier)}
                         </span>
                       </span>
                       <input
@@ -522,7 +525,7 @@ export function DetenuForm({ edition }: { edition?: EditionDetenu } = {}) {
                         onChange={(e) => {
                           const fichier = e.target.files?.[0];
                           if (fichier && fichier.size > 8 * 1024 * 1024) {
-                            setErreursFichier((prec) => ({ ...prec, [nom]: "Fichier trop volumineux (8 Mo maximum)." }));
+                            setErreursFichier((prec) => ({ ...prec, [nom]: fd.fichierTropVolumineux }));
                             e.target.value = "";
                             setChoix({ pour: etat, noms: { ...fichiers, [nom]: "" } });
                             return;
@@ -542,7 +545,7 @@ export function DetenuForm({ edition }: { edition?: EditionDetenu } = {}) {
               );
             })}
             <Pleine>
-              <Field label="Anthropométrie et signes particuliers" aide="Taille, cicatrices, tatouages…" erreur={err("anthropometrie")}>
+              <Field label={fd.anthropometrieLabel} aide={fd.anthropometrieAide} erreur={err("anthropometrie")}>
                 {(p) => <Textarea {...p} name="anthropometrie" rows={3} defaultValue={v("anthropometrie")} />}
               </Field>
             </Pleine>
@@ -551,8 +554,8 @@ export function DetenuForm({ edition }: { edition?: EditionDetenu } = {}) {
 
         {!edition && (
         <>
-        <FormSection id="incarceration" numero="06" titre="Incarcération" description="Titre de détention qui fonde l’écrou.">
-          <Field label="Date d’incarcération" requis erreur={err("date_incarceration")}>
+        <FormSection id="incarceration" numero="06" titre={fd.incarcerationTitre} description={fd.incarcerationDescription}>
+          <Field label={fd.dateIncarcerationLabel} requis erreur={err("date_incarceration")}>
             {(p) => (
               <Input
                 {...p}
@@ -563,22 +566,22 @@ export function DetenuForm({ edition }: { edition?: EditionDetenu } = {}) {
               />
             )}
           </Field>
-          <Field label="Type de mandat" requis erreur={err("type_mandat")}>
+          <Field label={fd.typeMandatLabel} requis erreur={err("type_mandat")}>
             {(p) => (
-              <Select {...p} name="type_mandat" defaultValue={v("type_mandat") ?? ""} placeholder="Sélectionner…">
+              <Select {...p} name="type_mandat" defaultValue={v("type_mandat") ?? ""} placeholder={fd.selectionner}>
                 {TYPES_MANDAT.map((s) => (
                   <option key={s}>{s}</option>
                 ))}
               </Select>
             )}
           </Field>
-          <Field label="Référence du mandat" requis erreur={err("reference_mandat")}>
+          <Field label={fd.referenceMandatLabel} requis erreur={err("reference_mandat")}>
             {(p) => <Input {...p} name="reference_mandat" defaultValue={v("reference_mandat")} className="font-mono" spellCheck={false} />}
           </Field>
-          <Field label="Autorité ayant signé" requis erreur={err("autorite_signataire")}>
+          <Field label={fd.autoriteSignataire} requis erreur={err("autorite_signataire")}>
             {(p) => <Input {...p} name="autorite_signataire" defaultValue={v("autorite_signataire") ?? "Procureur de la République"} />}
           </Field>
-          <Field label="Date de signature" requis erreur={err("date_signature_mandat")}>
+          <Field label={fd.dateSignatureLabel} requis erreur={err("date_signature_mandat")}>
             {(p) => (
               <Input
                 {...p}
@@ -590,8 +593,8 @@ export function DetenuForm({ edition }: { edition?: EditionDetenu } = {}) {
             )}
           </Field>
           <Field
-            label="Date d’expiration"
-            aide="Calculée automatiquement (signature + 6 mois) : sert d’alerte « mandats expirés », pas de date de sortie."
+            label={fd.dateExpirationLabel}
+            aide={fd.dateExpirationAide}
             erreur={err("date_expiration_mandat")}
           >
             {(p) => (
@@ -606,31 +609,31 @@ export function DetenuForm({ edition }: { edition?: EditionDetenu } = {}) {
             )}
           </Field>
           <Field
-            label="Date de sortie"
-            aide="Facultative : sortie d’un prévenu qui n’ira pas jusqu’au jugement (relaxe, non-lieu…)."
+            label={fd.dateSortieLabel}
+            aide={fd.dateSortieProvisoireAide}
             erreur={err("date_sortie_detention_provisoire")}
           >
             {(p) => <Input {...p} type="date" name="date_sortie_detention_provisoire" defaultValue={v("date_sortie_detention_provisoire")} />}
           </Field>
           <Pleine>
-            <Field label="Motif de détention" requis erreur={err("motif_detention")}>
-              {(p) => <Input {...p} name="motif_detention" defaultValue={v("motif_detention")} placeholder="Ex. Vol aggravé" />}
+            <Field label={fd.motifDetentionLabel} requis erreur={err("motif_detention")}>
+              {(p) => <Input {...p} name="motif_detention" defaultValue={v("motif_detention")} placeholder={fd.motifDetentionPlaceholder} />}
             </Field>
           </Pleine>
-          <Field label="Autorité pénitentiaire" erreur={err("autorite_penitentiaire")}>
+          <Field label={fd.autoritePenitentiaire} erreur={err("autorite_penitentiaire")}>
             {(p) => (
               <Select {...p} name="autorite_penitentiaire" defaultValue={v("autorite_penitentiaire") ?? ""}>
-                <option value="">Non renseignée</option>
+                <option value="">{fd.nonRenseignee}</option>
                 {AUTORITES_PENITENTIAIRES.map((s) => (
                   <option key={s}>{s}</option>
                 ))}
               </Select>
             )}
           </Field>
-          <Field label="État physique à l’arrivée" erreur={err("etat_physique_arrivee")}>
+          <Field label={fd.etatPhysiqueArrivee} erreur={err("etat_physique_arrivee")}>
             {(p) => (
               <Select {...p} name="etat_physique_arrivee" defaultValue={v("etat_physique_arrivee") ?? ""}>
-                <option value="">Non renseigné</option>
+                <option value="">{fd.nonRenseigne}</option>
                 {ETATS_PHYSIQUES_ARRIVEE.map((s) => (
                   <option key={s}>{s}</option>
                 ))}
@@ -638,7 +641,7 @@ export function DetenuForm({ edition }: { edition?: EditionDetenu } = {}) {
             )}
           </Field>
           <Pleine>
-            <Field label="Objets personnels" aide="Objets remis à l’entrée : montre, téléphone, argent…" erreur={err("objets_personnels")}>
+            <Field label={fd.objetsPersonnels} aide={fd.objetsPersonnelsAide} erreur={err("objets_personnels")}>
               {(p) => <Textarea {...p} name="objets_personnels" rows={2} defaultValue={v("objets_personnels")} />}
             </Field>
           </Pleine>
@@ -647,18 +650,18 @@ export function DetenuForm({ edition }: { edition?: EditionDetenu } = {}) {
         <FormSection
           id="procedure"
           numero="07"
-          titre="Procédure judiciaire"
-          description="Les rubriques suivantes s’ouvrent selon le statut pénal choisi, et deviennent alors obligatoires."
+          titre={fd.procedureTitre}
+          description={fd.procedureDescription}
         >
           <Pleine>
-            <Field label="Statut pénal" requis erreur={err("type_statut_penal")}>
+            <Field label={fd.statutPenalLabel} requis erreur={err("type_statut_penal")}>
               {(p) => (
                 <Select
                   {...p}
                   name="type_statut_penal"
                   value={statutPenal || v("type_statut_penal") || ""}
                   onChange={(e) => setStatutPenal(e.target.value)}
-                  placeholder="Sélectionner le statut…"
+                  placeholder={fd.selectionnerStatut}
                 >
                   {TYPES_STATUT_PENAL.map((s) => (
                     <option key={s}>{s}</option>
@@ -668,75 +671,75 @@ export function DetenuForm({ edition }: { edition?: EditionDetenu } = {}) {
             </Field>
           </Pleine>
 
-          <Rubrique ouverte={avecJugement} titre="Jugement">
-            <Field label="Date du jugement" requis={avecJugement} erreur={err("date_jugement")}>
+          <Rubrique ouverte={avecJugement} titre={fd.jugementTitre}>
+            <Field label={fd.dateJugementLabel} requis={avecJugement} erreur={err("date_jugement")}>
               {(p) => <Input {...p} type="date" name="date_jugement" defaultValue={v("date_jugement")} disabled={!avecJugement} />}
             </Field>
-            <Field label="Référence du jugement" requis={avecJugement} erreur={err("reference_jugement")}>
+            <Field label={fd.referenceJugementLabel} requis={avecJugement} erreur={err("reference_jugement")}>
               {(p) => <Input {...p} name="reference_jugement" defaultValue={v("reference_jugement")} className="font-mono" disabled={!avecJugement} />}
             </Field>
-            <Field label="Tribunal" requis={avecJugement} erreur={err("tribunal_jugement")}>
+            <Field label={fd.tribunalLabel} requis={avecJugement} erreur={err("tribunal_jugement")}>
               {(p) => <Input {...p} name="tribunal_jugement" defaultValue={v("tribunal_jugement")} disabled={!avecJugement} />}
             </Field>
-            <Field label="Motif du jugement" requis={avecJugement} erreur={err("motif_jugement")}>
+            <Field label={fd.motifJugementLabel} requis={avecJugement} erreur={err("motif_jugement")}>
               {(p) => <Input {...p} name="motif_jugement" defaultValue={v("motif_jugement")} disabled={!avecJugement} />}
             </Field>
             <Pleine>
-              <Field label="Peine prononcée" requis={avecJugement} erreur={err("peine_prononcee")}>
+              <Field label={fd.peinePrononceeLabel} requis={avecJugement} erreur={err("peine_prononcee")}>
                 {(p) => <Textarea {...p} name="peine_prononcee" rows={2} defaultValue={v("peine_prononcee")} disabled={!avecJugement} />}
               </Field>
             </Pleine>
             <Field
-              label="Date de sortie"
-              aide="Facultative : sortie du condamné une fois sa peine purgée."
+              label={fd.dateSortieLabel}
+              aide={fd.dateSortiePeineAide}
               erreur={err("date_sortie_execution_peine")}
             >
               {(p) => <Input {...p} type="date" name="date_sortie_execution_peine" defaultValue={v("date_sortie_execution_peine")} disabled={!avecJugement} />}
             </Field>
           </Rubrique>
 
-          <Rubrique ouverte={avecAppel} titre="Appel">
-            <Field label="Date de l’appel" requis={avecAppel} erreur={err("date_appel")}>
+          <Rubrique ouverte={avecAppel} titre={fd.appelTitre}>
+            <Field label={fd.dateAppelLabel} requis={avecAppel} erreur={err("date_appel")}>
               {(p) => <Input {...p} type="date" name="date_appel" defaultValue={v("date_appel")} disabled={!avecAppel} />}
             </Field>
-            <Field label="Juridiction d’appel" requis={avecAppel} erreur={err("tribunal_appel")}>
+            <Field label={fd.juridictionAppel} requis={avecAppel} erreur={err("tribunal_appel")}>
               {(p) => <Input {...p} name="tribunal_appel" defaultValue={v("tribunal_appel") ?? "Cour d’Appel du Centre"} disabled={!avecAppel} />}
             </Field>
             <Field
-              label="Décision en appel"
+              label={fd.decisionAppelLabel}
               requis={avecCassation}
-              aide={avecAppel && !avecCassation ? "Facultative tant que la décision n’est pas tombée." : undefined}
+              aide={avecAppel && !avecCassation ? fd.decisionAppelAide : undefined}
               erreur={err("decision_appel")}
             >
               {(p) => <Input {...p} name="decision_appel" defaultValue={v("decision_appel")} disabled={!avecAppel} />}
             </Field>
             <Field
-              label="Date de sortie"
+              label={fd.dateSortieLabel}
               requis={avecCassation}
-              aide="Devient la date de sortie active une fois la décision d’appel connue."
+              aide={fd.dateSortieAppelAide}
               erreur={err("date_sortie_appel")}
             >
               {(p) => <Input {...p} type="date" name="date_sortie_appel" defaultValue={v("date_sortie_appel")} disabled={!avecAppel} />}
             </Field>
           </Rubrique>
 
-          <Rubrique ouverte={avecCassation} titre="Cassation">
-            <Field label="Date du pourvoi" requis={avecCassation} erreur={err("date_cassation")}>
+          <Rubrique ouverte={avecCassation} titre={fd.cassationTitre}>
+            <Field label={fd.datePourvoiLabel} requis={avecCassation} erreur={err("date_cassation")}>
               {(p) => <Input {...p} type="date" name="date_cassation" defaultValue={v("date_cassation")} disabled={!avecCassation} />}
             </Field>
-            <Field label="Juridiction" requis={avecCassation} erreur={err("tribunal_cassation")}>
+            <Field label={fd.juridictionLabel} requis={avecCassation} erreur={err("tribunal_cassation")}>
               {(p) => <Input {...p} name="tribunal_cassation" defaultValue={v("tribunal_cassation") ?? "Cour Suprême"} disabled={!avecCassation} />}
             </Field>
             <Field
-              label="Décision de cassation"
-              aide="Facultative : renseignée une fois la décision tombée."
+              label={fd.decisionCassationLabel}
+              aide={fd.decisionCassationAide}
               erreur={err("decision_cassation")}
             >
               {(p) => <Input {...p} name="decision_cassation" defaultValue={v("decision_cassation")} disabled={!avecCassation} />}
             </Field>
             <Field
-              label="Date de sortie"
-              aide="Devient la date de sortie active une fois la décision de cassation connue."
+              label={fd.dateSortieLabel}
+              aide={fd.dateSortieCassationAide}
               erreur={err("date_sortie_cassation")}
             >
               {(p) => <Input {...p} type="date" name="date_sortie_cassation" defaultValue={v("date_sortie_cassation")} disabled={!avecCassation} />}
@@ -744,7 +747,7 @@ export function DetenuForm({ edition }: { edition?: EditionDetenu } = {}) {
           </Rubrique>
 
           <Pleine>
-            <Field label="Observations" erreur={err("observations_statut")}>
+            <Field label={fd.observationsLabel} erreur={err("observations_statut")}>
               {(p) => <Textarea {...p} name="observations_statut" rows={2} defaultValue={v("observations_statut")} />}
             </Field>
           </Pleine>
@@ -754,9 +757,8 @@ export function DetenuForm({ edition }: { edition?: EditionDetenu } = {}) {
 
         <div className="flex flex-col-reverse items-stretch justify-between gap-4 rounded-lg border border-hairline bg-surface p-5 shadow-e1 sm:flex-row sm:items-center sm:p-6">
           <p className="max-w-sm text-xs text-muted">
-            <span className="text-danger">*</span> Champs obligatoires. L’unicité de l’écrou et de la
-            CNI est vérifiée par le serveur.
-            {edition && " Les mandats se modifient depuis l’onglet Mandats du dossier."}
+            <span className="text-danger">*</span> {fd.champsObligatoires}
+            {edition && fd.mandatsModifiablesDepuis}
           </p>
           <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center">
             {edition && (
@@ -764,17 +766,17 @@ export function DetenuForm({ edition }: { edition?: EditionDetenu } = {}) {
                 href={`/detenus/${edition.detenuId}`}
                 className="inline-flex h-11 items-center justify-center rounded-md px-4 text-sm text-muted transition-colors hover:bg-sunken hover:text-ink"
               >
-                Annuler
+                {fd.annuler}
               </Link>
             )}
             <Button type="submit" variante="primaire" icone="check" chargement={enCours} taille="lg">
               {enCours
-                ? "Enregistrement…"
+                ? fd.enregistrementEnCours
                 : edition
-                  ? "Enregistrer les modifications"
+                  ? fd.enregistrerModifications
                   : etat.detenuId
-                    ? "Réessayer l’enregistrement du mandat"
-                    : "Enregistrer le détenu"}
+                    ? fd.reessayerMandat
+                    : fd.enregistrerDetenu}
             </Button>
           </div>
         </div>

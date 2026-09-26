@@ -285,6 +285,7 @@ export const mockApi: ApiClient = {
       statut = "tous",
       categorie = "toutes",
       sexe = "tous",
+      sansCellule = false,
       page = 1,
       parPage = 15,
       tri = "numeroEcrou",
@@ -305,6 +306,7 @@ export const mockApi: ApiClient = {
     if (statut !== "tous") items = items.filter((d) => d.statut === statut);
     if (categorie !== "toutes") items = items.filter((d) => d.categoriePenale === categorie);
     if (sexe !== "tous") items = items.filter((d) => d.sexe === sexe);
+    if (sansCellule) items = items.filter((d) => !d.cellule);
 
     const valeur = (d: DetenuResume): string => {
       switch (tri) {

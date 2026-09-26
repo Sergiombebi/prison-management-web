@@ -35,9 +35,12 @@ export default async function ApercuDisciplinePage() {
   const [cellules, sanctions, nonLoges, affectations] = await Promise.all([
     api.listCellules(),
     optionnel(() => api.listSanctions(), []),
-    optionnel(() => api.listDetenusNonLoges(), []),
+    // Seul le nombre sert ici (bandeau + raccourci) : une page suffit, pas besoin
+    // de parcourir tout `/detenus?sans_cellule=1` pour un simple compteur.
+    optionnel(() => api.listDetenus({ sansCellule: true, parPage: 1 }), null),
     optionnel(() => api.listAffectations(), []),
   ]);
+  const nombreNonLoges = nonLoges?.total ?? 0;
 
   const capacite = cellules.reduce((s, c) => s + c.capaciteMax, 0);
   const loges = cellules.reduce((s, c) => s + c.effectifReel, 0);
@@ -96,7 +99,7 @@ export default async function ApercuDisciplinePage() {
                   {formatNombre(-libres)} au-delà de la capacité d’accueil
                 </strong>
               )}
-              .{nonLoges.length > 0 && <> {pluriel(nonLoges.length, "détenu attend", "détenus attendent")} une affectation.</>}
+              .{nombreNonLoges > 0 && <> {pluriel(nombreNonLoges, "détenu attend", "détenus attendent")} une affectation.</>}
             </>
           }
           actions={
@@ -160,9 +163,9 @@ export default async function ApercuDisciplinePage() {
           sousTitre={`${pluriel(cellules.length, "cellule")} · ${formatPourcent(taux, 1)} d’occupation`}
           icone="cell"
           actions={
-            nonLoges.length > 0 ? (
+            nombreNonLoges > 0 ? (
               <ButtonLink href="/discipline/affectations" taille="sm" icone="arrowRight">
-                {pluriel(nonLoges.length, "détenu à loger", "détenus à loger")}
+                {pluriel(nombreNonLoges, "détenu à loger", "détenus à loger")}
               </ButtonLink>
             ) : undefined
           }

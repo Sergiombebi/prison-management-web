@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { formatNombre } from "@/lib/format";
+import { formatNombre, intl } from "@/lib/format";
+import { useLocale } from "@/components/layout/i18n-provider";
 
 // useLayoutEffect côté client (pas de scintillement), useEffect côté serveur (pas d'avertissement)
 const useIsomorphique = typeof window === "undefined" ? useEffect : useLayoutEffect;
@@ -21,6 +22,7 @@ export function Compteur({
   duree?: number;
   decimales?: number;
 }) {
+  const locale = useLocale();
   const [affiche, setAffiche] = useState(valeur);
   const image = useRef(0);
 
@@ -53,11 +55,11 @@ export function Compteur({
   return (
     <span className="tnum tabular-nums">
       {decimales > 0
-        ? new Intl.NumberFormat("fr-FR", {
+        ? new Intl.NumberFormat(intl(locale), {
             minimumFractionDigits: decimales,
             maximumFractionDigits: decimales,
           }).format(arrondi)
-        : formatNombre(arrondi)}
+        : formatNombre(arrondi, locale)}
     </span>
   );
 }

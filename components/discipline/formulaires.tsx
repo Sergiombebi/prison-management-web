@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import type { EtatAction } from "@/lib/api/actions";
-import type { Cellule, DetenuOption, DetenuResume, TypeSanction } from "@/lib/domain/types";
+import type { Cellule, DetenuOption, TypeSanction } from "@/lib/domain/types";
 import { pluriel } from "@/lib/format";
 import { affecterDetenu, creerCellule, prononcerSanction } from "@/app/(app)/discipline/actions";
 import { Button, ButtonLink } from "@/components/ui/button";
@@ -121,13 +121,13 @@ export function FormulaireCellule({
 // ---------------------------------------------------------------------------
 
 export function FormulaireAffectation({
-  nonLoges,
+  nombreNonLoges,
   cellules,
   detenuInitial,
   celluleInitiale,
 }: {
-  /** `null` : la source ne sait pas dire qui est logé — liste unique. */
-  nonLoges: DetenuResume[] | null;
+  /** `null` : la source ne sait pas dire qui est logé. */
+  nombreNonLoges: number | null;
   cellules: Cellule[];
   detenuInitial?: DetenuOption | null;
   celluleInitiale?: number;
@@ -140,7 +140,7 @@ export function FormulaireAffectation({
       <Field
         label="Détenu"
         requis
-        aide={nonLoges?.length ? `${pluriel(nonLoges.length, "détenu")} sans cellule dans la liste ci-contre.` : undefined}
+        aide={nombreNonLoges ? `${pluriel(nombreNonLoges, "détenu")} sans cellule dans la liste ci-contre.` : undefined}
         erreur={err("detenu_id")}
       >
         {(p) => <SelectDetenu {...p} name="detenu_id" requis initial={detenuInitial} />}

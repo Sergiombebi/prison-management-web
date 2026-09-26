@@ -8,7 +8,7 @@ export default async function Chargement() {
     <div
       role="status"
       aria-label={t.etats.chargementEnCours}
-      className="mx-auto flex w-full max-w-[1440px] flex-col gap-6 px-4 pb-16 pt-6 sm:px-6 lg:px-8"
+      className="flex w-full flex-col gap-6 px-4 pb-16 pt-6 sm:px-6 lg:px-8 2xl:px-12"
     >
       <div className="flex flex-col gap-2.5 border-b border-rule pb-5">
         <div className="skeleton h-2 w-24 rounded-xs" />

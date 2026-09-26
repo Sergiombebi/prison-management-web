@@ -509,6 +509,8 @@ export interface FiltreDetenus {
   statut?: StatutDetenu | "tous";
   categorie?: CategoriePenale | "toutes";
   sexe?: Sexe | "tous";
+  /** Détenus sans affectation de cellule active. */
+  sansCellule?: boolean;
   page?: number;
   parPage?: number;
   tri?: string;

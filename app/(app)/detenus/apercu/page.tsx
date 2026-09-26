@@ -52,39 +52,48 @@ function echeance(d: DetenuResume) {
  * quel titre de détention demande une régularisation aujourd'hui.
  */
 export default async function ApercuDetenusPage() {
-  const [registre, sorties] = await Promise.all([
-    api.listDetenus({ parPage: 1000, tri: "nom" }),
+  const [tableauDeBord, sansCelluleTotal, registre, sorties] = await Promise.all([
+    // Source des chiffres agrégés (effectif, par catégorie, mandats expirés) : calculés
+    // et mis en cache côté API, exacts quelle que soit la taille de la population.
+    api.getTableauDeBord(),
+    // Un aggrégat de plus que le tableau de bord ne fournit pas encore : une requête
+    // légère (meta.total), jamais toute la population sans cellule.
+    api.listDetenus({ sansCellule: true, parPage: 1 }),
+    // Échantillon borné (100, pas 1000) pour reconstituer la liste « à surveiller » :
+    // l'API ne sait pas encore trier par échéance de mandat. Sert uniquement à ce
+    // détail, plus aux chiffres ci-dessus - voir `listDetenus()` pour le plafond.
+    api.listDetenus({ parPage: 100, tri: "nom" }),
     optionnel(() => api.listSorties(), []),
   ]);
 
   const detenus = registre.items;
-  const effectif = registre.total;
+  const effectif = tableauDeBord.effectif;
+  const entrees = tableauDeBord.mouvements.incarcerations;
+  const sansCellule = sansCelluleTotal.total;
+  const expires = tableauDeBord.mandatsExpires;
 
   const maintenant = new Date();
   const ilYa30j = new Date(maintenant.getTime() - 30 * 86_400_000);
-
-  const entrees = detenus.filter(
-    (d) => d.mandatCourant?.dateIncarceration && new Date(d.mandatCourant.dateIncarceration) >= ilYa30j,
-  ).length;
   const sortiesRecentes = sorties.filter((s) => new Date(s.dateSortie) >= ilYa30j);
-  const sansCellule = detenus.filter((d) => !d.cellule).length;
 
   const parCategorie = ORDRE.map((c) => ({
     label: LIBELLE_CATEGORIE[c],
-    valeur: detenus.filter((d) => d.categoriePenale === c).length,
+    valeur: tableauDeBord.effectifsParCategorie[c],
     couleur: COULEUR_CATEGORIE[c],
     href: `/detenus/mandats/${CATEGORIE_SLUG[c]}`,
     aide: REGLE_CATEGORIE[c],
   }));
   const classes = parCategorie.reduce((s, c) => s + c.valeur, 0);
 
-  // Titres échus ou sur le point de l'être : le plus urgent d'abord.
+  // Titres échus ou sur le point de l'être, le plus urgent d'abord - reconstitué à
+  // partir de l'échantillon ci-dessus (100 détenus) : incomplet dès que la population
+  // dépasse ce nombre, `echeances.length` en dessous le dit alors clairement.
   const echeances = detenus
     .map((d) => ({ detenu: d, e: echeance(d) }))
     .filter((x): x is { detenu: DetenuResume; e: { date: string; jours: number } } => x.e !== null)
     .filter((x) => x.e.jours <= 30)
     .sort((a, b) => a.e.jours - b.e.jours);
-  const expires = echeances.filter((x) => x.e.jours < 0).length;
+  const echantillonIncomplet = effectif > detenus.length;
 
   return (
     <Page>
@@ -197,6 +206,12 @@ export default async function ApercuDetenusPage() {
                   />
                 ))}
               </ListeActions>
+            )}
+            {echantillonIncomplet && (
+              <p className="border-t border-hairline px-4 py-2.5 text-xs text-faint">
+                Reconstitué sur les {formatNombre(detenus.length)} premiers détenus (par nom) sur{" "}
+                {formatNombre(effectif)} — consultez l’état complet pour le compte exact.
+              </p>
             )}
           </Bloc>
         </div>

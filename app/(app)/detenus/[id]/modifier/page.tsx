@@ -10,9 +10,10 @@ import { DetenuForm } from "../../nouveau/detenu-form";
 import { modifierDetenu } from "../actions";
 
 export async function generateMetadata(props: PageProps<"/detenus/[id]/modifier">): Promise<Metadata> {
-  const { id } = await props.params;
+  const [{ id }, t] = await Promise.all([props.params, getT()]);
   const dossier = await api.getDossierDetenu(Number(id));
-  return { title: dossier ? `Modifier · ${dossier.detenu.nom}` : "Dossier introuvable" };
+  const fd = t.formulaireDetenu;
+  return { title: dossier ? `${fd.modifierPrefixeTitre} ${dossier.detenu.nom}` : fd.dossierIntrouvable };
 }
 
 /** Valeurs actuelles sous les noms de champs de l'API, comme le formulaire les attend. */
@@ -52,6 +53,7 @@ function valeursInitiales(d: DetenuResume): Record<string, string> {
 
 export default async function ModifierDetenuPage(props: PageProps<"/detenus/[id]/modifier">) {
   const t = await getT();
+  const fd = t.formulaireDetenu;
   const { id } = await props.params;
   const numero = Number.parseInt(id, 10);
   if (!Number.isFinite(numero)) notFound();
@@ -64,11 +66,11 @@ export default async function ModifierDetenuPage(props: PageProps<"/detenus/[id]
     <Page>
       <PageHeader
         surtitre={t.modules.detenus}
-        titre="Modifier la fiche"
-        description={`${d.nom} — écrou n° ${d.numeroEcrou}. Seule l’identité se modifie ici ; les mandats évoluent depuis l’onglet Mandats.`}
+        titre={fd.modifierLaFiche}
+        description={`${d.nom} — ${fd.ecrouNumero} ${d.numeroEcrou}. ${fd.seuleIdentiteModifiable}`}
         actions={
           <ButtonLink href={`/detenus/${d.id}`} variante="discret" icone="arrowLeft" transitionTypes={["nav-back"]}>
-            Retour au dossier
+            {fd.retourDossier}
           </ButtonLink>
         }
       />
@@ -78,7 +80,7 @@ export default async function ModifierDetenuPage(props: PageProps<"/detenus/[id]
         <div className="flex items-start gap-3 rounded-lg border border-warning/40 bg-warning-soft px-4 py-3.5">
           <Icon name="alert" size={17} className="mt-0.5 shrink-0 text-warning" />
           <p className="text-sm text-ink">
-            Ce dossier est désactivé. Restaurez-le depuis la fiche du détenu avant de le modifier.
+            {fd.dossierDesactive}
           </p>
         </div>
       ) : (

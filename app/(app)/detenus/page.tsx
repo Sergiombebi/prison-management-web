@@ -5,7 +5,7 @@ import type { CategoriePenale, DetenuResume, Sexe } from "@/lib/domain/types";
 import { LIBELLE_CATEGORIE } from "@/lib/domain/referentiels";
 import { formatDate, formatNombre, initiales, joursRestants, ouVide, pluriel, tronquer } from "@/lib/format";
 import { filtresActifs, hrefAvec, param, paramEntier } from "@/lib/url";
-import { getT } from "@/lib/i18n/server";
+import { getLocale, getT } from "@/lib/i18n/server";
 import { cn } from "@/lib/cn";
 import { Page, PageHeader } from "@/components/layout/page";
 import { DataTable, type Colonne } from "@/components/data/data-table";
@@ -17,12 +17,16 @@ import { Icon } from "@/components/ui/icon";
 import { SearchInput, Select } from "@/components/ui/field";
 import { Avatar, EmptyState, Ecrou, Panel } from "@/components/ui/surface";
 
-export const metadata: Metadata = { title: "Liste des détenus" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  return { title: t.navigation.detenus.liste.label };
+}
 
 const CHEMIN = "/detenus";
 
 export default async function DetenusPage(props: PageProps<"/detenus">) {
-  const t = await getT();
+  const [t, locale] = await Promise.all([getT(), getLocale()]);
+  const ld = t.listeDetenus;
   const sp = await props.searchParams;
 
   // L'API impose 10 par page et n'expose ni tri, ni filtre par sexe, ni échéance de
@@ -74,7 +78,7 @@ export default async function DetenusPage(props: PageProps<"/detenus">) {
           </p>
           <p className="text-xs text-muted">
             {d.sexe === "Féminin" ? "F" : "M"}
-            {d.age ? ` · ${d.age} ans` : ""}
+            {d.age ? ` · ${d.age} ${t.formulaireDetenu.ans}` : ""}
           </p>
         </div>
       </div>
@@ -94,10 +98,10 @@ export default async function DetenusPage(props: PageProps<"/detenus">) {
 
   const colonneIncarceration: Colonne<DetenuResume> = {
     cle: "dateIncarceration",
-    titre: "Incarcéré le",
+    titre: ld.incarcereLe,
     triable: !reel,
     masquerSous: "md",
-    rendu: (d) => <span className="text-muted">{formatDate(d.mandatCourant?.dateIncarceration)}</span>,
+    rendu: (d) => <span className="text-muted">{formatDate(d.mandatCourant?.dateIncarceration, locale)}</span>,
   };
 
   const colonneCategorie: Colonne<DetenuResume> = {
@@ -117,7 +121,7 @@ export default async function DetenusPage(props: PageProps<"/detenus">) {
           {d.cellule.numero}
         </span>
       ) : (
-        <span className="text-xs text-warning">Non logé</span>
+        <span className="text-xs text-warning">{ld.nonLoge}</span>
       ),
   };
 
@@ -133,7 +137,7 @@ export default async function DetenusPage(props: PageProps<"/detenus">) {
     reel
       ? {
           cle: "statutPenal",
-          titre: "Statut pénal",
+          titre: ld.statutPenal,
           align: "droite",
           masquerSous: "sm",
           rendu: (d) =>
@@ -142,12 +146,12 @@ export default async function DetenusPage(props: PageProps<"/detenus">) {
                 {d.mandatCourant.typeStatutPenal}
               </Badge>
             ) : (
-              <span className="text-xs text-faint">Aucun mandat</span>
+              <span className="text-xs text-faint">{ld.aucunMandat}</span>
             ),
         }
       : {
           cle: "expiration",
-          titre: "Fin du mandat",
+          titre: ld.finDuMandat,
           align: "droite",
           masquerSous: "sm",
           rendu: (d) => {
@@ -156,10 +160,10 @@ export default async function DetenusPage(props: PageProps<"/detenus">) {
             return (
               <span className="inline-flex flex-col items-end leading-tight">
                 <span className={cn(jours <= 30 ? "font-medium text-warning" : "text-ink")}>
-                  {formatDate(d.mandatCourant?.dateSortieMandat)}
+                  {formatDate(d.mandatCourant?.dateSortieMandat, locale)}
                 </span>
                 <span className="text-2xs text-faint">
-                  {jours <= 0 ? "échu" : `dans ${formatNombre(jours)} j`}
+                  {jours <= 0 ? ld.echu : `${ld.dansPrefix} ${formatNombre(jours, locale)} ${ld.jourAbrev}`}
                 </span>
               </span>
             );
@@ -168,7 +172,7 @@ export default async function DetenusPage(props: PageProps<"/detenus">) {
   ];
 
   const categories: Array<{ cle: CategoriePenale | "toutes"; label: string }> = [
-    { cle: "toutes", label: "Toutes" },
+    { cle: "toutes", label: ld.toutes },
     ...(Object.keys(LIBELLE_CATEGORIE) as CategoriePenale[]).map((c) => ({
       cle: c,
       label: LIBELLE_CATEGORIE[c],
@@ -179,18 +183,18 @@ export default async function DetenusPage(props: PageProps<"/detenus">) {
     <Page>
       <PageHeader
         surtitre={t.modules.detenus}
-        titre="Registre d’écrou"
-        description="Tous les détenus présents dans l’établissement, avec leur situation pénale calculée à partir des mandats actifs."
+        titre={ld.titre}
+        description={ld.description}
         meta={
           <>
             <span className="inline-flex items-center gap-1.5">
-              <span className="tnum font-medium text-ink">{formatNombre(resultat.total)}</span>
-              {resultat.total > 1 ? "détenus correspondent" : "détenu correspond"} aux filtres
+              <span className="tnum font-medium text-ink">{formatNombre(resultat.total, locale)}</span>
+              {resultat.total > 1 ? ld.detenusCorrespondent : ld.detenuCorrespond} {ld.auxFiltres}
             </span>
             {reel && (
               <span className="inline-flex items-center gap-1.5 text-accent">
                 <Icon name="pulse" size={12} />
-                Données réelles de l’API
+                {ld.donneesReelles}
               </span>
             )}
           </>
@@ -202,13 +206,13 @@ export default async function DetenusPage(props: PageProps<"/detenus">) {
             icone="plus"
             transitionTypes={["nav-forward"]}
           >
-            Nouvel enregistrement
+            {t.navigation.detenus.nouveau.label}
           </ButtonLink>
         }
       />
 
       {/* Filtre par catégorie : des pastilles, plus rapides qu'une liste déroulante */}
-      <nav aria-label="Filtrer par catégorie pénale" className="-mt-1 flex flex-wrap gap-2">
+      <nav aria-label={ld.filtrerParCategorie} className="-mt-1 flex flex-wrap gap-2">
         {categories.map((c) => {
           const courant = categorie === c.cle;
           return (
@@ -235,7 +239,7 @@ export default async function DetenusPage(props: PageProps<"/detenus">) {
           action={CHEMIN}
           actif={actif}
           reinitialiserHref={CHEMIN}
-          resultat={pluriel(resultat.total, "détenu")}
+          resultat={pluriel(resultat.total, ld.detenuMot, undefined, locale)}
         >
           {!reel && tri !== "numeroEcrou" && <input type="hidden" name="tri" value={tri} />}
           {!reel && sens !== "asc" && <input type="hidden" name="sens" value={sens} />}
@@ -243,26 +247,26 @@ export default async function DetenusPage(props: PageProps<"/detenus">) {
           <SearchInput
             name="recherche"
             defaultValue={recherche}
-            placeholder={reel ? "Nom, écrou, CNI ou passeport…" : "Nom, n° d’écrou ou motif…"}
-            aria-label="Rechercher un détenu"
+            placeholder={reel ? ld.placeholderRechercheReel : ld.placeholderRechercheDemo}
+            aria-label={ld.rechercherDetenu}
             className="w-full sm:w-80"
           />
           {!reel && (
-            <Select name="sexe" defaultValue={sexe} aria-label="Filtrer par sexe" className="w-36">
-              <option value="tous">Tous sexes</option>
-              <option value="Masculin">Hommes</option>
-              <option value="Féminin">Femmes</option>
+            <Select name="sexe" defaultValue={sexe} aria-label={ld.filtrerParSexe} className="w-36">
+              <option value="tous">{ld.tousSexes}</option>
+              <option value="Masculin">{ld.hommes}</option>
+              <option value="Féminin">{ld.femmes}</option>
             </Select>
           )}
         </FilterBar>
 
         <DataTable
-          legende="Registre d’écrou"
+          legende={ld.titre}
           colonnes={colonnes}
           lignes={resultat.items}
           cleLigne={(d) => d.id}
           lienLigne={(d) => `/detenus/${d.id}`}
-          libelleLien={(d) => `Ouvrir le dossier de ${d.nom}, écrou ${d.numeroEcrou}`}
+          libelleLien={(d) => `${ld.ouvrirLeDossierDe} ${d.nom}, ${ld.ecrouMot} ${d.numeroEcrou}`}
           tri={
             reel
               ? undefined
@@ -279,7 +283,7 @@ export default async function DetenusPage(props: PageProps<"/detenus">) {
                 titre={t.etats.aucunResultatTitre}
                 texte={
                   recherche
-                    ? `Aucun détenu ne correspond à « ${recherche} » avec les filtres appliqués.`
+                    ? `${ld.aucunDetenuCorrespondPrefix} ${recherche} ${ld.aucunDetenuCorrespondSuffix}`
                     : t.etats.aucunResultatTexte
                 }
                 action={
@@ -291,11 +295,11 @@ export default async function DetenusPage(props: PageProps<"/detenus">) {
             ) : (
               <EmptyState
                 icone="detenus"
-                titre="Le registre est vide"
-                texte="Aucun détenu n’a encore été enregistré dans l’établissement."
+                titre={ld.registreVide}
+                texte={ld.aucunDetenuEnregistre}
                 action={
                   <ButtonLink href="/detenus/nouveau" variante="primaire" taille="sm" icone="plus">
-                    Enregistrer le premier détenu
+                    {ld.enregistrerPremierDetenu}
                   </ButtonLink>
                 }
               />

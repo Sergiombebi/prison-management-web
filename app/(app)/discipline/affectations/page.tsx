@@ -24,15 +24,20 @@ export default async function AffectationsPage(props: PageProps<"/discipline/aff
     return Number.isFinite(n) ? n : undefined;
   };
 
-  const [nonLoges, affectations, cellules, profil, detenuInitial] = await Promise.all([
+  const [nonLoges, totalNonLoges, affectations, cellules, profil, detenuInitial] = await Promise.all([
     // Ces deux listes n'existent pas encore partout : elles ne doivent pas bloquer la saisie
     tenter(() => api.listDetenusNonLoges()),
+    // Le nombre exact : `listDetenusNonLoges()` ci-dessus est plafonnée à 100 (protection
+    // contre un jeu de données anormal), donc sa longueur ne dit pas le vrai total dès qu'il
+    // dépasse ce plafond. `meta.total` d'une simple requête paginée le donne sans ce plafond.
+    optionnel(() => api.listDetenus({ sansCellule: true, parPage: 1 }), null),
     tenter(() => api.listAffectations()),
     // Domaines voisins : gérer les affectations n'ouvre ni les cellules ni le registre.
     optionnel(() => api.listCellules(), []),
     getProfil(),
     resoudreDetenuInitial(nombre("detenu")),
   ]);
+  const nombreNonLoges = totalNonLoges?.total ?? (nonLoges.ok ? nonLoges.donnees.length : 0);
 
   return (
     <Page>
@@ -48,11 +53,11 @@ export default async function AffectationsPage(props: PageProps<"/discipline/aff
             variante="eleve"
             titre="Détenus non logés"
             sousTitre={
-              nonLoges.ok && nonLoges.donnees.length
-                ? `${pluriel(nonLoges.donnees.length, "détenu")} en attente d’affectation`
+              nonLoges.ok && nombreNonLoges > 0
+                ? `${pluriel(nombreNonLoges, "détenu")} en attente d’affectation`
                 : undefined
             }
-            actions={nonLoges.ok && nonLoges.donnees.length > 0 && <Badge ton="alerte">À traiter</Badge>}
+            actions={nonLoges.ok && nombreNonLoges > 0 && <Badge ton="alerte">À traiter</Badge>}
             flush
           >
             {nonLoges.ok === false && nonLoges.raison === "interdit" ? (
@@ -70,7 +75,7 @@ export default async function AffectationsPage(props: PageProps<"/discipline/aff
             ) : nonLoges.donnees.length === 0 ? (
               <EmptyState compact icone="check" titre="Tous les détenus sont logés" texte="Aucun détenu n’attend d’affectation." />
             ) : (
-              <DetenusNonLoges donnees={nonLoges.donnees} />
+              <DetenusNonLoges donnees={nonLoges.donnees} total={nombreNonLoges} />
             )}
           </Panel>
 
@@ -93,7 +98,7 @@ export default async function AffectationsPage(props: PageProps<"/discipline/aff
         <Panel variante="eleve" titre="Affecter à une cellule" className="lg:sticky lg:top-20">
           {profil && peut(profil.permissions, "detenus.consulter") ? (
             <FormulaireAffectation
-              nonLoges={nonLoges.ok ? nonLoges.donnees : null}
+              nombreNonLoges={nonLoges.ok ? nombreNonLoges : null}
               cellules={cellules}
               detenuInitial={detenuInitial}
               celluleInitiale={nombre("cellule")}
