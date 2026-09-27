@@ -25,64 +25,38 @@ const MODULE = moduleMetier("sante");
 
 const JOURS_TRACES = 14;
 
-/** Clé calendaire locale — `toISOString()` décalerait d'un jour selon le fuseau. */
-function cleJour(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
 /**
  * Sous-tableau de bord du module « Suivi médical ».
  *
  * L'infirmerie se lit dans le temps : la courbe des quatorze derniers jours occupe
  * la place centrale, et ce qui demande une action — les suivis à honorer — vient
- * juste après.
+ * juste après. Tout vient de `meta.stats` (agrégats calculés côté API) : à l'effectif
+ * réel d'un établissement, charger tout le registre pour ces quelques chiffres serait
+ * hors de tout budget de chargement raisonnable.
  */
 export default async function ApercuSantePage() {
-  const suivis = await api.listSuivisMedicaux();
+  const resultat = await api.listSuivisMedicaux({ parPage: 1, avecStats: true });
+  const stats = resultat.stats;
+  const total = stats?.total ?? 0;
 
-  const maintenant = new Date();
-  const debutMois = new Date(maintenant.getFullYear(), maintenant.getMonth(), 1);
-  const ilYa7j = new Date(maintenant.getTime() - 7 * 86_400_000);
+  const ceMois = stats?.ceMois ?? 0;
+  const urgences = stats?.urgences7j ?? 0;
 
-  const ceMois = suivis.filter((s) => new Date(s.dateConsultation) >= debutMois).length;
-  const urgences = suivis.filter(
-    (s) => s.typeConsultation === "Urgence" && new Date(s.dateConsultation) >= ilYa7j,
-  ).length;
-
-  // Suivis programmés encore à honorer, du plus proche au plus lointain.
-  const aHonorer = suivis
-    .filter((s) => s.dateSuivi)
+  // Suivis programmés encore à honorer, du plus proche au plus lointain (déjà bornés
+  // et triés côté API — 20 au plus, largement assez pour cet aperçu).
+  const aHonorer = (stats?.aHonorer ?? [])
     .map((s) => ({ suivi: s, jours: joursRestants(s.dateSuivi!) ?? 0 }))
-    .filter((x) => x.jours >= -30)
-    .sort((a, b) => a.jours - b.jours);
+    .filter((x) => x.jours >= -30);
   const enRetard = aHonorer.filter((x) => x.jours < 0).length;
 
-  // Quatorze jours pleins, trous compris : une courbe qui saute les jours creux
-  // mentirait sur le rythme de l'infirmerie.
-  const parJour = new Map<string, number>();
-  for (const s of suivis) {
-    const cle = s.dateConsultation.slice(0, 10);
-    parJour.set(cle, (parJour.get(cle) ?? 0) + 1);
-  }
-  const serie = Array.from({ length: JOURS_TRACES }, (_, i) => {
-    const jour = new Date(maintenant.getTime() - (JOURS_TRACES - 1 - i) * 86_400_000);
-    const cle = cleJour(jour);
-    return {
-      label: new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short" }).format(jour),
-      valeur: parJour.get(cle) ?? 0,
-    };
-  });
+  const serie = (stats?.serie14j ?? []).map((p) => ({
+    label: new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short" }).format(new Date(p.date)),
+    valeur: p.total,
+  }));
 
-  const parType = Object.entries(
-    suivis.reduce<Record<string, number>>((acc, s) => {
-      acc[s.typeConsultation] = (acc[s.typeConsultation] ?? 0) + 1;
-      return acc;
-    }, {}),
-  ).sort((a, b) => b[1] - a[1]);
+  const parType = Object.entries(stats?.parType ?? {}).sort((a, b) => b[1] - a[1]);
 
-  const recentes = [...suivis]
-    .sort((a, b) => b.dateConsultation.localeCompare(a.dateConsultation))
-    .slice(0, 5);
+  const recentes = stats?.recentes ?? [];
 
   return (
     <Page>
@@ -135,7 +109,7 @@ export default async function ApercuSantePage() {
               index={0}
               label="Ce mois-ci"
               valeur={ceMois}
-              part={suivis.length > 0 ? ceMois / suivis.length : 0}
+              part={total > 0 ? ceMois / total : 0}
               aide="Depuis le 1er du mois"
               href="/sante/suivi-medical"
             />
@@ -151,14 +125,14 @@ export default async function ApercuSantePage() {
               index={2}
               label="Suivis à honorer"
               valeur={aHonorer.length}
-              part={suivis.length > 0 ? aHonorer.length / suivis.length : 0}
+              part={total > 0 ? aHonorer.length / total : 0}
               ton={enRetard > 0 ? "critique" : "teinte"}
               aide={enRetard > 0 ? `${formatNombre(enRetard)} déjà dépassés` : "Rendez-vous à venir"}
             />
             <Chiffre
               index={3}
               label="Consultations"
-              valeur={suivis.length}
+              valeur={total}
               part={1}
               aide="Total enregistré"
             />
@@ -188,7 +162,7 @@ export default async function ApercuSantePage() {
                     index={i}
                     label={type}
                     valeur={n}
-                    total={suivis.length}
+                    total={total}
                     couleur={type === "Urgence" ? "var(--sgp-danger)" : undefined}
                     href={`/sante/suivi-medical?type=${encodeURIComponent(type)}`}
                   />

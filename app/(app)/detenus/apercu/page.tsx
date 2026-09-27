@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { api } from "@/lib/api";
 import { optionnel } from "@/lib/api/disponibilite";
 import { moduleMetier } from "@/lib/domain/modules";
-import type { CategoriePenale, DetenuResume } from "@/lib/domain/types";
+import type { CategoriePenale } from "@/lib/domain/types";
 import {
   CATEGORIE_SLUG,
   LIBELLE_CATEGORIE,
@@ -39,51 +39,45 @@ const COULEUR_CATEGORIE: Record<CategoriePenale, string> = {
   Dpac: "var(--sgp-viz-5)",
 };
 
-/** Échéance d'un titre de détention, pour la liste « à régulariser ». */
-function echeance(d: DetenuResume) {
-  const date = d.mandatCourant?.dateSortieMandat;
-  return date ? { date, jours: joursRestants(date) ?? 0 } : null;
-}
-
 /**
  * Sous-tableau de bord du module « Gestion des détenus ».
  *
  * Répond à trois questions, dans cet ordre : qui est là, de quelle catégorie, et
- * quel titre de détention demande une régularisation aujourd'hui.
+ * quel titre de détention demande une régularisation aujourd'hui. Les trois viennent
+ * de `meta.stats` (agrégats calculés côté API) : à l'effectif réel d'un établissement,
+ * charger tout le registre pour ces quelques chiffres serait hors de tout budget de
+ * chargement raisonnable.
  */
 export default async function ApercuDetenusPage() {
   const [registre, sorties] = await Promise.all([
-    api.listDetenus({ parPage: 1000, tri: "nom" }),
+    api.listDetenus({ parPage: 1, avecStats: true }),
     optionnel(() => api.listSorties(), []),
   ]);
 
-  const detenus = registre.items;
-  const effectif = registre.total;
+  const stats = registre.stats;
+  const effectif = stats?.effectif ?? registre.total;
 
   const maintenant = new Date();
   const ilYa30j = new Date(maintenant.getTime() - 30 * 86_400_000);
 
-  const entrees = detenus.filter(
-    (d) => d.mandatCourant?.dateIncarceration && new Date(d.mandatCourant.dateIncarceration) >= ilYa30j,
-  ).length;
+  const entrees = stats?.entrees30j ?? 0;
   const sortiesRecentes = sorties.filter((s) => new Date(s.dateSortie) >= ilYa30j);
-  const sansCellule = detenus.filter((d) => !d.cellule).length;
+  const sansCellule = stats?.sansCellule ?? 0;
 
   const parCategorie = ORDRE.map((c) => ({
     label: LIBELLE_CATEGORIE[c],
-    valeur: detenus.filter((d) => d.categoriePenale === c).length,
+    valeur: stats?.parCategorie[c] ?? 0,
     couleur: COULEUR_CATEGORIE[c],
     href: `/detenus/mandats/${CATEGORIE_SLUG[c]}`,
     aide: REGLE_CATEGORIE[c],
   }));
   const classes = parCategorie.reduce((s, c) => s + c.valeur, 0);
 
-  // Titres échus ou sur le point de l'être : le plus urgent d'abord.
-  const echeances = detenus
-    .map((d) => ({ detenu: d, e: echeance(d) }))
-    .filter((x): x is { detenu: DetenuResume; e: { date: string; jours: number } } => x.e !== null)
-    .filter((x) => x.e.jours <= 30)
-    .sort((a, b) => a.e.jours - b.e.jours);
+  // Titres échus ou sur le point de l'être, du plus urgent d'abord — déjà filtrés et
+  // triés côté API (bornés à 20, largement assez pour cet aperçu).
+  const echeances = (stats?.echeances ?? [])
+    .map((e) => ({ detenu: e, e: { date: e.dateExpirationMandat, jours: joursRestants(e.dateExpirationMandat) ?? 0 } }))
+    .filter((x) => x.e.jours <= 30);
   const expires = echeances.filter((x) => x.e.jours < 0).length;
 
   return (
@@ -186,14 +180,14 @@ export default async function ApercuDetenusPage() {
               <ListeActions>
                 {echeances.slice(0, 6).map((x, i) => (
                   <LigneAction
-                    key={x.detenu.id}
+                    key={x.detenu.detenuId}
                     index={i}
                     repere={x.e.jours < 0 ? Math.abs(x.e.jours) : x.e.jours}
                     uniteRepere={x.e.jours < 0 ? "j écoulés" : x.e.jours > 1 ? "jours" : "jour"}
                     ton={x.e.jours < 0 ? "critique" : x.e.jours <= 7 ? "attention" : "teinte"}
                     titre={x.detenu.nom}
                     detail={`${x.detenu.numeroEcrou} · échéance ${formatDate(x.e.date)}`}
-                    href={`/detenus/${x.detenu.id}`}
+                    href={`/detenus/${x.detenu.detenuId}`}
                   />
                 ))}
               </ListeActions>

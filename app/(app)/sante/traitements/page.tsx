@@ -2,10 +2,11 @@ import type { Metadata } from "next";
 import { api } from "@/lib/api";
 import { optionnel } from "@/lib/api/disponibilite";
 import { formatNombre, pluriel } from "@/lib/format";
-import { filtresActifs, param } from "@/lib/url";
+import { filtresActifs, hrefAvec, param, paramEntier } from "@/lib/url";
 import { getProfil, peut } from "@/lib/session";
 import { Page, PageHeader } from "@/components/layout/page";
 import { FilterBar } from "@/components/data/filter-bar";
+import { Pagination } from "@/components/data/pagination";
 import { Stat, StatGrid } from "@/components/data/stat";
 import { SearchInput, Select } from "@/components/ui/field";
 import { Panel } from "@/components/ui/surface";
@@ -19,32 +20,19 @@ const CHEMIN = "/sante/traitements";
 
 export default async function TraitementsPage(props: PageProps<"/sante/traitements">) {
   const sp = await props.searchParams;
-  const [prescriptions, detenus, profil] = await Promise.all([
-    api.listPrescriptions(),
+  const recherche = param(sp, "recherche") ?? "";
+  const statut = (param(sp, "statut") as "tous" | "en_cours" | "termine" | "arrete" | undefined) ?? "tous";
+  const page = paramEntier(sp, "page", 1);
+
+  const [resultat, detenus, profil] = await Promise.all([
+    api.listPrescriptions({ recherche, statut, page, parPage: 10, avecStats: true }),
     optionnel(() => api.listOptionsDetenus(), null),
     getProfil(),
   ]);
 
-  const recherche = (param(sp, "recherche") ?? "").toLowerCase();
-  const statut = param(sp, "statut") ?? "tous";
   const detenuBrut = Number.parseInt(param(sp, "detenu") ?? "", 10);
   const detenuInitial = Number.isFinite(detenuBrut) ? detenuBrut : undefined;
-
-  const filtrees = prescriptions.filter(
-    (p) =>
-      (statut === "tous" || p.statut === statut) &&
-      (!recherche ||
-        p.detenuNom.toLowerCase().includes(recherche) ||
-        p.numeroEcrou.toLowerCase().includes(recherche) ||
-        p.medicament.toLowerCase().includes(recherche)),
-  );
-
-  const enCours = prescriptions.filter((p) => p.statut === "en_cours").length;
-  const maintenant = new Date();
-  const dans3Jours = new Date(maintenant.getTime() + 3 * 86_400_000);
-  const aRenouveler = prescriptions.filter(
-    (p) => p.statut === "en_cours" && p.dateFin && new Date(p.dateFin) >= maintenant && new Date(p.dateFin) <= dans3Jours,
-  ).length;
+  const stats = resultat.stats;
 
   return (
     <Page>
@@ -58,23 +46,23 @@ export default async function TraitementsPage(props: PageProps<"/sante/traitemen
           icone="sante"
           style={{ ["--i" as string]: 0 }}
           label="En cours"
-          valeur={formatNombre(enCours)}
-          contexte={`${formatNombre(prescriptions.length)} au total`}
+          valeur={formatNombre(stats?.enCours ?? 0)}
+          contexte={`${formatNombre(stats?.total ?? resultat.total)} au total`}
         />
         <Stat
           icone="clock"
           style={{ ["--i" as string]: 1 }}
           label="À renouveler"
-          valeur={formatNombre(aRenouveler)}
-          signal={aRenouveler > 0 ? "attention" : "positif"}
-          contexte={aRenouveler > 0 ? "Échéance sous 3 jours" : "Aucune échéance proche"}
+          valeur={formatNombre(stats?.aRenouveler ?? 0)}
+          signal={(stats?.aRenouveler ?? 0) > 0 ? "attention" : "positif"}
+          contexte={(stats?.aRenouveler ?? 0) > 0 ? "Échéance sous 3 jours" : "Aucune échéance proche"}
         />
-        <Stat icone="sante" style={{ ["--i" as string]: 2 }} label="Total" valeur={formatNombre(prescriptions.length)} contexte="Depuis l’ouverture du registre" />
+        <Stat icone="sante" style={{ ["--i" as string]: 2 }} label="Total" valeur={formatNombre(stats?.total ?? resultat.total)} contexte="Depuis l’ouverture du registre" />
       </StatGrid>
 
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">
         <Panel variante="eleve" flush className="overflow-hidden">
-          <FilterBar action={CHEMIN} actif={filtresActifs(sp, ["recherche", "statut"])} reinitialiserHref={CHEMIN} resultat={pluriel(filtrees.length, "traitement")}>
+          <FilterBar action={CHEMIN} actif={filtresActifs(sp, ["recherche", "statut"])} reinitialiserHref={CHEMIN} resultat={pluriel(resultat.total, "traitement")}>
             <SearchInput name="recherche" defaultValue={param(sp, "recherche")} placeholder="Détenu, écrou ou médicament…" aria-label="Rechercher un traitement" className="w-full sm:w-64" />
             <Select name="statut" defaultValue={statut} aria-label="Filtrer par statut" className="w-44">
               <option value="tous">Tous statuts</option>
@@ -84,7 +72,16 @@ export default async function TraitementsPage(props: PageProps<"/sante/traitemen
             </Select>
           </FilterBar>
 
-          <PrescriptionsTable prescriptions={filtrees} />
+          <PrescriptionsTable prescriptions={resultat.items} />
+
+          {resultat.total > resultat.parPage && (
+            <Pagination
+              page={resultat.page}
+              parPage={resultat.parPage}
+              total={resultat.total}
+              href={(p) => hrefAvec(CHEMIN, sp, { page: p === 1 ? null : p })}
+            />
+          )}
         </Panel>
 
         {profil && peut(profil.permissions, "sante.traitements.creer") && (

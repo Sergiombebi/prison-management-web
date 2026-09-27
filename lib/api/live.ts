@@ -21,6 +21,10 @@ import type {
   DetenuResume,
   EvacuationSanitaire,
   FiltreDetenus,
+  FiltreEvacuation,
+  FiltrePrescription,
+  FiltreSuiviMedical,
+  FiltreVisite,
   Mandas,
   Parametres,
   Prescription,
@@ -28,6 +32,7 @@ import type {
   Sanction,
   Sexe,
   SortieDetenu,
+  StatsDetenus,
   SuiviMedical,
   TableauDeBord,
   TypeSortie,
@@ -1207,19 +1212,47 @@ export const liveApi: ApiClient = {
       return { items: tous.slice(0, filtre.parPage), total: tous.length, page: 1, parPage: filtre.parPage };
     }
 
-    const corps = await requete<{ data: DetenuListeApi[]; meta: MetaPagination }>("/detenus", {
+    const corps = await requete<{
+      data: DetenuListeApi[];
+      meta: MetaPagination & {
+        stats?: {
+          effectif: number;
+          entrees_30j: number;
+          sans_cellule: number;
+          par_categorie: Record<string, number>;
+          echeances: { detenu_id: number; numero_ecrou: string; nom: string; date_expiration_mandat: string }[];
+        };
+      };
+    }>("/detenus", {
       query: {
         page: filtre.page,
         search: filtre.recherche,
         categorie_penale: categorie,
+        avec_stats: filtre.avecStats ? 1 : undefined,
       },
     });
+
+    const s = corps?.meta?.stats;
 
     return {
       items: (corps?.data ?? []).map(versResume),
       total: corps?.meta?.total ?? 0,
       page: corps?.meta?.current_page ?? 1,
       parPage: corps?.meta?.per_page ?? 10,
+      stats: s
+        ? {
+            effectif: s.effectif,
+            entrees30j: s.entrees_30j,
+            sansCellule: s.sans_cellule,
+            parCategorie: s.par_categorie as StatsDetenus["parCategorie"],
+            echeances: s.echeances.map((e) => ({
+              detenuId: e.detenu_id,
+              numeroEcrou: e.numero_ecrou,
+              nom: e.nom,
+              dateExpirationMandat: e.date_expiration_mandat,
+            })),
+          }
+        : undefined,
     };
   },
 
@@ -1585,10 +1618,50 @@ export const liveApi: ApiClient = {
   // Santé et visites — GUIDE_FRONTEND.md §12
   // -------------------------------------------------------------------------
 
-  async listSuivisMedicaux() {
-    // Non paginé côté API : un registre médical se consulte en entier.
-    const corps = await requete<{ data: SuiviMedicalApi[] }>("/suivis-medicaux");
-    return corps.data.map((s) => versSuiviMedical(s));
+  async listSuivisMedicaux(filtre: FiltreSuiviMedical = {}) {
+    const corps = await requete<{
+      data: SuiviMedicalApi[];
+      meta?: MetaPagination & {
+        stats?: {
+          total: number;
+          ce_mois: number;
+          urgences_7j: number;
+          suivis_prevus: number;
+          serie_14j: { date: string; total: number }[];
+          par_type: Record<string, number>;
+          a_honorer: SuiviMedicalApi[];
+          recentes: SuiviMedicalApi[];
+        };
+      };
+    }>("/suivis-medicaux", {
+      query: {
+        search: filtre.recherche,
+        type_consultation: filtre.type && filtre.type !== "tous" ? filtre.type : undefined,
+        page: filtre.page,
+        per_page: filtre.parPage,
+        avec_stats: filtre.avecStats ? 1 : undefined,
+      },
+    });
+    const s = corps?.meta?.stats;
+
+    return {
+      items: (corps?.data ?? []).map((x) => versSuiviMedical(x)),
+      total: corps?.meta?.total ?? 0,
+      page: corps?.meta?.current_page ?? 1,
+      parPage: corps?.meta?.per_page ?? 10,
+      stats: s
+        ? {
+            total: s.total,
+            ceMois: s.ce_mois,
+            urgences7j: s.urgences_7j,
+            suivisPrevus: s.suivis_prevus,
+            serie14j: s.serie_14j,
+            parType: s.par_type,
+            aHonorer: s.a_honorer.map((x) => versSuiviMedical(x)),
+            recentes: s.recentes.map((x) => versSuiviMedical(x)),
+          }
+        : undefined,
+    };
   },
 
   async creerSuiviMedical(detenuId, entree) {
@@ -1614,10 +1687,29 @@ export const liveApi: ApiClient = {
     return { id: corps.data.id };
   },
 
-  async listEvacuations() {
-    // Non paginé côté API, comme le registre des visites.
-    const corps = await requete<{ data: EvacuationApi[] }>("/evacuations");
-    return corps.data.map((x) => versEvacuation(x));
+  async listEvacuations(filtre: FiltreEvacuation = {}) {
+    const corps = await requete<{
+      data: EvacuationApi[];
+      meta?: MetaPagination & { stats?: { total: number; en_cours: number; trente_jours: number } };
+    }>("/evacuations", {
+      query: {
+        search: filtre.recherche,
+        statut: filtre.statut && filtre.statut !== "tous" ? filtre.statut : undefined,
+        page: filtre.page,
+        per_page: filtre.parPage,
+        avec_stats: filtre.avecStats ? 1 : undefined,
+      },
+    });
+
+    return {
+      items: (corps?.data ?? []).map((x) => versEvacuation(x)),
+      total: corps?.meta?.total ?? 0,
+      page: corps?.meta?.current_page ?? 1,
+      parPage: corps?.meta?.per_page ?? 10,
+      stats: corps?.meta?.stats
+        ? { total: corps.meta.stats.total, enCours: corps.meta.stats.en_cours, trenteJours: corps.meta.stats.trente_jours }
+        : undefined,
+    };
   },
 
   async creerEvacuation(detenuId, entree) {
@@ -1648,10 +1740,29 @@ export const liveApi: ApiClient = {
     });
   },
 
-  async listPrescriptions() {
-    // Non paginé côté API, comme les autres registres médicaux.
-    const corps = await requete<{ data: PrescriptionApi[] }>("/prescriptions");
-    return corps.data.map((x) => versPrescription(x));
+  async listPrescriptions(filtre: FiltrePrescription = {}) {
+    const corps = await requete<{
+      data: PrescriptionApi[];
+      meta?: MetaPagination & { stats?: { total: number; en_cours: number; a_renouveler: number } };
+    }>("/prescriptions", {
+      query: {
+        search: filtre.recherche,
+        statut: filtre.statut && filtre.statut !== "tous" ? filtre.statut : undefined,
+        page: filtre.page,
+        per_page: filtre.parPage,
+        avec_stats: filtre.avecStats ? 1 : undefined,
+      },
+    });
+
+    return {
+      items: (corps?.data ?? []).map((x) => versPrescription(x)),
+      total: corps?.meta?.total ?? 0,
+      page: corps?.meta?.current_page ?? 1,
+      parPage: corps?.meta?.per_page ?? 10,
+      stats: corps?.meta?.stats
+        ? { total: corps.meta.stats.total, enCours: corps.meta.stats.en_cours, aRenouveler: corps.meta.stats.a_renouveler }
+        : undefined,
+    };
   },
 
   async creerPrescription(detenuId, entree) {
@@ -1683,10 +1794,53 @@ export const liveApi: ApiClient = {
     });
   },
 
-  async listVisites() {
-    // Non paginé côté API : un registre des visites se consulte en entier.
-    const corps = await requete<{ data: VisiteApi[] }>("/visites");
-    return corps.data.map((v) => versVisite(v));
+  async listVisites(filtre: FiltreVisite = {}) {
+    const corps = await requete<{
+      data: VisiteApi[];
+      meta?: MetaPagination & {
+        stats?: {
+          total: number;
+          du_jour: number;
+          semaine: number;
+          sans_autorisation: number;
+          en_cours: number;
+          serie_7j: { date: string; total: number }[];
+          par_type: Record<string, number>;
+          du_jour_detail: VisiteApi[];
+          recentes: VisiteApi[];
+        };
+      };
+    }>("/visites", {
+      query: {
+        search: filtre.recherche,
+        type_visite: filtre.type && filtre.type !== "tous" ? filtre.type : undefined,
+        periode: filtre.periode && filtre.periode !== "tous" ? filtre.periode : undefined,
+        page: filtre.page,
+        per_page: filtre.parPage,
+        avec_stats: filtre.avecStats ? 1 : undefined,
+      },
+    });
+    const s = corps?.meta?.stats;
+
+    return {
+      items: (corps?.data ?? []).map((v) => versVisite(v)),
+      total: corps?.meta?.total ?? 0,
+      page: corps?.meta?.current_page ?? 1,
+      parPage: corps?.meta?.per_page ?? 10,
+      stats: s
+        ? {
+            total: s.total,
+            duJour: s.du_jour,
+            semaine: s.semaine,
+            sansAutorisation: s.sans_autorisation,
+            enCours: s.en_cours,
+            serie7j: s.serie_7j,
+            parType: s.par_type,
+            duJourDetail: s.du_jour_detail.map((v) => versVisite(v)),
+            recentes: s.recentes.map((v) => versVisite(v)),
+          }
+        : undefined,
+    };
   },
 
   async getVisite(visiteId) {

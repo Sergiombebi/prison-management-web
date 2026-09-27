@@ -60,17 +60,16 @@ export default async function AccueilPage() {
 
   const a = (cle: CleModule) => ouverts.includes(cle);
 
+  // `parPage: 1` + le flag stats : seul le compteur global nous intéresse ici, jamais
+  // besoin de charger le registre complet pour un chiffre de vitrine.
   const [registre, cellules, consultations, visites] = await Promise.all([
-    indicateur(a("detenus"), () => api.listDetenus({ parPage: 1 })),
+    indicateur(a("detenus"), () => api.listDetenus({ parPage: 1, avecStats: true })),
     indicateur(a("discipline"), () => api.listCellules()),
-    indicateur(a("sante"), () => api.listSuivisMedicaux()),
-    indicateur(a("visites"), () => api.listVisites()),
+    indicateur(a("sante"), () => api.listSuivisMedicaux({ parPage: 1, avecStats: true })),
+    indicateur(a("visites"), () => api.listVisites({ parPage: 1, avecStats: true })),
   ]);
 
   const maintenant = new Date();
-  const jour = `${maintenant.getFullYear()}-${String(maintenant.getMonth() + 1).padStart(2, "0")}-${String(maintenant.getDate()).padStart(2, "0")}`;
-  const debutMois = new Date(maintenant.getFullYear(), maintenant.getMonth(), 1);
-
   const capacite = cellules?.reduce((s, c) => s + c.capaciteMax, 0) ?? 0;
   const loges = cellules?.reduce((s, c) => s + c.effectifReel, 0) ?? 0;
 
@@ -85,19 +84,11 @@ export default async function AccueilPage() {
           legende: "d’occupation",
         }
       : undefined,
-    sante: consultations
-      ? {
-          valeur: formatNombre(
-            consultations.filter((c) => new Date(c.dateConsultation) >= debutMois).length,
-          ),
-          legende: "consultations ce mois",
-        }
+    sante: consultations?.stats
+      ? { valeur: formatNombre(consultations.stats.ceMois), legende: "consultations ce mois" }
       : undefined,
-    visites: visites
-      ? {
-          valeur: formatNombre(visites.filter((v) => v.dateVisite.slice(0, 10) === jour).length),
-          legende: "visites aujourd’hui",
-        }
+    visites: visites?.stats
+      ? { valeur: formatNombre(visites.stats.duJour), legende: "visites aujourd’hui" }
       : undefined,
   };
 

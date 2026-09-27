@@ -2,10 +2,11 @@ import type { Metadata } from "next";
 import { api } from "@/lib/api";
 import { optionnel } from "@/lib/api/disponibilite";
 import { formatNombre, pluriel } from "@/lib/format";
-import { filtresActifs, param } from "@/lib/url";
+import { filtresActifs, hrefAvec, param, paramEntier } from "@/lib/url";
 import { getProfil, peut } from "@/lib/session";
 import { Page, PageHeader } from "@/components/layout/page";
 import { FilterBar } from "@/components/data/filter-bar";
+import { Pagination } from "@/components/data/pagination";
 import { Stat, StatGrid } from "@/components/data/stat";
 import { SearchInput, Select } from "@/components/ui/field";
 import { Panel } from "@/components/ui/surface";
@@ -19,30 +20,19 @@ const CHEMIN = "/sante/evacuations";
 
 export default async function EvacuationsPage(props: PageProps<"/sante/evacuations">) {
   const sp = await props.searchParams;
-  const [evacuations, detenus, profil] = await Promise.all([
-    api.listEvacuations(),
+  const recherche = param(sp, "recherche") ?? "";
+  const statut = (param(sp, "statut") as "tous" | "en-cours" | "rentre" | undefined) ?? "tous";
+  const page = paramEntier(sp, "page", 1);
+
+  const [resultat, detenus, profil] = await Promise.all([
+    api.listEvacuations({ recherche, statut, page, parPage: 10, avecStats: true }),
     optionnel(() => api.listOptionsDetenus(), null),
     getProfil(),
   ]);
 
-  const recherche = (param(sp, "recherche") ?? "").toLowerCase();
-  const statut = param(sp, "statut") ?? "tous";
   const detenuBrut = Number.parseInt(param(sp, "detenu") ?? "", 10);
   const detenuInitial = Number.isFinite(detenuBrut) ? detenuBrut : undefined;
-
-  const filtrees = evacuations.filter(
-    (e) =>
-      (statut === "tous" || (statut === "en-cours" ? !e.dateRetour : Boolean(e.dateRetour))) &&
-      (!recherche ||
-        e.detenuNom.toLowerCase().includes(recherche) ||
-        e.numeroEcrou.toLowerCase().includes(recherche) ||
-        e.structureDestination.toLowerCase().includes(recherche)),
-  );
-
-  const enCours = evacuations.filter((e) => !e.dateRetour).length;
-  const maintenant = new Date();
-  const ilYa30j = new Date(maintenant.getTime() - 30 * 86_400_000);
-  const ceMois = evacuations.filter((e) => new Date(e.dateDepart) >= ilYa30j).length;
+  const stats = resultat.stats;
 
   return (
     <Page>
@@ -56,17 +46,17 @@ export default async function EvacuationsPage(props: PageProps<"/sante/evacuatio
           icone="pulse"
           style={{ ["--i" as string]: 0 }}
           label="En évacuation"
-          valeur={formatNombre(enCours)}
-          signal={enCours > 0 ? "attention" : "positif"}
-          contexte={enCours > 0 ? "Actuellement hors de l’établissement" : "Aucune évacuation en cours"}
+          valeur={formatNombre(stats?.enCours ?? 0)}
+          signal={(stats?.enCours ?? 0) > 0 ? "attention" : "positif"}
+          contexte={(stats?.enCours ?? 0) > 0 ? "Actuellement hors de l’établissement" : "Aucune évacuation en cours"}
         />
-        <Stat icone="pulse" style={{ ["--i" as string]: 1 }} label="30 derniers jours" valeur={formatNombre(ceMois)} contexte={`${formatNombre(evacuations.length)} au total`} />
-        <Stat icone="pulse" style={{ ["--i" as string]: 2 }} label="Total" valeur={formatNombre(evacuations.length)} contexte="Depuis l’ouverture du registre" />
+        <Stat icone="pulse" style={{ ["--i" as string]: 1 }} label="30 derniers jours" valeur={formatNombre(stats?.trenteJours ?? 0)} contexte={`${formatNombre(stats?.total ?? resultat.total)} au total`} />
+        <Stat icone="pulse" style={{ ["--i" as string]: 2 }} label="Total" valeur={formatNombre(stats?.total ?? resultat.total)} contexte="Depuis l’ouverture du registre" />
       </StatGrid>
 
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">
         <Panel variante="eleve" flush className="overflow-hidden">
-          <FilterBar action={CHEMIN} actif={filtresActifs(sp, ["recherche", "statut"])} reinitialiserHref={CHEMIN} resultat={pluriel(filtrees.length, "évacuation")}>
+          <FilterBar action={CHEMIN} actif={filtresActifs(sp, ["recherche", "statut"])} reinitialiserHref={CHEMIN} resultat={pluriel(resultat.total, "évacuation")}>
             <SearchInput name="recherche" defaultValue={param(sp, "recherche")} placeholder="Détenu, écrou ou structure…" aria-label="Rechercher une évacuation" className="w-full sm:w-64" />
             <Select name="statut" defaultValue={statut} aria-label="Filtrer par statut" className="w-44">
               <option value="tous">Tous statuts</option>
@@ -75,7 +65,16 @@ export default async function EvacuationsPage(props: PageProps<"/sante/evacuatio
             </Select>
           </FilterBar>
 
-          <EvacuationsTable evacuations={filtrees} />
+          <EvacuationsTable evacuations={resultat.items} />
+
+          {resultat.total > resultat.parPage && (
+            <Pagination
+              page={resultat.page}
+              parPage={resultat.parPage}
+              total={resultat.total}
+              href={(p) => hrefAvec(CHEMIN, sp, { page: p === 1 ? null : p })}
+            />
+          )}
         </Panel>
 
         {profil && peut(profil.permissions, "sante.evacuations.creer") && (
