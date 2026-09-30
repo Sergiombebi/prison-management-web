@@ -32,44 +32,34 @@ function cleJour(d: Date): string {
  * Sous-tableau de bord du module « Visites ».
  *
  * L'écran d'un surveillant de parloir : ce qui se passe maintenant, puis le
- * rythme de la semaine pour anticiper l'affluence de demain.
+ * rythme de la semaine pour anticiper l'affluence de demain. Tout vient de
+ * `meta.stats` (agrégats calculés côté API) : à l'effectif réel d'un établissement,
+ * charger tout le registre pour ces quelques chiffres serait hors budget.
  */
 export default async function ApercuVisitesPage() {
-  const visites = await api.listVisites();
+  const resultat = await api.listVisites({ parPage: 1, avecStats: true });
+  const stats = resultat.stats;
+  const total = stats?.total ?? 0;
 
   const maintenant = new Date();
   const aujourdhui = cleJour(maintenant);
 
-  const duJour = visites
-    .filter((v) => v.dateVisite.slice(0, 10) === aujourdhui)
-    .sort((a, b) => a.heureArrivee.localeCompare(b.heureArrivee));
+  // Déjà filtrées et triées côté API (bornées à 20, largement assez pour cet aperçu).
+  const duJour = stats?.duJourDetail ?? [];
+  const enCours = stats?.enCours ?? 0;
+  const sansAutorisation = stats?.sansAutorisation ?? 0;
 
-  // Une visite commencée et non close est en cours dans le parloir.
-  const enCours = visites.filter((v) => v.heureDebut && !v.heureFin);
-  const sansAutorisation = duJour.filter((v) => !v.autorisationPrealable).length;
+  const semaine = (stats?.serie7j ?? []).map((p) => ({
+    label: new Intl.DateTimeFormat("fr-FR", { weekday: "short" }).format(new Date(p.date)).replace(".", ""),
+    date: p.date,
+    valeur: p.total,
+    aujourdhui: p.date === aujourdhui,
+  }));
+  const totalSemaine = stats?.semaine ?? 0;
 
-  const semaine = Array.from({ length: 7 }, (_, i) => {
-    const jour = new Date(maintenant.getTime() - (6 - i) * 86_400_000);
-    const cle = cleJour(jour);
-    return {
-      label: new Intl.DateTimeFormat("fr-FR", { weekday: "short" }).format(jour).replace(".", ""),
-      date: cle,
-      valeur: visites.filter((v) => v.dateVisite.slice(0, 10) === cle).length,
-      aujourdhui: cle === aujourdhui,
-    };
-  });
-  const totalSemaine = semaine.reduce((s, j) => s + j.valeur, 0);
+  const parType = Object.entries(stats?.parType ?? {}).sort((a, b) => b[1] - a[1]);
 
-  const parType = Object.entries(
-    visites.reduce<Record<string, number>>((acc, v) => {
-      acc[v.typeVisite] = (acc[v.typeVisite] ?? 0) + 1;
-      return acc;
-    }, {}),
-  ).sort((a, b) => b[1] - a[1]);
-
-  const recentes = [...visites]
-    .sort((a, b) => `${b.dateVisite}${b.heureArrivee}`.localeCompare(`${a.dateVisite}${a.heureArrivee}`))
-    .slice(0, 5);
+  const recentes = stats?.recentes ?? [];
 
   return (
     <Page>
@@ -85,11 +75,11 @@ export default async function ApercuVisitesPage() {
                 <>{pluriel(duJour.length, "parloir enregistré", "parloirs enregistrés")} aujourd’hui</>
               )}
               , {pluriel(totalSemaine, "visite", "visites")} sur les sept derniers jours.
-              {enCours.length > 0 && (
+              {enCours > 0 && (
                 <>
                   {" "}
                   <strong className="font-medium text-[color:var(--teinte)]">
-                    {pluriel(enCours.length, "visite en cours", "visites en cours")}
+                    {pluriel(enCours, "visite en cours", "visites en cours")}
                   </strong>{" "}
                   en ce moment.
                 </>
@@ -124,16 +114,16 @@ export default async function ApercuVisitesPage() {
             <Chiffre
               index={1}
               label="En cours"
-              valeur={enCours.length}
-              part={duJour.length > 0 ? enCours.length / duJour.length : 0}
-              ton={enCours.length > 0 ? "attention" : "teinte"}
-              aide={enCours.length > 0 ? "Commencées, non closes" : "Aucune visite ouverte"}
+              valeur={enCours}
+              part={duJour.length > 0 ? enCours / duJour.length : 0}
+              ton={enCours > 0 ? "attention" : "teinte"}
+              aide={enCours > 0 ? "Commencées, non closes" : "Aucune visite ouverte"}
             />
             <Chiffre
               index={2}
               label="Sur 7 jours"
               valeur={totalSemaine}
-              part={visites.length > 0 ? totalSemaine / visites.length : 0}
+              part={total > 0 ? totalSemaine / total : 0}
               aide="Affluence de la semaine glissante"
             />
             <Chiffre
@@ -199,7 +189,7 @@ export default async function ApercuVisitesPage() {
                     index={i}
                     label={type}
                     valeur={n}
-                    total={visites.length}
+                    total={total}
                     href={`/sante/visites?type=${encodeURIComponent(type)}`}
                   />
                 ))}

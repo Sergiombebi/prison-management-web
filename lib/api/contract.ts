@@ -20,6 +20,10 @@ import type {
   EntreeUtilisateur,
   EvacuationSanitaire,
   FiltreDetenus,
+  FiltreEvacuation,
+  FiltrePrescription,
+  FiltreSuiviMedical,
+  FiltreVisite,
   Mandas,
   PageOptionsDetenus,
   PageResultat,
@@ -28,6 +32,11 @@ import type {
   Sanction,
   Sexe,
   SortieDetenu,
+  StatsDetenus,
+  StatsEvacuation,
+  StatsPrescription,
+  StatsSuiviMedical,
+  StatsVisite,
   SuiviMedical,
   TableauDeBord,
   TypeSanction,
@@ -390,8 +399,8 @@ export interface ApiClient {
   /** GET /tableau-de-bord */
   getTableauDeBord(): Promise<TableauDeBord>;
 
-  /** GET /detenus?page=&search=&categorie_penale= */
-  listDetenus(filtre?: FiltreDetenus): Promise<PageResultat<DetenuResume>>;
+  /** GET /detenus?page=&search=&categorie_penale=&avec_stats= */
+  listDetenus(filtre?: FiltreDetenus): Promise<PageResultat<DetenuResume, StatsDetenus>>;
   /**
    * GET /detenus/options?recherche=&decalage= — liste minimale (id, numéro d'écrou, nom) de
    * détenus présents, par pages de 20 (triés par nom sans terme, par pertinence du nom/numéro
@@ -490,27 +499,31 @@ export interface ApiClient {
   /** DELETE /sanctions/{id} — saisie par erreur ; ne touche pas à la cellule */
   desactiverSanction(sanctionId: number): Promise<void>;
 
-  /** GET /suivis-medicaux — toutes les consultations, la plus récente d'abord */
-  listSuivisMedicaux(): Promise<SuiviMedical[]>;
+  /**
+   * GET /suivis-medicaux?search=&type_consultation=&page=&avec_stats= — paginé (comme
+   * /detenus) : à l'effectif réel d'un établissement, ce registre accumule largement
+   * plus de lignes qu'un aller-retour raisonnable peut porter.
+   */
+  listSuivisMedicaux(filtre?: FiltreSuiviMedical): Promise<PageResultat<SuiviMedical, StatsSuiviMedical>>;
   /** POST /detenus/{id}/suivis-medicaux */
   creerSuiviMedical(detenuId: number, entree: EntreeSuiviMedical): Promise<{ id: number }>;
 
-  /** GET /evacuations — toutes les évacuations sanitaires, la plus récente d'abord */
-  listEvacuations(): Promise<EvacuationSanitaire[]>;
+  /** GET /evacuations?search=&statut=&page=&avec_stats= — paginé, mêmes raisons que /suivis-medicaux */
+  listEvacuations(filtre?: FiltreEvacuation): Promise<PageResultat<EvacuationSanitaire, StatsEvacuation>>;
   /** POST /detenus/{id}/evacuations — 409 si le détenu est déjà en évacuation */
   creerEvacuation(detenuId: number, entree: EntreeEvacuation): Promise<{ id: number }>;
   /** POST /evacuations/{id}/retour — 422 si le retour est déjà enregistré */
   enregistrerRetourEvacuation(evacuationId: number, entree: EntreeRetourEvacuation): Promise<void>;
 
-  /** GET /prescriptions — tous les traitements, le plus récent d'abord */
-  listPrescriptions(): Promise<Prescription[]>;
+  /** GET /prescriptions?search=&statut=&page=&avec_stats= — paginé, mêmes raisons que /suivis-medicaux */
+  listPrescriptions(filtre?: FiltrePrescription): Promise<PageResultat<Prescription, StatsPrescription>>;
   /** POST /detenus/{id}/prescriptions — 409 si le détenu est désactivé */
   creerPrescription(detenuId: number, entree: EntreePrescription): Promise<{ id: number }>;
   /** POST /prescriptions/{id}/arreter — 422 si déjà arrêté */
   arreterPrescription(prescriptionId: number, entree: EntreeArretPrescription): Promise<void>;
 
-  /** GET /visites — toutes les visites, la plus récente d'abord */
-  listVisites(): Promise<Visite[]>;
+  /** GET /visites?search=&type_visite=&periode=&page=&avec_stats= — paginé, mêmes raisons que /suivis-medicaux */
+  listVisites(filtre?: FiltreVisite): Promise<PageResultat<Visite, StatsVisite>>;
   /** GET /visites/{id} */
   getVisite(visiteId: number): Promise<Visite | null>;
   /** POST /detenus/{id}/visites */

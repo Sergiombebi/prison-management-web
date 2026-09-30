@@ -9,6 +9,15 @@ import type {
   CategoriePenale,
   DetenuResume,
   FiltreDetenus,
+  FiltreEvacuation,
+  FiltrePrescription,
+  FiltreSuiviMedical,
+  FiltreVisite,
+  StatsDetenus,
+  StatsEvacuation,
+  StatsPrescription,
+  StatsSuiviMedical,
+  StatsVisite,
   TableauDeBord,
 } from "@/lib/domain/types";
 import { LIBELLE_CATEGORIE, TYPES_SANCTION } from "@/lib/domain/referentiels";
@@ -327,7 +336,36 @@ export const mockApi: ApiClient = {
 
     const total = items.length;
     const debut = (Math.max(1, page) - 1) * parPage;
-    return { items: items.slice(debut, debut + parPage), total, page, parPage };
+
+    let stats: StatsDetenus | undefined;
+    if (filtre.avecStats) {
+      const tous = fx.detenus.map((d) => resumer(d.id));
+      const presents = tous.filter((d) => d.statut === "Present");
+      const dans30j = new Date(Date.now() + 30 * 86_400_000);
+      const parCategorie = {
+        Prevenu: 0, Condamne: 0, Appellant: 0, Cassationnaire: 0, Dpac: 0,
+      } as StatsDetenus["parCategorie"];
+      for (const d of presents) if (d.categoriePenale) parCategorie[d.categoriePenale]++;
+
+      stats = {
+        effectif: presents.length,
+        entrees30j: 0,
+        sansCellule: presents.filter((d) => !d.cellule).length,
+        parCategorie,
+        echeances: presents
+          .filter((d) => d.mandatCourant?.dateSortieMandat && new Date(d.mandatCourant.dateSortieMandat) <= dans30j)
+          .sort((a, b) => (a.mandatCourant?.dateSortieMandat ?? "").localeCompare(b.mandatCourant?.dateSortieMandat ?? ""))
+          .slice(0, 20)
+          .map((d) => ({
+            detenuId: d.id,
+            numeroEcrou: d.numeroEcrou,
+            nom: d.nom,
+            dateExpirationMandat: d.mandatCourant?.dateSortieMandat ?? "",
+          })),
+      };
+    }
+
+    return { items: items.slice(debut, debut + parPage), total, page, parPage, stats };
   },
 
   async listOptionsDetenus(recherche, decalage = 0) {
@@ -520,9 +558,38 @@ export const mockApi: ApiClient = {
     return { id: fx.suivisMedicaux[0]?.id ?? 1 };
   },
 
-  async listEvacuations() {
+  async listEvacuations(filtre: FiltreEvacuation = {}) {
     await attendre();
-    return [...fx.evacuations].sort((a, b) => b.dateDepart.localeCompare(a.dateDepart));
+    const q = normaliser((filtre.recherche ?? "").trim());
+    let items = [...fx.evacuations].sort((a, b) => b.dateDepart.localeCompare(a.dateDepart));
+    if (filtre.statut === "en-cours") items = items.filter((e) => !e.dateRetour);
+    if (filtre.statut === "rentre") items = items.filter((e) => Boolean(e.dateRetour));
+    if (q) {
+      items = items.filter(
+        (e) =>
+          normaliser(e.detenuNom).includes(q) ||
+          normaliser(e.numeroEcrou).includes(q) ||
+          normaliser(e.structureDestination).includes(q),
+      );
+    }
+
+    const total = items.length;
+    const page = filtre.page ?? 1;
+    const parPage = filtre.parPage ?? 10;
+    const debut = (Math.max(1, page) - 1) * parPage;
+
+    let stats: StatsEvacuation | undefined;
+    if (filtre.avecStats) {
+      const tous = fx.evacuations;
+      const ilYa30j = new Date(Date.now() - 30 * 86_400_000);
+      stats = {
+        total: tous.length,
+        enCours: tous.filter((e) => !e.dateRetour).length,
+        trenteJours: tous.filter((e) => new Date(e.dateDepart) >= ilYa30j).length,
+      };
+    }
+
+    return { items: items.slice(debut, debut + parPage), total, page, parPage, stats };
   },
 
   async creerEvacuation() {
@@ -534,11 +601,40 @@ export const mockApi: ApiClient = {
     await attendre();
   },
 
-  async listPrescriptions() {
+  async listPrescriptions(filtre: FiltrePrescription = {}) {
     await attendre();
-    return [...fx.prescriptions]
-      .map((p) => fx.avecStatut(p))
-      .sort((a, b) => b.dateDebut.localeCompare(a.dateDebut));
+    const q = normaliser((filtre.recherche ?? "").trim());
+    let items = fx.prescriptions.map((p) => fx.avecStatut(p)).sort((a, b) => b.dateDebut.localeCompare(a.dateDebut));
+    if (filtre.statut && filtre.statut !== "tous") items = items.filter((p) => p.statut === filtre.statut);
+    if (q) {
+      items = items.filter(
+        (p) =>
+          normaliser(p.detenuNom).includes(q) ||
+          normaliser(p.numeroEcrou).includes(q) ||
+          normaliser(p.medicament).includes(q),
+      );
+    }
+
+    const total = items.length;
+    const page = filtre.page ?? 1;
+    const parPage = filtre.parPage ?? 10;
+    const debut = (Math.max(1, page) - 1) * parPage;
+
+    let stats: StatsPrescription | undefined;
+    if (filtre.avecStats) {
+      const tous = fx.prescriptions.map((p) => fx.avecStatut(p));
+      const maintenant = new Date();
+      const dans3Jours = new Date(maintenant.getTime() + 3 * 86_400_000);
+      stats = {
+        total: tous.length,
+        enCours: tous.filter((p) => p.statut === "en_cours").length,
+        aRenouveler: tous.filter(
+          (p) => p.statut === "en_cours" && p.dateFin && new Date(p.dateFin) >= maintenant && new Date(p.dateFin) <= dans3Jours,
+        ).length,
+      };
+    }
+
+    return { items: items.slice(debut, debut + parPage), total, page, parPage, stats };
   },
 
   async creerPrescription() {
@@ -585,16 +681,124 @@ export const mockApi: ApiClient = {
     return [...fx.sanctions].sort((a, b) => b.dateDebut.localeCompare(a.dateDebut));
   },
 
-  async listSuivisMedicaux() {
+  async listSuivisMedicaux(filtre: FiltreSuiviMedical = {}) {
     await attendre();
-    return [...fx.suivisMedicaux].sort((a, b) =>
-      b.dateConsultation.localeCompare(a.dateConsultation),
-    );
+    const q = normaliser((filtre.recherche ?? "").trim());
+    let items = [...fx.suivisMedicaux].sort((a, b) => b.dateConsultation.localeCompare(a.dateConsultation));
+    if (filtre.type && filtre.type !== "tous") items = items.filter((s) => s.typeConsultation === filtre.type);
+    if (q) {
+      items = items.filter(
+        (s) =>
+          normaliser(s.detenuNom).includes(q) ||
+          normaliser(s.numeroEcrou).includes(q) ||
+          normaliser(s.diagnostic ?? "").includes(q),
+      );
+    }
+
+    const total = items.length;
+    const page = filtre.page ?? 1;
+    const parPage = filtre.parPage ?? 10;
+    const debut = (Math.max(1, page) - 1) * parPage;
+
+    let stats: StatsSuiviMedical | undefined;
+    if (filtre.avecStats) {
+      const tous = fx.suivisMedicaux;
+      const maintenant = new Date();
+      const debutMois = new Date(maintenant.getFullYear(), maintenant.getMonth(), 1);
+      const ilYa7j = new Date(maintenant.getTime() - 7 * 86_400_000);
+      const cleJour = (d: Date) =>
+        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      const parJour = new Map<string, number>();
+      for (const s of tous) {
+        const cle = s.dateConsultation.slice(0, 10);
+        parJour.set(cle, (parJour.get(cle) ?? 0) + 1);
+      }
+      const parType: Record<string, number> = {};
+      for (const s of tous) parType[s.typeConsultation] = (parType[s.typeConsultation] ?? 0) + 1;
+
+      stats = {
+        total: tous.length,
+        ceMois: tous.filter((s) => new Date(s.dateConsultation) >= debutMois).length,
+        urgences7j: tous.filter((s) => s.typeConsultation === "Urgence" && new Date(s.dateConsultation) >= ilYa7j).length,
+        suivisPrevus: tous.filter((s) => s.dateSuivi && new Date(s.dateSuivi) >= maintenant).length,
+        serie14j: Array.from({ length: 14 }, (_, i) => {
+          const jour = new Date(maintenant.getTime() - (13 - i) * 86_400_000);
+          const cle = cleJour(jour);
+          return { date: cle, total: parJour.get(cle) ?? 0 };
+        }),
+        parType,
+        aHonorer: tous
+          .filter((s) => s.dateSuivi)
+          .sort((a, b) => (a.dateSuivi ?? "").localeCompare(b.dateSuivi ?? ""))
+          .slice(0, 20),
+        recentes: [...tous].sort((a, b) => b.dateConsultation.localeCompare(a.dateConsultation)).slice(0, 5),
+      };
+    }
+
+    return { items: items.slice(debut, debut + parPage), total, page, parPage, stats };
   },
 
-  async listVisites() {
+  async listVisites(filtre: FiltreVisite = {}) {
     await attendre();
-    return [...fx.visites].sort((a, b) => b.dateVisite.localeCompare(a.dateVisite));
+    const q = normaliser((filtre.recherche ?? "").trim());
+    const aujourdhui = new Date().toDateString();
+    const ilYa7jCle = new Date(Date.now() - 7 * 86_400_000);
+    let items = [...fx.visites].sort((a, b) => b.dateVisite.localeCompare(a.dateVisite));
+    if (filtre.periode === "aujourdhui") items = items.filter((v) => new Date(v.dateVisite).toDateString() === aujourdhui);
+    if (filtre.periode === "semaine") items = items.filter((v) => new Date(v.dateVisite) >= ilYa7jCle);
+    if (filtre.type && filtre.type !== "tous") items = items.filter((v) => v.typeVisite === filtre.type);
+    if (q) {
+      items = items.filter(
+        (v) =>
+          normaliser(v.detenuNom).includes(q) ||
+          normaliser(v.nomVisiteur).includes(q) ||
+          normaliser(v.numeroEcrou).includes(q),
+      );
+    }
+
+    const total = items.length;
+    const page = filtre.page ?? 1;
+    const parPage = filtre.parPage ?? 10;
+    const debut = (Math.max(1, page) - 1) * parPage;
+
+    let stats: StatsVisite | undefined;
+    if (filtre.avecStats) {
+      const tous = fx.visites;
+      const ilYa7j = new Date(Date.now() - 7 * 86_400_000);
+      const cleJour = (d: Date) =>
+        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      const parJour = new Map<string, number>();
+      for (const v of tous) {
+        const cle = v.dateVisite.slice(0, 10);
+        parJour.set(cle, (parJour.get(cle) ?? 0) + 1);
+      }
+      const parType: Record<string, number> = {};
+      for (const v of tous) parType[v.typeVisite] = (parType[v.typeVisite] ?? 0) + 1;
+      const maintenant = Date.now();
+
+      stats = {
+        total: tous.length,
+        duJour: tous.filter((v) => new Date(v.dateVisite).toDateString() === aujourdhui).length,
+        semaine: tous.filter((v) => new Date(v.dateVisite) >= ilYa7j).length,
+        sansAutorisation: tous.filter((v) => !v.autorisationPrealable && new Date(v.dateVisite) >= ilYa7j).length,
+        enCours: tous.filter((v) => v.heureDebut && !v.heureFin).length,
+        serie7j: Array.from({ length: 7 }, (_, i) => {
+          const jour = new Date(maintenant - (6 - i) * 86_400_000);
+          const cle = cleJour(jour);
+          return { date: cle, total: parJour.get(cle) ?? 0 };
+        }),
+        parType,
+        duJourDetail: tous
+          .filter((v) => new Date(v.dateVisite).toDateString() === aujourdhui)
+          .sort((a, b) => a.heureArrivee.localeCompare(b.heureArrivee))
+          .slice(0, 20),
+        recentes: [...tous]
+          .sort((a, b) => `${b.dateVisite}${b.heureArrivee}`.localeCompare(`${a.dateVisite}${a.heureArrivee}`))
+          .slice(0, 5),
+      };
+    }
+
+    return { items: items.slice(debut, debut + parPage), total, page, parPage, stats };
   },
 
   async getVisite(visiteId) {

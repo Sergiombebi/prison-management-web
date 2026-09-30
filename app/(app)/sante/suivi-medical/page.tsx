@@ -4,12 +4,13 @@ import { resoudreDetenuInitial } from "@/lib/api/detenu-initial";
 import type { SuiviMedical } from "@/lib/domain/types";
 import { TYPES_CONSULTATION } from "@/lib/domain/referentiels";
 import { formatDate, formatNombre, ouVide, pluriel, tronquer } from "@/lib/format";
-import { filtresActifs, param } from "@/lib/url";
+import { filtresActifs, hrefAvec, param, paramEntier } from "@/lib/url";
 import { getT } from "@/lib/i18n/server";
 import { getProfil, peut } from "@/lib/session";
 import { Page, PageHeader } from "@/components/layout/page";
 import { DataTable } from "@/components/data/data-table";
 import { FilterBar } from "@/components/data/filter-bar";
+import { Pagination } from "@/components/data/pagination";
 import { Stat, StatGrid } from "@/components/data/stat";
 import { Badge } from "@/components/ui/badge";
 import { SearchInput, Select } from "@/components/ui/field";
@@ -24,31 +25,17 @@ const CHEMIN = "/sante/suivi-medical";
 export default async function SuiviMedicalPage(props: PageProps<"/sante/suivi-medical">) {
   const t = await getT();
   const sp = await props.searchParams;
+  const recherche = param(sp, "recherche") ?? "";
+  const type = param(sp, "type") ?? "tous";
+  const page = paramEntier(sp, "page", 1);
   const detenuBrut = Number.parseInt(param(sp, "detenu") ?? "", 10);
 
-  const [suivis, profil, detenuInitial] = await Promise.all([
-    api.listSuivisMedicaux(),
+  const [resultat, profil, detenuInitial] = await Promise.all([
+    api.listSuivisMedicaux({ recherche, type, page, parPage: 10, avecStats: true }),
     getProfil(),
     resoudreDetenuInitial(Number.isFinite(detenuBrut) ? detenuBrut : undefined),
   ]);
-
-  const recherche = (param(sp, "recherche") ?? "").toLowerCase();
-  const type = param(sp, "type") ?? "tous";
-  const filtres = suivis.filter(
-    (s) =>
-      (type === "tous" || s.typeConsultation === type) &&
-      (!recherche ||
-        s.detenuNom.toLowerCase().includes(recherche) ||
-        s.numeroEcrou.toLowerCase().includes(recherche) ||
-        (s.diagnostic ?? "").toLowerCase().includes(recherche)),
-  );
-
-  const maintenant = new Date();
-  const debutMois = new Date(maintenant.getFullYear(), maintenant.getMonth(), 1);
-  const ilYa7j = new Date(maintenant.getTime() - 7 * 86_400_000);
-  const ceMois = suivis.filter((s) => new Date(s.dateConsultation) >= debutMois).length;
-  const urgences = suivis.filter((s) => s.typeConsultation === "Urgence" && new Date(s.dateConsultation) >= ilYa7j).length;
-  const suivisPrevus = suivis.filter((s) => s.dateSuivi && new Date(s.dateSuivi) >= maintenant).length;
+  const stats = resultat.stats;
 
   return (
     <Page>
@@ -58,15 +45,22 @@ export default async function SuiviMedicalPage(props: PageProps<"/sante/suivi-me
       />
 
       <StatGrid colonnes={4}>
-        <Stat icone="pulse" style={{ ["--i" as string]: 0 }} label="Consultations" valeur={formatNombre(suivis.length)} contexte="Au total" />
-        <Stat icone="pulse" style={{ ["--i" as string]: 1 }} label="Ce mois-ci" valeur={formatNombre(ceMois)} contexte="Depuis le 1er du mois" />
-        <Stat icone="pulse" style={{ ["--i" as string]: 2 }} label="Urgences (7 jours)" valeur={formatNombre(urgences)} signal={urgences > 0 ? "attention" : "neutre"} contexte={urgences > 0 ? "À surveiller" : "Aucune urgence récente"} />
-        <Stat icone="pulse" style={{ ["--i" as string]: 3 }} label="Suivis programmés" valeur={formatNombre(suivisPrevus)} contexte="Rendez-vous à venir" />
+        <Stat icone="pulse" style={{ ["--i" as string]: 0 }} label="Consultations" valeur={formatNombre(stats?.total ?? resultat.total)} contexte="Au total" />
+        <Stat icone="pulse" style={{ ["--i" as string]: 1 }} label="Ce mois-ci" valeur={formatNombre(stats?.ceMois ?? 0)} contexte="Depuis le 1er du mois" />
+        <Stat
+          icone="pulse"
+          style={{ ["--i" as string]: 2 }}
+          label="Urgences (7 jours)"
+          valeur={formatNombre(stats?.urgences7j ?? 0)}
+          signal={(stats?.urgences7j ?? 0) > 0 ? "attention" : "neutre"}
+          contexte={(stats?.urgences7j ?? 0) > 0 ? "À surveiller" : "Aucune urgence récente"}
+        />
+        <Stat icone="pulse" style={{ ["--i" as string]: 3 }} label="Suivis programmés" valeur={formatNombre(stats?.suivisPrevus ?? 0)} contexte="Rendez-vous à venir" />
       </StatGrid>
 
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">
         <Panel variante="eleve" flush className="overflow-hidden">
-          <FilterBar action={CHEMIN} actif={filtresActifs(sp, ["recherche", "type"])} reinitialiserHref={CHEMIN} resultat={pluriel(filtres.length, "consultation")}>
+          <FilterBar action={CHEMIN} actif={filtresActifs(sp, ["recherche", "type"])} reinitialiserHref={CHEMIN} resultat={pluriel(resultat.total, "consultation")}>
             <SearchInput name="recherche" defaultValue={param(sp, "recherche")} placeholder="Détenu, écrou ou diagnostic…" aria-label="Rechercher une consultation" className="w-full sm:w-64" />
             <Select name="type" defaultValue={type} aria-label="Filtrer par type" className="w-48">
               <option value="tous">Tous types</option>
@@ -78,7 +72,7 @@ export default async function SuiviMedicalPage(props: PageProps<"/sante/suivi-me
 
           <DataTable<SuiviMedical>
             legende="Historique des consultations"
-            lignes={filtres}
+            lignes={resultat.items}
             cleLigne={(s) => s.id}
             lienLigne={(s) => `/sante/dossier-medical/${s.detenuId}`}
             colonnes={[
@@ -100,6 +94,15 @@ export default async function SuiviMedicalPage(props: PageProps<"/sante/suivi-me
             ]}
             vide={<EmptyState icone="sante" titre={t.etats.aucunResultatTitre} texte={t.etats.aucunResultatTexte} />}
           />
+
+          {resultat.total > resultat.parPage && (
+            <Pagination
+              page={resultat.page}
+              parPage={resultat.parPage}
+              total={resultat.total}
+              href={(p) => hrefAvec(CHEMIN, sp, { page: p === 1 ? null : p })}
+            />
+          )}
         </Panel>
 
         {profil && peut(profil.permissions, "sante.consultations.creer") && (

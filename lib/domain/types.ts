@@ -497,11 +497,82 @@ export interface TableauDeBord {
 // Enveloppes génériques
 // ---------------------------------------------------------------------------
 
-export interface PageResultat<T> {
+export interface PageResultat<T, S = never> {
   items: T[];
   total: number;
   page: number;
   parPage: number;
+  /** Compteurs sur l'ensemble du registre (indépendants de la page/du filtre demandé),
+   * seulement quand le filtre a demandé `avecStats: true`. */
+  stats?: S;
+}
+
+/** Un point de série journalière (nombre d'événements ce jour-là). */
+export interface PointJournalier {
+  date: string;
+  total: number;
+}
+
+/** `?avec_stats=1` sur `GET /suivis-medicaux`. */
+export interface StatsSuiviMedical {
+  total: number;
+  ceMois: number;
+  urgences7j: number;
+  suivisPrevus: number;
+  /** 14 derniers jours, alimente `/sante/suivi-medical/apercu`. */
+  serie14j: PointJournalier[];
+  parType: Record<string, number>;
+  /** Suivis programmés non honorés, du plus proche au plus lointain (limité à 20). */
+  aHonorer: SuiviMedical[];
+  /** 5 consultations les plus récentes, tous détenus confondus. */
+  recentes: SuiviMedical[];
+}
+
+/** `?avec_stats=1` sur `GET /visites`. */
+export interface StatsVisite {
+  total: number;
+  duJour: number;
+  semaine: number;
+  sansAutorisation: number;
+  enCours: number;
+  /** 7 derniers jours, alimente `/sante/visites/apercu`. */
+  serie7j: PointJournalier[];
+  parType: Record<string, number>;
+  /** Visites du jour, par heure d'arrivée (limité à 20). */
+  duJourDetail: Visite[];
+  /** 5 visites les plus récentes, tous détenus confondus. */
+  recentes: Visite[];
+}
+
+/** `?avec_stats=1` sur `GET /evacuations`. */
+export interface StatsEvacuation {
+  total: number;
+  enCours: number;
+  trenteJours: number;
+}
+
+/** `?avec_stats=1` sur `GET /prescriptions`. */
+export interface StatsPrescription {
+  total: number;
+  enCours: number;
+  aRenouveler: number;
+}
+
+/** Titre de détention proche de l'échéance ou déjà échu (30 jours). */
+export interface EcheanceMandat {
+  detenuId: number;
+  numeroEcrou: string;
+  nom: string;
+  dateExpirationMandat: string;
+}
+
+/** `?avec_stats=1` sur `GET /detenus`. */
+export interface StatsDetenus {
+  effectif: number;
+  entrees30j: number;
+  sansCellule: number;
+  parCategorie: Record<CategoriePenale, number>;
+  echeances: EcheanceMandat[];
 }
 
 export interface FiltreDetenus {
@@ -515,4 +586,39 @@ export interface FiltreDetenus {
   parPage?: number;
   tri?: string;
   sens?: "asc" | "desc";
+  /** Demande les compteurs globaux (`stats`) dans la même réponse. */
+  avecStats?: boolean;
+}
+
+export interface FiltreSuiviMedical {
+  recherche?: string;
+  type?: string;
+  page?: number;
+  parPage?: number;
+  avecStats?: boolean;
+}
+
+export interface FiltreVisite {
+  recherche?: string;
+  type?: string;
+  periode?: "tous" | "aujourdhui" | "semaine";
+  page?: number;
+  parPage?: number;
+  avecStats?: boolean;
+}
+
+export interface FiltreEvacuation {
+  recherche?: string;
+  statut?: "tous" | "en-cours" | "rentre";
+  page?: number;
+  parPage?: number;
+  avecStats?: boolean;
+}
+
+export interface FiltrePrescription {
+  recherche?: string;
+  statut?: "tous" | "en_cours" | "termine" | "arrete";
+  page?: number;
+  parPage?: number;
+  avecStats?: boolean;
 }
