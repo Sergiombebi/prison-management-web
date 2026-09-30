@@ -123,6 +123,10 @@ export const fr = {
     trierPar: "Trier par",
     croissant: "croissant",
     decroissant: "décroissant",
+    premierePage: "Première page",
+    dernierePage: "Dernière page",
+    allerALaPage: "Aller à la page",
+    allerBouton: "Aller",
   },
 
   connexion: {

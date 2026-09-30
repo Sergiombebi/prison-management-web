@@ -58,6 +58,7 @@ const mandatApi = (surcharge: Partial<MandasApi> = {}): MandasApi =>
     tribunal_cassation: null,
     decision_cassation: null,
     observations_cassation: null,
+    date_sortie_effective: null,
     est_actif: true,
     ...surcharge,
   }) as MandasApi;
@@ -86,12 +87,18 @@ describe("mandatActif", () => {
     expect(mandatActif(mandatApi({ est_actif: false }))).toBe(false);
   });
 
-  it("retient un mandat sans échéance", () => {
-    expect(mandatActif(mandatApi({ date_expiration_mandat: null }))).toBe(true);
+  it("retient un mandat sans date de sortie effective connue", () => {
+    expect(mandatActif(mandatApi({ date_sortie_effective: null }))).toBe(true);
   });
 
-  it("écarte un mandat échu", () => {
-    expect(mandatActif(mandatApi({ date_expiration_mandat: IL_Y_A_UN_AN }))).toBe(false);
+  it("écarte un mandat dont la date de sortie effective est dépassée", () => {
+    expect(mandatActif(mandatApi({ date_sortie_effective: IL_Y_A_UN_AN }))).toBe(false);
+  });
+
+  it("reste actif si seule l'alerte administrative (date_expiration_mandat) est dépassée, tant que la date de sortie effective ne l'est pas", () => {
+    expect(
+      mandatActif(mandatApi({ date_expiration_mandat: IL_Y_A_UN_AN, date_sortie_effective: DANS_UN_AN })),
+    ).toBe(true);
   });
 });
 
@@ -119,6 +126,12 @@ describe("versResume (ligne du registre)", () => {
     const sansMandat = versResume(ligneApi({ statut_penal: null, date_incarceration: null }));
     expect(sansMandat.mandatCourant).toBeNull();
     expect(sansMandat.nombreMandatsActifs).toBe(0);
+  });
+
+  it("reprend le vrai compte de mandats actifs renvoyé par l'API, pas 0/1", () => {
+    // Un détenu DPAC a 2+ mandats actifs : le déduire de la seule présence d'un
+    // mandat_courant (comme avant) plafonnerait toujours à 1.
+    expect(versResume(ligneApi({ nombre_mandats_actifs: 2 })).nombreMandatsActifs).toBe(2);
   });
 });
 
@@ -196,6 +209,24 @@ describe("versResumeDetail (fiche détenu)", () => {
       telephone: "699",
       adresse: "Mvog-Ada",
     });
+  });
+
+  it("calcule la catégorie pénale à partir des mandats actifs — l'API ne la fournit pas pour cette fiche", () => {
+    const prevenu = detail([mandatDomaine(1, true)]);
+    expect(prevenu.categoriePenale).toBe("Prevenu");
+  });
+
+  it("classe DPAC un détenu avec 2 mandats actifs dont un déjà jugé, même sans exécution de peine", () => {
+    const appellant = { ...mandatDomaine(1, true), typeStatutPenal: "Appellant" } as MandatDetaille;
+    const provisoire = mandatDomaine(2, true);
+    const d = detail([appellant, provisoire]);
+    expect(d.nombreMandatsActifs).toBe(2);
+    expect(d.categoriePenale).toBe("Dpac");
+  });
+
+  it("ne classe pas un détenu sans mandat actif", () => {
+    const d = detail([mandatDomaine(1, false)]);
+    expect(d.categoriePenale).toBeNull();
   });
 });
 
@@ -311,6 +342,7 @@ describe("versSortie", () => {
     observation: null,
     sortie_definitive: false,
     date_reintegration: null,
+    duree_evasion_jours: null,
     lieu_reintegration: null,
     autorite_reintegration: null,
     observations_reintegration: null,

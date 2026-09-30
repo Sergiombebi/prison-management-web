@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { api, ApiErreur, modeDe } from "@/lib/api";
+import { api, ApiErreur } from "@/lib/api";
 import { optionnel } from "@/lib/api/disponibilite";
-import type { CategoriePenale, DetenuResume } from "@/lib/domain/types";
+import type { CategoriePenale, DetenuResume, PageResultat } from "@/lib/domain/types";
 import {
   CATEGORIE_SLUG,
   LIBELLE_CATEGORIE,
@@ -10,10 +10,12 @@ import {
   SLUG_CATEGORIE,
 } from "@/lib/domain/referentiels";
 import { formatDate, joursRestants, pluriel, tronquer } from "@/lib/format";
+import { hrefAvec, paramEntier } from "@/lib/url";
 import { cn } from "@/lib/cn";
 import { getT } from "@/lib/i18n/server";
 import { Page, PageHeader } from "@/components/layout/page";
 import { DataTable } from "@/components/data/data-table";
+import { Pagination } from "@/components/data/pagination";
 import { ButtonLink } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { EmptyState, Ecrou, Panel } from "@/components/ui/surface";
@@ -33,19 +35,27 @@ export async function generateMetadata(props: PageProps<"/detenus/mandats/[categ
   return { title: c ? TITRES[c] : "Catégorie inconnue" };
 }
 
+const CHEMIN_PAR_CATEGORIE = (slug: string) => `/detenus/mandats/${slug}`;
+const PAR_PAGE_OPTIONS = [20, 50, 100];
+
 /**
- * Une catégorie peut échouer alors que les autres répondent : deux scopes de l'API
- * (`condamnes`, `dpac`) posent un `having` sans `group by`, ce que SQLite refuse.
- * On isole la panne au lieu de faire tomber tout l'écran.
+ * Une catégorie peut échouer alors que les autres répondent (panne API ponctuelle) :
+ * on isole la panne au lieu de faire tomber tout l'écran.
  */
-async function chargerCategorie(categorie: CategoriePenale) {
+async function chargerCategorie(
+  categorie: CategoriePenale,
+  page: number,
+  parPage: number,
+) {
   // Compteur secondaire, derrière tableau_bord.consulter : facultatif.
   const tb = await optionnel(() => api.getTableauDeBord(), null);
   try {
-    return [await api.listParCategorie(categorie), tb, null] as const;
+    const resultat = await api.listDetenus({ categorie, page, parPage });
+    return [resultat, tb, null] as const;
   } catch (e) {
     if (!(e instanceof ApiErreur)) throw e;
-    return [[] as DetenuResume[], tb, e.message] as const;
+    const vide: PageResultat<DetenuResume> = { items: [], total: 0, page: 1, parPage };
+    return [vide, tb, e.message] as const;
   }
 }
 
@@ -55,7 +65,12 @@ export default async function CategoriePage(props: PageProps<"/detenus/mandats/[
   const categorie = SLUG_CATEGORIE[slug];
   if (!categorie) notFound();
 
-  const [detenus, tb, indisponible] = await chargerCategorie(categorie);
+  const sp = await props.searchParams;
+  const page = paramEntier(sp, "page", 1);
+  const parPage = paramEntier(sp, "parPage", 20);
+
+  const [resultat, tb, indisponible] = await chargerCategorie(categorie, page, parPage);
+  const detenus = resultat.items;
 
   return (
     <Page>
@@ -65,7 +80,7 @@ export default async function CategoriePage(props: PageProps<"/detenus/mandats/[
         description={
           indisponible
             ? "Catégorie momentanément indisponible : l’API ne parvient pas à la produire."
-            : pluriel(detenus.length, "détenu") + " dans cette catégorie."
+            : pluriel(resultat.total, "détenu") + " dans cette catégorie."
         }
         actions={
           <ButtonLink href={`/etats/categories?categorie=${slug}`} icone="printer" transitionTypes={["nav-forward"]}>
@@ -102,11 +117,9 @@ export default async function CategoriePage(props: PageProps<"/detenus/mandats/[
           <TabsNav
             label="Catégories pénales"
             items={(Object.keys(TITRES) as CategoriePenale[]).map((c) => ({
-              href: `/detenus/mandats/${CATEGORIE_SLUG[c]}`,
+              href: CHEMIN_PAR_CATEGORIE(CATEGORIE_SLUG[c]),
               label: LIBELLE_CATEGORIE[c],
-              // En mode réel, l'API n'expose pas encore de compteurs par catégorie
-              // (retour A4) : mieux vaut aucun chiffre qu'un chiffre de démonstration.
-              compte: modeDe("detenus") === "live" ? undefined : tb?.effectifsParCategorie[c],
+              compte: tb?.effectifsParCategorie[c],
               actif: c === categorie,
             }))}
           />
@@ -162,6 +175,15 @@ export default async function CategoriePage(props: PageProps<"/detenus/mandats/[
             )
           }
         />
+        {resultat.total > resultat.parPage && (
+          <Pagination
+            page={resultat.page}
+            parPage={resultat.parPage}
+            total={resultat.total}
+            href={(p) => hrefAvec(CHEMIN_PAR_CATEGORIE(slug), sp, { page: p === 1 ? null : p })}
+            parPageOptions={PAR_PAGE_OPTIONS}
+          />
+        )}
       </Panel>
     </Page>
   );

@@ -14,6 +14,14 @@ import { AvisCessationModal } from "@/components/detenus/avis-cessation-recherch
 const libelleCellule = (c: Cellule) => (c.bloc ? `${c.bloc} · ${c.numero}` : c.numero);
 const aujourdhui = () => new Date().toISOString().slice(0, 10);
 
+/** Jours entiers entre deux dates ISO (`YYYY-MM-DD`), jamais négatif. */
+function joursEntre(debut: string, fin: string): number {
+  const a = new Date(debut);
+  const b = new Date(fin);
+  if (Number.isNaN(a.getTime()) || Number.isNaN(b.getTime())) return 0;
+  return Math.max(0, Math.round((b.getTime() - a.getTime()) / 86_400_000));
+}
+
 function FormulaireReintegration({
   sortie,
   cellules,
@@ -28,6 +36,19 @@ function FormulaireReintegration({
   const titleId = useId();
   const [etat, envoyer, enCours] = useActionState<EtatSortie, FormData>(reintegrerEvasion.bind(null, sortie.id), {});
   const err = (champ: string) => etat.erreurs?.[champ]?.[0];
+
+  const [dateReintegration, setDateReintegration] = useState(aujourdhui());
+  const [dureeEvasion, setDureeEvasion] = useState(() => joursEntre(sortie.dateSortie, aujourdhui()));
+  // Une fois la durée corrigée à la main, changer la date de reprise ne doit plus l'écraser.
+  const [dureeModifiee, setDureeModifiee] = useState(false);
+  const [dernierDateSync, setDernierDateSync] = useState(dateReintegration);
+
+  // Ajustement pendant le rendu (pas d'effet) : resynchronise la durée calculée dès que la
+  // date de reprise change, tant que l'agent ne l'a pas corrigée à la main.
+  if (!dureeModifiee && dateReintegration !== dernierDateSync) {
+    setDernierDateSync(dateReintegration);
+    setDureeEvasion(joursEntre(sortie.dateSortie, dateReintegration));
+  }
 
   useEffect(() => {
     if (etat.ok && etat.sortie) {
@@ -67,38 +88,75 @@ function FormulaireReintegration({
         <RetourAction etat={etat} />
 
         <p className="rounded-md bg-accent-soft px-3 py-2.5 text-sm text-ink">
-          Ses mandats en cours à l’évasion rouvrent avec le reliquat de peine reporté depuis la date de reprise, et il
-          est placé en cellule disciplinaire.
+          Ses mandats en cours à l’évasion rouvrent avec le reliquat de peine reporté de la durée d’évasion, et il est
+          placé en cellule disciplinaire.
         </p>
 
-        <Field label="Date de la reprise" requis erreur={err("date_reintegration")}>
-          {(p) => <Input {...p} type="date" name="date_reintegration" required defaultValue={aujourdhui()} />}
-        </Field>
-        <Field label="Lieu de la reprise" erreur={err("lieu_reintegration")}>
-          {(p) => <Input {...p} name="lieu_reintegration" placeholder="Ex. Contrôle routier, Mfoundi" />}
-        </Field>
-        <Field label="Autorité ayant procédé à l’arrestation" erreur={err("autorite_reintegration")}>
-          {(p) => <Input {...p} name="autorite_reintegration" placeholder="Ex. Gendarmerie de Yaoundé" />}
-        </Field>
-        <Field
-          label="Cellule disciplinaire"
-          requis
-          aide="Le détenu y est placé dès la réintégration."
-          erreur={err("cellule_disciplinaire_id")}
-        >
-          {(p) => (
-            <Select {...p} name="cellule_disciplinaire_id" required placeholder="Sélectionner une cellule…">
-              {cellules.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {libelleCellule(c)}
-                </option>
-              ))}
-            </Select>
-          )}
-        </Field>
-        <Field label="Observations" erreur={err("observations_reintegration")}>
-          {(p) => <Textarea {...p} name="observations_reintegration" rows={3} />}
-        </Field>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="flex flex-col gap-4 rounded-lg border border-hairline p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.06em] text-muted">Reprise</p>
+            <Field label="Date de la reprise" requis erreur={err("date_reintegration")}>
+              {(p) => (
+                <Input
+                  {...p}
+                  type="date"
+                  name="date_reintegration"
+                  required
+                  value={dateReintegration}
+                  onChange={(e) => setDateReintegration(e.target.value)}
+                />
+              )}
+            </Field>
+            <Field
+              label="Durée de l’évasion"
+              aide="Calculée depuis les deux dates ; modifiable si besoin."
+              erreur={err("duree_evasion_jours")}
+            >
+              {(p) => (
+                <Input
+                  {...p}
+                  type="number"
+                  min={0}
+                  name="duree_evasion_jours"
+                  value={dureeEvasion}
+                  onChange={(e) => {
+                    setDureeEvasion(Number(e.target.value));
+                    setDureeModifiee(true);
+                  }}
+                />
+              )}
+            </Field>
+            <Field label="Lieu de la reprise" erreur={err("lieu_reintegration")}>
+              {(p) => <Input {...p} name="lieu_reintegration" placeholder="Ex. Contrôle routier, Mfoundi" />}
+            </Field>
+            <Field label="Autorité ayant procédé à l’arrestation" erreur={err("autorite_reintegration")}>
+              {(p) => <Input {...p} name="autorite_reintegration" placeholder="Ex. Gendarmerie de Yaoundé" />}
+            </Field>
+          </div>
+
+          <div className="flex flex-col gap-4 rounded-lg border border-hairline p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.06em] text-muted">Placement disciplinaire</p>
+            <Field
+              label="Cellule disciplinaire"
+              requis
+              aide="Le détenu y est placé dès la réintégration."
+              erreur={err("cellule_disciplinaire_id")}
+            >
+              {(p) => (
+                <Select {...p} name="cellule_disciplinaire_id" required placeholder="Sélectionner une cellule…">
+                  {cellules.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {libelleCellule(c)}
+                    </option>
+                  ))}
+                </Select>
+              )}
+            </Field>
+            <Field label="Observations" erreur={err("observations_reintegration")} className="flex-1">
+              {(p) => <Textarea {...p} name="observations_reintegration" rows={5} className="h-full" />}
+            </Field>
+          </div>
+        </div>
 
         <div className="flex justify-end gap-2 border-t border-hairline pt-4">
           <Button type="button" variante="secondaire" onClick={onClose}>
@@ -139,7 +197,7 @@ export function BoutonReintegrer({
         className="w-8 rounded-full border-0 !bg-success-soft px-0 !text-success shadow-none hover:!bg-success/20"
         onClick={() => setOuvert(true)}
       />
-      <Modale open={ouvert} onClose={() => setOuvert(false)} className="max-w-md">
+      <Modale open={ouvert} onClose={() => setOuvert(false)} className="max-w-xl">
         <FormulaireReintegration
           sortie={sortie}
           cellules={cellules}

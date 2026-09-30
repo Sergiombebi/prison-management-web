@@ -22,6 +22,8 @@ const CHEMINS = {
   chevronRight: "M8 5l5 5-5 5",
   chevronLeft: "M12 5l-5 5 5 5",
   chevronDown: "M5 8l5 5 5-5",
+  chevronsLeft: "M14 5l-5 5 5 5M8 5l-5 5 5 5",
+  chevronsRight: "M6 5l5 5-5 5M12 5l5 5-5 5",
   arrowUp: "M10 16V4M5 9l5-5 5 5",
   arrowDown: "M10 4v12M5 11l5 5 5-5",
   arrowLeft: "M16 10H4M9 5l-5 5 5 5",

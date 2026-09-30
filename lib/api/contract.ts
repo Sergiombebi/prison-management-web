@@ -257,6 +257,8 @@ export interface EntreeTransfert {
 /** Réintégration d'un détenu évadé et repris. */
 export interface EntreeReintegration {
   dateReintegration: string;
+  /** Facultative : le serveur la recalcule lui-même (dateReintegration - date de l'évasion). */
+  dureeEvasionJours?: number | null;
   celluleDisciplinaireId: number;
   lieuReintegration?: string | null;
   autoriteReintegration?: string | null;
@@ -459,8 +461,8 @@ export interface ApiClient {
   listDetenusNonLoges(): Promise<DetenuResume[]>;
   /** GET /mandats (à livrer) */
   listMandats(): Promise<MandatDetaille[]>;
-  /** GET /mandas/expires — paginé à 20 par page */
-  listMandatsExpires(filtre?: { page?: number }): Promise<PageResultat<MandatDetaille, StatsMandatsExpires>>;
+  /** GET /mandas/expires — 20 par page par défaut */
+  listMandatsExpires(filtre?: { page?: number; parPage?: number }): Promise<PageResultat<MandatDetaille, StatsMandatsExpires>>;
 
   /** GET /cellules — occupation calculée par le serveur */
   listCellules(): Promise<Cellule[]>;

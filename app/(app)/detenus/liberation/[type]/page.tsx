@@ -109,7 +109,7 @@ export default async function LiberationPage(props: PageProps<"/detenus/liberati
           {typeSortie === "Transfert" ? (
             <TransfertsTable sorties={sorties} parametres={parametres} />
           ) : typeSortie === "Evasion" ? (
-            <EvasionsTable sorties={sorties} cellules={cellules} parametres={parametres} />
+            <EvasionsTable sorties={sorties} cellules={cellules} parametres={parametres} statutActif={param(sp, "statut")} />
           ) : (
           <DataTable<SortieDetenu>
             legende={`Historique : ${LIBELLE_TYPE_SORTIE[typeSortie]}`}

@@ -29,10 +29,11 @@ export default async function DetenusPage(props: PageProps<"/detenus">) {
   const ld = t.listeDetenus;
   const sp = await props.searchParams;
 
-  // L'API impose 10 par page et n'expose ni tri, ni filtre par sexe, ni échéance de
-  // mandat dans la liste. On adapte l'écran au lieu d'afficher des contrôles qui mentent.
+  // L'API n'expose ni tri, ni filtre par sexe, ni échéance de mandat dans la liste.
+  // On adapte l'écran au lieu d'afficher des contrôles qui mentent.
   const reel = modeDe("detenus") === "live";
-  const parPage = reel ? 10 : 15;
+  const parPageOptions = [10, 20, 50, 100];
+  const parPage = reel ? paramEntier(sp, "parPage", 10) : 15;
 
   const recherche = param(sp, "recherche") ?? "";
   const categorieBrute = param(sp, "categorie");
@@ -313,6 +314,7 @@ export default async function DetenusPage(props: PageProps<"/detenus">) {
             parPage={resultat.parPage}
             total={resultat.total}
             href={(p) => hrefAvec(CHEMIN, sp, { page: p === 1 ? null : p })}
+            parPageOptions={reel ? parPageOptions : undefined}
           />
         )}
       </Panel>

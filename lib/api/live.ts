@@ -311,7 +311,7 @@ function versParametres(p: ParametresApi): Parametres {
 // ---------------------------------------------------------------------------
 
 /** Taille de page fixée par l'API sur `GET /detenus` (non paramétrable). */
-const PAGE_API_DETENUS = 10;
+const PAGE_API_DETENUS = 100;
 
 /** Vue résumée renvoyée par `GET /detenus` (colonnes de l'ancienne app C#). */
 export interface DetenuListeApi {
@@ -329,6 +329,7 @@ export interface DetenuListeApi {
   motif_detention: string | null;
   type_mandat: string | null;
   categorie_penale?: string | null;
+  nombre_mandats_actifs?: number;
   cellule_actuelle?: { id: number; numero: string; bloc: string | null } | null;
   est_present: boolean;
 }
@@ -577,6 +578,7 @@ export interface SortieApi {
   observation: string | null;
   sortie_definitive: boolean;
   date_reintegration: string | null;
+  duree_evasion_jours: number | null;
   lieu_reintegration: string | null;
   autorite_reintegration: string | null;
   observations_reintegration: string | null;
@@ -833,6 +835,7 @@ export function versSortie(x: SortieApi, detenu?: { nom: string; numeroEcrou: st
     dateEnregistrement: x.created_at ?? "",
     definitive: x.sortie_definitive,
     dateReintegration: x.date_reintegration,
+    dureeEvasionJours: x.duree_evasion_jours,
     lieuReintegration: x.lieu_reintegration,
     autoriteReintegration: x.autorite_reintegration,
     observationsReintegration: x.observations_reintegration,
@@ -937,7 +940,9 @@ export function versResume(d: DetenuListeApi): DetenuResume {
     dateCreation: "",
     dateModification: null,
     categoriePenale: d.categorie_penale ? (CATEGORIE_DEPUIS_SLUG[d.categorie_penale] ?? null) : null,
-    nombreMandatsActifs: aMandat ? 1 : 0,
+    // `aMandat` (0/1) ne sert que si l'API ne renvoie pas encore le vrai compte (mode
+    // hybride/mock) : sinon un détenu DPAC (2+ mandats actifs) afficherait toujours 1.
+    nombreMandatsActifs: d.nombre_mandats_actifs ?? (aMandat ? 1 : 0),
     mandatCourant: aMandat
       ? {
           id: 0,
@@ -954,6 +959,26 @@ export function versResume(d: DetenuListeApi): DetenuResume {
   };
 }
 
+/**
+ * Catégorie pénale à partir des statuts des mandats actifs — même règle que
+ * Detenu::getCategoriePenaleCalculeeAttribute() côté API (DPAC élargi : au moins deux
+ * mandats actifs dont un déjà jugé, pas seulement une exécution de peine). Utilisée ici
+ * seule : `GET /detenus/{id}` charge `mandas` (tous), pas `mandasActifs`, donc l'API ne
+ * renvoie pas de catégorie calculée pour la fiche détenu — on la recalcule avec ce qu'on a.
+ */
+function calculerCategoriePenale(typesActifs: TypeStatutPenal[]): CategoriePenale | null {
+  if (typesActifs.length === 0) return null;
+  const aExecution = typesActifs.includes("Exécution de peine");
+  const aUnDejaJuge = typesActifs.some((t) => t !== "Détention provisoire");
+
+  if (typesActifs.length >= 2 && aUnDejaJuge) return "Dpac";
+  if (typesActifs.length === 1 && aExecution) return "Condamne";
+  if (typesActifs.length === 1 && typesActifs.includes("Cassationnaire")) return "Cassationnaire";
+  if (typesActifs.length === 1 && typesActifs.includes("Appellant")) return "Appellant";
+  if (typesActifs.every((t) => t === "Détention provisoire")) return "Prevenu";
+  return null;
+}
+
 /** Fiche complète → résumé, mandats compris (là, tout est disponible). */
 export function versResumeDetail(d: DetenuDetailApi, mandats: MandatDetaille[]): DetenuResume {
   // `actif` tient compte de la désactivation par l'API, pas seulement de l'échéance
@@ -961,6 +986,9 @@ export function versResumeDetail(d: DetenuDetailApi, mandats: MandatDetaille[]):
     .filter((m) => m.actif)
     .sort((a, b) => b.dateIncarceration.localeCompare(a.dateIncarceration));
   const courant = actifs[0] ?? null;
+  const typesActifs = actifs
+    .map((m) => m.typeStatutPenal)
+    .filter((t): t is TypeStatutPenal => t !== null);
 
   return {
     id: d.id,
@@ -1003,7 +1031,7 @@ export function versResumeDetail(d: DetenuDetailApi, mandats: MandatDetaille[]):
     statut: d.est_present ? "Present" : "Sorti",
     dateCreation: d.created_at ?? "",
     dateModification: d.updated_at ?? null,
-    categoriePenale: null,
+    categoriePenale: calculerCategoriePenale(typesActifs),
     nombreMandatsActifs: actifs.length,
     mandatCourant: courant
       ? {
@@ -1246,6 +1274,7 @@ export const liveApi: ApiClient = {
     }>("/detenus", {
       query: {
         page: filtre.page,
+        per_page: filtre.parPage,
         search: filtre.recherche,
         categorie_penale: categorie,
         avec_stats: filtre.avecStats ? 1 : undefined,
@@ -1360,10 +1389,18 @@ export const liveApi: ApiClient = {
     };
   },
 
+  /**
+   * Registre complet d'une catégorie, sans pagination : sert exclusivement à l'état
+   * nominatif imprimable (`/etats/categories`), qui doit lister tout le monde sur un
+   * même document. Jamais pour un écran de navigation - voir `listDetenus({ categorie })`
+   * pour ça, qui pagine réellement.
+   */
   async listParCategorie(categorie: CategoriePenale) {
-    const tous = await toutesLesPages<DetenuListeApi>("/detenus", {
-      categorie_penale: CATEGORIE_SLUG[categorie],
-    });
+    const tous = await toutesLesPages<DetenuListeApi>(
+      "/detenus",
+      { categorie_penale: CATEGORIE_SLUG[categorie], per_page: 100 },
+      200,
+    );
     return tous.map((d) => ({ ...versResume(d), categoriePenale: categorie }));
   },
 
@@ -1980,6 +2017,7 @@ export const liveApi: ApiClient = {
       body: JSON.stringify(
         sansVides({
           date_reintegration: entree.dateReintegration,
+          duree_evasion_jours: entree.dureeEvasionJours,
           cellule_disciplinaire_id: entree.celluleDisciplinaireId,
           lieu_reintegration: entree.lieuReintegration,
           autorite_reintegration: entree.autoriteReintegration,
@@ -2085,13 +2123,13 @@ export const liveApi: ApiClient = {
    * tableau de bord et `meta.stats.mandats_expires` de `listDetenus()` — voir
    * `MandasController::expires()` côté API. Paginé à 20 par page.
    */
-  async listMandatsExpires(filtre: { page?: number } = {}) {
+  async listMandatsExpires(filtre: { page?: number; parPage?: number } = {}) {
     const corps = await requete<{
       data: (MandasApi & { detenu?: { nom: string; numero_ecrou: string } })[];
       meta: MetaPagination & {
         stats?: { detenus_concernes: number; echus_plus_30_jours: number };
       };
-    }>("/mandas/expires", { query: { page: filtre.page } });
+    }>("/mandas/expires", { query: { page: filtre.page, per_page: filtre.parPage } });
 
     const s = corps?.meta?.stats;
 

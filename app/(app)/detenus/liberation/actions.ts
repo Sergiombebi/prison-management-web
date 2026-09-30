@@ -116,6 +116,7 @@ export async function reintegrerEvasion(
   try {
     sortie = await api.reintegrerEvasion(sortieId, {
       dateReintegration: texte(formulaire, "date_reintegration"),
+      dureeEvasionJours: entier(formulaire, "duree_evasion_jours"),
       celluleDisciplinaireId,
       lieuReintegration: optionnel(formulaire, "lieu_reintegration"),
       autoriteReintegration: optionnel(formulaire, "autorite_reintegration"),

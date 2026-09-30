@@ -119,6 +119,10 @@ export const en: Messages = {
     trierPar: "Sort by",
     croissant: "ascending",
     decroissant: "descending",
+    premierePage: "First page",
+    dernierePage: "Last page",
+    allerALaPage: "Go to page",
+    allerBouton: "Go",
   },
 
   connexion: {

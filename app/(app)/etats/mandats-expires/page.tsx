@@ -19,7 +19,8 @@ const CHEMIN = "/etats/mandats-expires";
 export default async function MandatsExpiresPage(props: PageProps<"/etats/mandats-expires">) {
   const [t, sp] = await Promise.all([getT(), props.searchParams]);
   const page = paramEntier(sp, "page", 1);
-  const resultat = await api.listMandatsExpires({ page });
+  const parPage = paramEntier(sp, "parPage", 20);
+  const resultat = await api.listMandatsExpires({ page, parPage });
   const stats = resultat.stats;
 
   const depassement = (m: MandatDetaille) => -(joursRestants(m.dateSortieMandat) ?? 0);
@@ -79,6 +80,7 @@ export default async function MandatsExpiresPage(props: PageProps<"/etats/mandat
             parPage={resultat.parPage}
             total={resultat.total}
             href={(p) => hrefAvec(CHEMIN, sp, { page: p === 1 ? null : p })}
+            parPageOptions={[20, 50, 100]}
           />
         )}
       </Panel>

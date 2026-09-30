@@ -3,6 +3,7 @@ import { cn } from "@/lib/cn";
 import { formatNombre } from "@/lib/format";
 import { Icon } from "@/components/ui/icon";
 import { getT } from "@/lib/i18n/server";
+import { AllerALaPage, LignesParPage } from "@/components/data/pagination-controls";
 
 /** Pagination par liens : l'état vit dans l'URL, il survit au rafraîchissement et se partage. */
 export async function Pagination({
@@ -10,11 +11,14 @@ export async function Pagination({
   parPage,
   total,
   href,
+  parPageOptions,
 }: {
   page: number;
   parPage: number;
   total: number;
   href: (page: number) => string;
+  /** Active le sélecteur « lignes par page » ; la page doit lire `parPage` dans l'URL. */
+  parPageOptions?: number[];
 }) {
   const t = await getT();
   const pages = Math.max(1, Math.ceil(total / parPage));
@@ -54,18 +58,26 @@ export async function Pagination({
         />
       </span>
 
-      <p className="tnum">
-        <span className="font-medium text-ink">
-          {formatNombre(debut)}–{formatNombre(fin)}
-        </span>{" "}
-        {t.tableau.surTotal} {formatNombre(total)} {t.tableau.resultats}
-      </p>
+      <div className="flex items-center gap-3">
+        <p className="tnum">
+          <span className="font-medium text-ink">
+            {formatNombre(debut)}–{formatNombre(fin)}
+          </span>{" "}
+          {t.tableau.surTotal} {formatNombre(total)} {t.tableau.resultats}
+        </p>
+        {parPageOptions && parPageOptions.length > 1 && (
+          <LignesParPage valeur={parPage} options={parPageOptions} label={t.tableau.lignesParPage} />
+        )}
+      </div>
       <div className="flex items-center gap-1.5">
+        {lien(1, page > 1, <Icon name="chevronsLeft" size={14} />, t.tableau.premierePage)}
         {lien(page - 1, page > 1, <Icon name="chevronLeft" size={14} />, t.actions.precedent)}
         <span className={cn("tnum px-2")}>
           {t.tableau.page} <span className="font-medium text-ink">{page}</span> / {pages}
         </span>
         {lien(page + 1, page < pages, <Icon name="chevronRight" size={14} />, t.actions.suivant)}
+        {lien(pages, page < pages, <Icon name="chevronsRight" size={14} />, t.tableau.dernierePage)}
+        <AllerALaPage pages={pages} label={t.tableau.allerALaPage} bouton={t.tableau.allerBouton} />
       </div>
     </nav>
   );

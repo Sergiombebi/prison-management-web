@@ -352,6 +352,11 @@ export interface SortieDetenu {
 
   /** Renseigné une fois un détenu évadé repris — son absence signifie « encore en fuite ». */
   dateReintegration?: string | null;
+  /**
+   * Jours passés en cavale, ajoutés à l'échéance des mandats gelés à l'évasion. Calculée par
+   * défaut (dateReintegration - dateSortie), mais modifiable par l'agent à la réintégration.
+   */
+  dureeEvasionJours?: number | null;
   lieuReintegration?: string | null;
   autoriteReintegration?: string | null;
   observationsReintegration?: string | null;

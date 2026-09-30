@@ -464,9 +464,9 @@ export const mockApi: ApiClient = {
       .sort((a, b) => b.dateIncarceration.localeCompare(a.dateIncarceration));
   },
 
-  async listMandatsExpires(filtre: { page?: number } = {}) {
+  async listMandatsExpires(filtre: { page?: number; parPage?: number } = {}) {
     await attendre();
-    const parPage = 20;
+    const parPage = Math.max(1, Math.min(100, filtre.parPage ?? 20));
     const page = Math.max(1, filtre.page ?? 1);
     const tous = fx.mandats
       .filter((m) => !fx.estMandatActif(m))
@@ -843,10 +843,14 @@ export const mockApi: ApiClient = {
 
   async reintegrerEvasion(sortieId, entree) {
     await attendre();
-    const sortie = fx.sorties.find((s) => s.id === sortieId);
+    const sortie = fx.sorties.find((s) => s.id === sortieId) ?? fx.sorties[0];
+    const dureeEvasionJours =
+      entree.dureeEvasionJours ??
+      Math.max(0, Math.round((new Date(entree.dateReintegration).getTime() - new Date(sortie.dateSortie).getTime()) / 86_400_000));
     return {
-      ...(sortie ?? fx.sorties[0]),
+      ...sortie,
       dateReintegration: entree.dateReintegration,
+      dureeEvasionJours,
       lieuReintegration: entree.lieuReintegration ?? null,
       autoriteReintegration: entree.autoriteReintegration ?? null,
       observationsReintegration: entree.observationsReintegration ?? null,
