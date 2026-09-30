@@ -117,7 +117,7 @@ export function FormulaireSortie({
                 {mandats.map((m) => (
                   <option key={m.id} value={m.id}>
                     {`${m.referenceMandat ?? m.typeMandat} — ${m.typeStatutPenal ?? "statut inconnu"}${
-                      m.actif ? `, écroué le ${formatDate(m.dateIncarceration)}` : ` — échu le ${formatDate(m.dateSortieMandat)}`
+                      m.actif ? `, écroué le ${formatDate(m.dateIncarceration)}` : ` — échu le ${formatDate(m.dateSortieEffective)}`
                     }`}
                   </option>
                 ))}

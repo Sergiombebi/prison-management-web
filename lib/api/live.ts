@@ -842,13 +842,18 @@ export function versSortie(x: SortieApi, detenu?: { nom: string; numeroEcrou: st
 const versSexe = (s: string): Sexe => (s === "Féminin" ? "Féminin" : "Masculin");
 
 /**
- * Un mandat est actif si l'API ne l'a pas désactivé ET que sa date d'expiration
- * n'est pas passée — même règle que l'ancienne application desktop.
+ * Un mandat est actif si l'API ne l'a pas désactivé ET que sa date de sortie réelle
+ * n'est pas passée. On se base sur `date_sortie_effective` (calculée par étape de
+ * procédure : détention provisoire, exécution de peine, appel, cassation), jamais sur
+ * `date_expiration_mandat` — cette dernière n'est qu'une alerte administrative fixée à
+ * signature + 6 mois et ne bouge pas quand le mandat évolue (nouveau jugement, appel…) :
+ * l'utiliser ici marquait à tort un mandat « Expiré » après une évolution qui repousse sa
+ * vraie date de sortie dans le futur.
  */
 export function mandatActif(m: MandasApi): boolean {
   if (!m.est_actif) return false;
-  if (!m.date_expiration_mandat) return true;
-  return new Date(m.date_expiration_mandat) > new Date();
+  if (!m.date_sortie_effective) return true;
+  return new Date(m.date_sortie_effective) > new Date();
 }
 
 export function versMandas(m: MandasApi): Mandas {
@@ -1234,6 +1239,7 @@ export const liveApi: ApiClient = {
           entrees_30j: number;
           sans_cellule: number;
           par_categorie: Record<string, number>;
+          mandats_expires: number;
           echeances: { detenu_id: number; numero_ecrou: string; nom: string; date_expiration_mandat: string }[];
         };
       };
@@ -1260,6 +1266,7 @@ export const liveApi: ApiClient = {
             entrees30j: s.entrees_30j,
             sansCellule: s.sans_cellule,
             parCategorie: s.par_categorie as StatsDetenus["parCategorie"],
+            mandatsExpires: s.mandats_expires,
             echeances: s.echeances.map((e) => ({
               detenuId: e.detenu_id,
               numeroEcrou: e.numero_ecrou,
@@ -2073,6 +2080,38 @@ export const liveApi: ApiClient = {
     return { url: corps.data.url, publicId: corps.data.public_id };
   },
 
+  /**
+   * Mandats à régulariser (`/etats/mandats-expires`) : même règle que `mandats_expires` du
+   * tableau de bord et `meta.stats.mandats_expires` de `listDetenus()` — voir
+   * `MandasController::expires()` côté API. Paginé à 20 par page.
+   */
+  async listMandatsExpires(filtre: { page?: number } = {}) {
+    const corps = await requete<{
+      data: (MandasApi & { detenu?: { nom: string; numero_ecrou: string } })[];
+      meta: MetaPagination & {
+        stats?: { detenus_concernes: number; echus_plus_30_jours: number };
+      };
+    }>("/mandas/expires", { query: { page: filtre.page } });
+
+    const s = corps?.meta?.stats;
+
+    return {
+      items: (corps?.data ?? []).map((m) => ({
+        ...versMandas(m),
+        detenuNom: m.detenu?.nom ?? "",
+        numeroEcrou: m.detenu?.numero_ecrou ?? "",
+        actif: mandatActif(m),
+        ouvert: m.est_actif,
+      })),
+      total: corps?.meta?.total ?? 0,
+      page: corps?.meta?.current_page ?? 1,
+      parPage: corps?.meta?.per_page ?? 20,
+      stats: s
+        ? { detenusConcernes: s.detenus_concernes, echusPlus30Jours: s.echus_plus_30_jours }
+        : undefined,
+    };
+  },
+
   // -------------------------------------------------------------------------
   // Modules que l'API n'expose pas encore (cf. bloc A signalé au back).
   // `async` : l'échec doit être une promesse rejetée, comme pour toute méthode
@@ -2080,7 +2119,6 @@ export const liveApi: ApiClient = {
   // -------------------------------------------------------------------------
 
   listMandats: async () => nonLivre("GET /mandats"),
-  listMandatsExpires: async () => nonLivre("GET /mandats/expires"),
 };
 
 // `generateMetadata` et le composant de la fiche détenu appellent tous deux

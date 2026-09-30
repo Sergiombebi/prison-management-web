@@ -566,12 +566,24 @@ export interface EcheanceMandat {
   dateExpirationMandat: string;
 }
 
+/** `GET /mandas/expires` — comptés sur l'ensemble des mandats à régulariser, pas la page. */
+export interface StatsMandatsExpires {
+  detenusConcernes: number;
+  echusPlus30Jours: number;
+}
+
 /** `?avec_stats=1` sur `GET /detenus`. */
 export interface StatsDetenus {
   effectif: number;
   entrees30j: number;
   sansCellule: number;
   parCategorie: Record<CategoriePenale, number>;
+  /**
+   * Total réel de mandats à régulariser — jamais `echeances.length` : cette liste est
+   * bornée à 20 (les plus urgents), donc son décompte sous-estime le total dès qu'il y en
+   * a davantage. Même règle que `mandats_expires` du tableau de bord.
+   */
+  mandatsExpires: number;
   echeances: EcheanceMandat[];
 }
 

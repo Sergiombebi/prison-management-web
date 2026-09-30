@@ -34,6 +34,7 @@ import type {
   SortieDetenu,
   StatsDetenus,
   StatsEvacuation,
+  StatsMandatsExpires,
   StatsPrescription,
   StatsSuiviMedical,
   StatsVisite,
@@ -458,8 +459,8 @@ export interface ApiClient {
   listDetenusNonLoges(): Promise<DetenuResume[]>;
   /** GET /mandats (à livrer) */
   listMandats(): Promise<MandatDetaille[]>;
-  /** GET /mandats/expires (à livrer) */
-  listMandatsExpires(): Promise<MandatDetaille[]>;
+  /** GET /mandas/expires — paginé à 20 par page */
+  listMandatsExpires(filtre?: { page?: number }): Promise<PageResultat<MandatDetaille, StatsMandatsExpires>>;
 
   /** GET /cellules — occupation calculée par le serveur */
   listCellules(): Promise<Cellule[]>;

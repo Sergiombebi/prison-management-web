@@ -61,7 +61,9 @@ const DOMAINE_DE: Record<keyof ApiClient, DomaineApi> = {
   majMandat: "detenus",
   desactiverMandat: "detenus",
   listMandats: "mandats",
-  listMandatsExpires: "mandats",
+  // GET /mandas/expires existe désormais (contrairement à GET /mandats ci-dessus) : suit
+  // le même domaine que le reste des écritures de mandats.
+  listMandatsExpires: "detenus",
   // Même point d'entrée que le registre (`GET /detenus?categorie_penale=`) :
   // il suit donc le domaine « detenus », pas « mandats ».
   listParCategorie: "detenus",

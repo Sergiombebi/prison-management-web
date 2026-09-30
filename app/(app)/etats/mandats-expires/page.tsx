@@ -2,9 +2,11 @@ import type { Metadata } from "next";
 import { api, type MandatDetaille } from "@/lib/api";
 import { formatDate, formatNombre, joursRestants, pluriel, tronquer } from "@/lib/format";
 import { cn } from "@/lib/cn";
+import { hrefAvec, paramEntier } from "@/lib/url";
 import { getT } from "@/lib/i18n/server";
 import { Page, PageHeader } from "@/components/layout/page";
 import { DataTable } from "@/components/data/data-table";
+import { Pagination } from "@/components/data/pagination";
 import { Stat, StatGrid } from "@/components/data/stat";
 import { Badge } from "@/components/ui/badge";
 import { PrintButton } from "@/components/ui/client-actions";
@@ -12,13 +14,15 @@ import { EmptyState, Ecrou, Panel } from "@/components/ui/surface";
 
 export const metadata: Metadata = { title: "Mandats expirés" };
 
-export default async function MandatsExpiresPage() {
-  const t = await getT();
-  const mandats = await api.listMandatsExpires();
+const CHEMIN = "/etats/mandats-expires";
+
+export default async function MandatsExpiresPage(props: PageProps<"/etats/mandats-expires">) {
+  const [t, sp] = await Promise.all([getT(), props.searchParams]);
+  const page = paramEntier(sp, "page", 1);
+  const resultat = await api.listMandatsExpires({ page });
+  const stats = resultat.stats;
 
   const depassement = (m: MandatDetaille) => -(joursRestants(m.dateSortieMandat) ?? 0);
-  const plus30 = mandats.filter((m) => depassement(m) > 30).length;
-  const detenusConcernes = new Set(mandats.map((m) => m.detenuId)).size;
 
   return (
     <Page className="print:p-0">
@@ -30,15 +34,15 @@ export default async function MandatsExpiresPage() {
       />
 
       <StatGrid colonnes={3}>
-        <Stat icone="file" style={{ ["--i" as string]: 0 }} label="Mandats expirés" valeur={formatNombre(mandats.length)} signal={mandats.length > 0 ? "critique" : "positif"} contexte="À régulariser" />
-        <Stat icone="file" style={{ ["--i" as string]: 1 }} label="Détenus concernés" valeur={formatNombre(detenusConcernes)} contexte="Au moins un titre échu" />
-        <Stat icone="file" style={{ ["--i" as string]: 2 }} label="Échus depuis plus de 30 jours" valeur={formatNombre(plus30)} signal={plus30 > 0 ? "critique" : "neutre"} contexte="Situation la plus urgente" />
+        <Stat icone="file" style={{ ["--i" as string]: 0 }} label="Mandats expirés" valeur={formatNombre(resultat.total)} signal={resultat.total > 0 ? "critique" : "positif"} contexte="À régulariser" />
+        <Stat icone="file" style={{ ["--i" as string]: 1 }} label="Détenus concernés" valeur={formatNombre(stats?.detenusConcernes ?? 0)} contexte="Au moins un titre échu" />
+        <Stat icone="file" style={{ ["--i" as string]: 2 }} label="Échus depuis plus de 30 jours" valeur={formatNombre(stats?.echusPlus30Jours ?? 0)} signal={(stats?.echusPlus30Jours ?? 0) > 0 ? "critique" : "neutre"} contexte="Situation la plus urgente" />
       </StatGrid>
 
-      <Panel variante="eleve" titre="Mandats à régulariser" sousTitre={`Du plus ancien dépassement au plus récent — ${pluriel(mandats.length, "mandat")}`} flush className="overflow-hidden">
+      <Panel variante="eleve" titre="Mandats à régulariser" sousTitre={`Du plus ancien dépassement au plus récent — ${pluriel(resultat.total, "mandat")}`} flush className="overflow-hidden">
         <DataTable<MandatDetaille>
           legende="Mandats expirés"
-          lignes={[...mandats].sort((a, b) => depassement(b) - depassement(a))}
+          lignes={resultat.items}
           cleLigne={(m) => m.id}
           lienLigne={(m) => `/detenus/${m.detenuId}?onglet=mandats`}
           libelleLien={(m) => `Dossier de ${m.detenuNom}`}
@@ -69,6 +73,14 @@ export default async function MandatsExpiresPage() {
           ]}
           vide={<EmptyState icone="check" titre="Aucun mandat expiré" texte="Tous les titres de détention sont en cours de validité." />}
         />
+        {resultat.total > resultat.parPage && (
+          <Pagination
+            page={resultat.page}
+            parPage={resultat.parPage}
+            total={resultat.total}
+            href={(p) => hrefAvec(CHEMIN, sp, { page: p === 1 ? null : p })}
+          />
+        )}
       </Panel>
     </Page>
   );

@@ -346,12 +346,16 @@ export const mockApi: ApiClient = {
         Prevenu: 0, Condamne: 0, Appellant: 0, Cassationnaire: 0, Dpac: 0,
       } as StatsDetenus["parCategorie"];
       for (const d of presents) if (d.categoriePenale) parCategorie[d.categoriePenale]++;
+      const maintenant = new Date();
 
       stats = {
         effectif: presents.length,
         entrees30j: 0,
         sansCellule: presents.filter((d) => !d.cellule).length,
         parCategorie,
+        mandatsExpires: presents.filter(
+          (d) => d.mandatCourant?.dateSortieMandat && new Date(d.mandatCourant.dateSortieMandat) < maintenant,
+        ).length,
         echeances: presents
           .filter((d) => d.mandatCourant?.dateSortieMandat && new Date(d.mandatCourant.dateSortieMandat) <= dans30j)
           .sort((a, b) => (a.mandatCourant?.dateSortieMandat ?? "").localeCompare(b.mandatCourant?.dateSortieMandat ?? ""))
@@ -460,12 +464,27 @@ export const mockApi: ApiClient = {
       .sort((a, b) => b.dateIncarceration.localeCompare(a.dateIncarceration));
   },
 
-  async listMandatsExpires() {
+  async listMandatsExpires(filtre: { page?: number } = {}) {
     await attendre();
-    return fx.mandats
+    const parPage = 20;
+    const page = Math.max(1, filtre.page ?? 1);
+    const tous = fx.mandats
       .filter((m) => !fx.estMandatActif(m))
       .map(detailler)
       .sort((a, b) => (b.dateSortieMandat ?? "").localeCompare(a.dateSortieMandat ?? ""));
+    const debut = (page - 1) * parPage;
+    const maintenant = new Date();
+    const ilYa30j = new Date(maintenant.getTime() - 30 * 86_400_000);
+    return {
+      items: tous.slice(debut, debut + parPage),
+      total: tous.length,
+      page,
+      parPage,
+      stats: {
+        detenusConcernes: new Set(tous.map((m) => m.detenuId)).size,
+        echusPlus30Jours: tous.filter((m) => m.dateSortieMandat && new Date(m.dateSortieMandat) < ilYa30j).length,
+      },
+    };
   },
 
   async listParCategorie(categorie) {

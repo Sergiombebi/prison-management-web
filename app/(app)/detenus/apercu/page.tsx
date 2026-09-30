@@ -77,7 +77,9 @@ export default async function ApercuDetenusPage() {
   const echeances = (stats?.echeances ?? [])
     .map((e) => ({ detenu: e, e: { date: e.dateExpirationMandat, jours: joursRestants(e.dateExpirationMandat) ?? 0 } }))
     .filter((x) => x.e.jours <= 30);
-  const expires = echeances.filter((x) => x.e.jours < 0).length;
+  // Jamais dérivé de la liste ci-dessus (bornée à 20) : le vrai total, même chiffre que
+  // « Mandats expirés » du tableau de bord.
+  const expires = stats?.mandatsExpires ?? 0;
 
   return (
     <Page>

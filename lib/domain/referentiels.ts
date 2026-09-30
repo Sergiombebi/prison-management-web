@@ -151,11 +151,9 @@ export const LIBELLE_CATEGORIE: Record<CategoriePenale, string> = {
 export const REGLE_CATEGORIE: Record<CategoriePenale, string> = {
   Prevenu: "Tous les mandats actifs sont en détention provisoire.",
   Condamne: "Un seul mandat actif, en exécution de peine.",
-  Appellant:
-    "Au moins un mandat actif en appel, et aucun en exécution de peine.",
-  Cassationnaire:
-    "Au moins un mandat actif en cassation, et aucun en exécution de peine.",
-  Dpac: "Au moins deux mandats actifs, dont un en exécution de peine.",
+  Appellant: "Un seul mandat actif, en appel.",
+  Cassationnaire: "Un seul mandat actif, en cassation.",
+  Dpac: "Au moins deux mandats actifs, dont un déjà jugé (exécution de peine, appel ou cassation).",
 };
 
 export const LIBELLE_TYPE_SORTIE: Record<TypeSortie, string> = {
