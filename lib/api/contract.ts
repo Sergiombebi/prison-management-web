@@ -459,8 +459,14 @@ export interface ApiClient {
 
   /** GET /detenus?sans_cellule=1 — détenus présents sans cellule */
   listDetenusNonLoges(): Promise<DetenuResume[]>;
-  /** GET /mandats (à livrer) */
-  listMandats(): Promise<MandatDetaille[]>;
+  /** GET /mandas — 20 par page par défaut */
+  listMandats(filtre?: {
+    recherche?: string;
+    etat?: "tous" | "actifs" | "expires";
+    statut?: string;
+    page?: number;
+    parPage?: number;
+  }): Promise<PageResultat<MandatDetaille>>;
   /** GET /mandas/expires — 20 par page par défaut */
   listMandatsExpires(filtre?: { page?: number; parPage?: number }): Promise<PageResultat<MandatDetaille, StatsMandatsExpires>>;
 

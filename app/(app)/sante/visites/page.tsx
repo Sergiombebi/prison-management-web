@@ -77,14 +77,12 @@ export default async function VisitesPage(props: PageProps<"/sante/visites">) {
 
           <VisitesTable visites={resultat.items} parametres={parametres} />
 
-          {resultat.total > resultat.parPage && (
-            <Pagination
-              page={resultat.page}
-              parPage={resultat.parPage}
-              total={resultat.total}
-              href={(p) => hrefAvec(CHEMIN, sp, { page: p === 1 ? null : p })}
-            />
-          )}
+          <Pagination
+            page={resultat.page}
+            parPage={resultat.parPage}
+            total={resultat.total}
+            href={(p) => hrefAvec(CHEMIN, sp, { page: p === 1 ? null : p })}
+          />
         </Panel>
 
         {profil && peut(profil.permissions, "visites.creer") && (

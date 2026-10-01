@@ -24,34 +24,26 @@ import { EmptyState, Ecrou, Panel } from "@/components/ui/surface";
 export const metadata: Metadata = { title: "Mandats" };
 
 const CHEMIN = "/detenus/mandats";
-const PAR_PAGE = 20;
+const PAR_PAGE_OPTIONS = [20, 50, 100];
 const ORDRE: CategoriePenale[] = ["Prevenu", "Condamne", "Appellant", "Cassationnaire", "Dpac"];
 
 export default async function MandatsPage(props: PageProps<"/detenus/mandats">) {
   const t = await getT();
   const sp = await props.searchParams;
-  // Le compteur par catégorie vient du tableau de bord, derrière sa propre
-  // permission : sans elle, la carte s'affiche sans chiffre plutôt que pas du tout.
-  const [mandats, tb] = await Promise.all([
-    api.listMandats(),
-    optionnel(() => api.getTableauDeBord(), null),
-  ]);
 
-  const recherche = (param(sp, "recherche") ?? "").toLowerCase();
+  const recherche = param(sp, "recherche") ?? "";
   const etat = param(sp, "etat") ?? "tous";
   const statut = param(sp, "statut") ?? "tous";
   const page = paramEntier(sp, "page", 1);
+  const parPage = paramEntier(sp, "parPage", 20);
 
-  const filtres = mandats.filter(
-    (m) =>
-      (etat === "tous" || (etat === "actifs" ? m.actif : !m.actif)) &&
-      (statut === "tous" || m.typeStatutPenal === statut) &&
-      (!recherche ||
-        m.detenuNom.toLowerCase().includes(recherche) ||
-        m.numeroEcrou.toLowerCase().includes(recherche) ||
-        (m.referenceMandat ?? "").toLowerCase().includes(recherche)),
-  );
-  const visibles = filtres.slice((page - 1) * PAR_PAGE, page * PAR_PAGE);
+  // Le compteur par catégorie vient du tableau de bord, derrière sa propre
+  // permission : sans elle, la carte s'affiche sans chiffre plutôt que pas du tout.
+  const [resultat, tb] = await Promise.all([
+    api.listMandats({ recherche, etat: etat as "tous" | "actifs" | "expires", statut, page, parPage }),
+    optionnel(() => api.getTableauDeBord(), null),
+  ]);
+  const visibles = resultat.items;
   const actif = filtresActifs(sp, ["recherche", "etat", "statut"]);
 
   return (
@@ -82,7 +74,7 @@ export default async function MandatsPage(props: PageProps<"/detenus/mandats">) 
       </StatGrid>
 
       <Panel variante="eleve" flush className="overflow-hidden">
-        <FilterBar action={CHEMIN} actif={actif} reinitialiserHref={CHEMIN} resultat={pluriel(filtres.length, "mandat")}>
+        <FilterBar action={CHEMIN} actif={actif} reinitialiserHref={CHEMIN} resultat={pluriel(resultat.total, "mandat")}>
           <SearchInput
             name="recherche"
             defaultValue={param(sp, "recherche")}
@@ -164,12 +156,13 @@ export default async function MandatsPage(props: PageProps<"/detenus/mandats">) 
           }
         />
 
-        {filtres.length > PAR_PAGE && (
+        {resultat.total > resultat.parPage && (
           <Pagination
-            page={page}
-            parPage={PAR_PAGE}
-            total={filtres.length}
+            page={resultat.page}
+            parPage={resultat.parPage}
+            total={resultat.total}
             href={(p) => hrefAvec(CHEMIN, sp, { page: p === 1 ? null : p })}
+            parPageOptions={PAR_PAGE_OPTIONS}
           />
         )}
       </Panel>

@@ -95,14 +95,12 @@ export default async function SuiviMedicalPage(props: PageProps<"/sante/suivi-me
             vide={<EmptyState icone="sante" titre={t.etats.aucunResultatTitre} texte={t.etats.aucunResultatTexte} />}
           />
 
-          {resultat.total > resultat.parPage && (
-            <Pagination
-              page={resultat.page}
-              parPage={resultat.parPage}
-              total={resultat.total}
-              href={(p) => hrefAvec(CHEMIN, sp, { page: p === 1 ? null : p })}
-            />
-          )}
+          <Pagination
+            page={resultat.page}
+            parPage={resultat.parPage}
+            total={resultat.total}
+            href={(p) => hrefAvec(CHEMIN, sp, { page: p === 1 ? null : p })}
+          />
         </Panel>
 
         {profil && peut(profil.permissions, "sante.consultations.creer") && (

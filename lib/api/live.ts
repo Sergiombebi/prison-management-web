@@ -208,15 +208,6 @@ export function sansVides(corps: Record<string, unknown>): Record<string, unknow
   return corps;
 }
 
-/** Route décrite dans le guide mais pas encore livrée par l'API. */
-function nonLivre(route: string): never {
-  throw new ApiErreur(
-    `La route ${route} n'existe pas encore dans l'API. Ce module doit rester en données de démonstration.`,
-    501,
-    "NON_LIVRE",
-  );
-}
-
 // ---------------------------------------------------------------------------
 // Authentification — GUIDE_FRONTEND.md §1
 // ---------------------------------------------------------------------------
@@ -2150,13 +2141,37 @@ export const liveApi: ApiClient = {
     };
   },
 
-  // -------------------------------------------------------------------------
-  // Modules que l'API n'expose pas encore (cf. bloc A signalé au back).
-  // `async` : l'échec doit être une promesse rejetée, comme pour toute méthode
-  // du contrat — une exception synchrone échapperait à qui attend la promesse.
-  // -------------------------------------------------------------------------
+  /**
+   * Registre de tous les mandats, tous détenus confondus (`/detenus/mandats`) — voir
+   * `MandasController::index()` côté API. Paginé à 20 par page.
+   */
+  async listMandats(filtre: { recherche?: string; etat?: string; statut?: string; page?: number; parPage?: number } = {}) {
+    const corps = await requete<{
+      data: (MandasApi & { detenu?: { nom: string; numero_ecrou: string } })[];
+      meta: MetaPagination;
+    }>("/mandas", {
+      query: {
+        recherche: filtre.recherche,
+        statut: filtre.statut && filtre.statut !== "tous" ? filtre.statut : undefined,
+        etat: filtre.etat && filtre.etat !== "tous" ? filtre.etat : undefined,
+        page: filtre.page,
+        per_page: filtre.parPage,
+      },
+    });
 
-  listMandats: async () => nonLivre("GET /mandats"),
+    return {
+      items: (corps?.data ?? []).map((m) => ({
+        ...versMandas(m),
+        detenuNom: m.detenu?.nom ?? "",
+        numeroEcrou: m.detenu?.numero_ecrou ?? "",
+        actif: mandatActif(m),
+        ouvert: m.est_actif,
+      })),
+      total: corps?.meta?.total ?? 0,
+      page: corps?.meta?.current_page ?? 1,
+      parPage: corps?.meta?.per_page ?? 20,
+    };
+  },
 };
 
 // `generateMetadata` et le composant de la fiche détenu appellent tous deux

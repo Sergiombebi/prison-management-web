@@ -65,14 +65,12 @@ export default async function EvacuationsPage(props: PageProps<"/sante/evacuatio
 
           <EvacuationsTable evacuations={resultat.items} />
 
-          {resultat.total > resultat.parPage && (
-            <Pagination
-              page={resultat.page}
-              parPage={resultat.parPage}
-              total={resultat.total}
-              href={(p) => hrefAvec(CHEMIN, sp, { page: p === 1 ? null : p })}
-            />
-          )}
+          <Pagination
+            page={resultat.page}
+            parPage={resultat.parPage}
+            total={resultat.total}
+            href={(p) => hrefAvec(CHEMIN, sp, { page: p === 1 ? null : p })}
+          />
         </Panel>
 
         {profil && peut(profil.permissions, "sante.evacuations.creer") && (

@@ -457,11 +457,27 @@ export const mockApi: ApiClient = {
     return fx.detenus.filter((d) => !loges.has(d.id)).map((d) => resumer(d.id));
   },
 
-  async listMandats() {
+  async listMandats(filtre: { recherche?: string; etat?: string; statut?: string; page?: number; parPage?: number } = {}) {
     await attendre();
-    return fx.mandats
+    const terme = (filtre.recherche ?? "").toLowerCase();
+    const tous = fx.mandats
       .map(detailler)
+      .filter(
+        (m) =>
+          (!filtre.statut || filtre.statut === "tous" || m.typeStatutPenal === filtre.statut) &&
+          (!filtre.etat || filtre.etat === "tous" || (filtre.etat === "actifs" ? m.actif : !m.actif)) &&
+          (!terme ||
+            m.detenuNom.toLowerCase().includes(terme) ||
+            m.numeroEcrou.toLowerCase().includes(terme) ||
+            (m.referenceMandat ?? "").toLowerCase().includes(terme)),
+      )
       .sort((a, b) => b.dateIncarceration.localeCompare(a.dateIncarceration));
+
+    const parPage = Math.max(1, Math.min(100, filtre.parPage ?? 20));
+    const page = Math.max(1, filtre.page ?? 1);
+    const debut = (page - 1) * parPage;
+
+    return { items: tous.slice(debut, debut + parPage), total: tous.length, page, parPage };
   },
 
   async listMandatsExpires(filtre: { page?: number; parPage?: number } = {}) {

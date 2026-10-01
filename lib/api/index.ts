@@ -24,7 +24,6 @@ export type DomaineApi =
   | "auth"
   | "tableauDeBord"
   | "detenus"
-  | "mandats"
   | "discipline"
   | "sante"
   | "sorties"
@@ -60,9 +59,7 @@ const DOMAINE_DE: Record<keyof ApiClient, DomaineApi> = {
   getMandat: "detenus",
   majMandat: "detenus",
   desactiverMandat: "detenus",
-  listMandats: "mandats",
-  // GET /mandas/expires existe désormais (contrairement à GET /mandats ci-dessus) : suit
-  // le même domaine que le reste des écritures de mandats.
+  listMandats: "detenus",
   listMandatsExpires: "detenus",
   // Même point d'entrée que le registre (`GET /detenus?categorie_penale=`) :
   // il suit donc le domaine « detenus », pas « mandats ».
