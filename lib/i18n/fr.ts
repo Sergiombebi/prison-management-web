@@ -401,6 +401,7 @@ export const fr = {
     desactiverDossierTexteB: ": n’utilisez pas cette action pour une vraie levée d’écrou.",
     desactiverDossierTexteC: "Le dossier reste consultable et peut être restauré.",
     desactiverConfirmerBouton: "Désactiver",
+    desactiverDossierMessageSucces: "Dossier désactivé.",
 
     ajouterMandat: "Ajouter un mandat",
     aucunMandatTitre: "Aucun mandat",
@@ -418,6 +419,7 @@ export const fr = {
     desactiverMandatTexteSuffix: "cessera de compter dans la situation pénale du détenu.",
     desactiverMandatTexte2: "À réserver à un mandat saisi par erreur. Pour une levée d’écrou, consignez une libération : elle sera archivée.",
     desactiverMandatConfirmerBouton: "Désactiver le mandat",
+    desactiverMandatMessageSucces: "Mandat désactivé.",
     etapeIncarceration: "Incarcération",
     etapeJugement: "Jugement",
     etapeAppel: "Appel",

@@ -134,7 +134,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
       setToasts((current) => [next, ...current].slice(0, 4));
 
-      const duration = toast.duration ?? 4200;
+      const duration = toast.duration ?? 15000;
       if (duration > 0) {
         timeoutRef.current[id] = window.setTimeout(() => dismiss(id), duration);
       }

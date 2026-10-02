@@ -385,6 +385,7 @@ export const en: Messages = {
     desactiverDossierTexteB: ": do not use this action for an actual release.",
     desactiverDossierTexteC: "The record stays viewable and can be restored.",
     desactiverConfirmerBouton: "Deactivate",
+    desactiverDossierMessageSucces: "Record deactivated.",
 
     ajouterMandat: "Add a warrant",
     aucunMandatTitre: "No warrant",
@@ -402,6 +403,7 @@ export const en: Messages = {
     desactiverMandatTexteSuffix: "will stop counting toward the inmate's legal status.",
     desactiverMandatTexte2: "Reserve for a warrant entered by mistake. For an actual release, record it as a release: it will be archived.",
     desactiverMandatConfirmerBouton: "Deactivate the warrant",
+    desactiverMandatMessageSucces: "Warrant deactivated.",
     etapeIncarceration: "Incarceration",
     etapeJugement: "Trial",
     etapeAppel: "Appeal",

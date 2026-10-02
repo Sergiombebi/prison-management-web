@@ -168,6 +168,7 @@ export default async function PersonnelPage(props: PageProps<"/administration/pe
                           taille="sm"
                           iconeSeule
                           action={desactiverUtilisateur.bind(null, u.id)}
+                          messageSucces="Compte désactivé."
                         />
                       ) : (
                         <BoutonRestaurerUtilisateur utilisateurId={u.id} iconeSeule />

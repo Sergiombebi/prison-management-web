@@ -379,6 +379,7 @@ export default async function DossierDetenuPage(props: PageProps<"/detenus/[id]"
                   }
                   confirmer={fd.desactiverConfirmerBouton}
                   action={desactiverDossier.bind(null, d.id)}
+                  messageSucces={fd.desactiverDossierMessageSucces}
                 />
               </section>
             )}
@@ -817,6 +818,7 @@ function CarteMandat({
               }
               confirmer={fd.desactiverMandatConfirmerBouton}
               action={desactiverMandat.bind(null, m.detenuId, m.id)}
+              messageSucces={fd.desactiverMandatMessageSucces}
             />
           )}
         </>

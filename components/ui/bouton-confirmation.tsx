@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { cn } from "@/lib/cn";
 import { Button } from "./button";
 import { Icon, type NomIcone } from "./icon";
+import { useToast } from "./toast";
 
 /**
  * Action à conséquence, confirmée dans une boîte de dialogue native.
@@ -23,6 +24,7 @@ export function BoutonConfirmation({
   taille = "md",
   iconeSeule = false,
   action,
+  messageSucces,
   onSuccess,
 }: {
   libelle: string;
@@ -36,12 +38,15 @@ export function BoutonConfirmation({
   iconeSeule?: boolean;
   /** Server Action : `ok: false` garde la boîte ouverte et affiche le message. */
   action: () => Promise<{ ok: boolean; message?: string }>;
-  /** Appelé après la fermeture, une fois l'action confirmée réussie (ex. toast). */
+  /** Affiche ce toast de succès une fois l'action confirmée réussie. Suffit pour le cas courant. */
+  messageSucces?: string;
+  /** Appelé après la fermeture, une fois l'action confirmée réussie — pour un toast sur mesure (ex. avec un lien d'action). */
   onSuccess?: () => void;
 }) {
   const dialogue = useRef<HTMLDialogElement>(null);
   const idTitre = useId();
   const router = useRouter();
+  const { push } = useToast();
   const [enCours, demarrer] = useTransition();
   const [erreur, setErreur] = useState<string>();
 
@@ -116,6 +121,7 @@ export function BoutonConfirmation({
                   }
                   dialogue.current?.close();
                   router.refresh();
+                  if (messageSucces) push({ type: "success", title: messageSucces });
                   onSuccess?.();
                 })
               }
