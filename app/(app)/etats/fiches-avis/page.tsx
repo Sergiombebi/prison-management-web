@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import Form from "next/form";
-import { Suspense } from "react";
-import { api } from "@/lib/api";
+import { Suspense, type ReactNode } from "react";
+import { api, type MandatDetaille } from "@/lib/api";
 import { optionnel } from "@/lib/api/disponibilite";
 import { resoudreDetenuInitial } from "@/lib/api/detenu-initial";
 import { ETATS_A_GENERER, LIBELLE_CATEGORIE, LIBELLE_TYPE_SORTIE } from "@/lib/domain/referentiels";
+import { etapesJudiciaires } from "@/lib/domain/situation-penale";
 import { formatDate, formatDateLongue, ouVide } from "@/lib/format";
 import { param } from "@/lib/url";
 import { getProfil, peut } from "@/lib/session";
@@ -13,6 +14,7 @@ import { Page, PageHeader } from "@/components/layout/page";
 import { AttestationOfficielle, DocumentOfficiel, LigneDocument } from "@/components/etats/document";
 import { Button } from "@/components/ui/button";
 import { PrintButton } from "@/components/ui/client-actions";
+import { BoutonTelechargerWord } from "@/components/etats/bouton-telecharger-word";
 import { Field, Select } from "@/components/ui/field";
 import { SelectDetenu } from "@/components/ui/select-detenu";
 import { EmptyState, Panel } from "@/components/ui/surface";
@@ -41,8 +43,7 @@ export default async function FichesAvisPage(props: PageProps<"/etats/fiches-avi
       <PageHeader
         surtitre={t.modules.etats}
         titre="Fiches & avis divers"
-        description="Choisir le document et le détenu, vérifier l’aperçu, puis imprimer. Les en-têtes proviennent des paramètres de l’établissement."
-        actions={etatValide && Number.isFinite(detenuId) && detenuId > 0 ? <PrintButton /> : undefined}
+        description="Choisir le document et le détenu, vérifier l’aperçu, puis générer le document au format PDF ou Word."
       />
 
       <div className="grid items-start gap-6 xl:grid-cols-[320px_minmax(0,1fr)] print:block">
@@ -116,7 +117,14 @@ async function ApercuDocument({ etatValide, detenuId }: { etatValide: string; de
     );
   }
 
-  return etatValide === "Attestation de détention" ? (
+  return (
+    <>
+      <div data-print-hide className="mb-4 flex justify-end gap-2">
+        <PrintButton>PDF (imprimer)</PrintButton>
+        <BoutonTelechargerWord etatValide={etatValide} dossier={dossier} parametres={parametres} />
+      </div>
+
+      {etatValide === "Attestation de détention" ? (
     <AttestationOfficielle parametres={parametres} reference={`${dossier.detenu.numeroEcrou}/${new Date().getFullYear()}`}>
       <p className="w-full text-center">
         Le Régisseur de la <strong>{parametres.nomPrison}</strong>, soussigné, atteste que
@@ -162,12 +170,11 @@ async function ApercuDocument({ etatValide, detenuId }: { etatValide: string; de
 
       {(etatValide === "Extrait du registre d'écrou" || etatValide === "Fichier des situations pénales") && (
         <TableDocument
-          entetes={["Date d’incarcération", "Motif", "Tribunal", "Décision", "Statut"]}
+          entetes={["Date d’incarcération", "Motif", "Situation pénale", "Statut"]}
           lignes={dossier.mandats.map((m) => [
             formatDate(m.dateIncarceration),
             ouVide(m.motifDetention),
-            ouVide(m.tribunalJugement),
-            ouVide(m.peinePrononcee ?? m.decisionAppel),
+            <CelluleSituationPenale key="situation" mandat={m} />,
             ouVide(m.typeStatutPenal),
           ])}
           vide="Aucun mandat enregistré."
@@ -194,6 +201,28 @@ async function ApercuDocument({ etatValide, detenuId }: { etatValide: string; de
         </p>
       )}
     </DocumentOfficiel>
+      )}
+    </>
+  );
+}
+
+/** Jugement → appel → cassation d'un mandat, uniquement les étapes renseignées. */
+function CelluleSituationPenale({ mandat }: { mandat: MandatDetaille }) {
+  const etapes = etapesJudiciaires(mandat);
+
+  if (etapes.length === 0) return <span className="italic text-neutral-500">—</span>;
+
+  return (
+    <div className="flex flex-col gap-1">
+      {etapes.map((e) => (
+        <p key={e.titre}>
+          <strong>{e.titre}</strong>
+          {e.date && ` (${formatDate(e.date)})`}
+          {e.tribunal && ` — ${e.tribunal}`}
+          {e.decision && ` — ${e.decision}`}
+        </p>
+      ))}
+    </div>
   );
 }
 
@@ -225,7 +254,7 @@ function ApercuChargement({ t }: { t: { etats: { chargement: string; chargementE
   );
 }
 
-function TableDocument({ entetes, lignes, vide }: { entetes: string[]; lignes: string[][]; vide: string }) {
+function TableDocument({ entetes, lignes, vide }: { entetes: string[]; lignes: ReactNode[][]; vide: string }) {
   if (lignes.length === 0) return <p className="text-center italic text-neutral-600">{vide}</p>;
   return (
     <table className="w-full border-collapse text-[12px]">
